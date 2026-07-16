@@ -6,6 +6,8 @@ import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 
+const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
+
 export default function ChatPage() {
   const navigate = useNavigate();
   const { roomId } = useParams();
@@ -35,7 +37,7 @@ export default function ChatPage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const client = new Client({
-      webSocketFactory: () => new SockJS('/ws'),
+      webSocketFactory: () => new SockJS(wsUrl),
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 3000,
       onConnect: () => {
