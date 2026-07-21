@@ -2,14 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { timeAgo } from '../utils';
 
 const POLL_INTERVAL = 10000;
 
 export default function NavBar() {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
@@ -79,14 +77,6 @@ export default function NavBar() {
       <nav className="gnb">
         <Link to="/" className="logo">DUO.GG</Link>
         <div className="gnb-r">
-          <button
-            className="theme-toggle"
-            onClick={toggleTheme}
-            aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-            title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-          >
-            {theme === 'dark' ? '🌙' : '☀️'}
-          </button>
           {user ? (
             <>
               <div className="noti-wrap" ref={wrapRef}>

@@ -1,37 +1,10 @@
 /* 와이어프레임 스타일 기반 */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --bg-color: #f5f5f5;
-  --surface: #fff;
-  --border: #e2e8f0;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --primary: #003399;
-  --primary-glow: rgba(59, 130, 246, .4);
-  --gold: #f59e0b;
-  --gold-glow: rgba(245, 158, 11, .3);
-  --online: #10b981;
-  --danger: #ef4444;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-}
-
-[data-theme='dark'] {
-  --bg-color: #0f172a;
-  --surface: #1e293b;
-  --surface-hover: #334155;
-  --border: #334155;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-}
-
 body {
   font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
-  background: var(--bg-color);
-  color: var(--text-main);
-  transition: background .3s, color .3s;
+  background: #f5f5f5;
+  color: #222;
 }
 
 .page { max-width: 1000px; margin: 0 auto; padding: 28px 32px 60px; }
@@ -47,14 +20,6 @@ body {
 }
 .logo { font-size: 16px; font-weight: 800; cursor: pointer; text-decoration: none; color: #222; }
 .gnb-r { display: flex; gap: 8px; align-items: center; position: relative; }
-
-/* 테마 토글 */
-.theme-toggle {
-  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
-  background: var(--surface); display: flex; align-items: center; justify-content: center;
-  font-size: 15px; cursor: pointer; flex-shrink: 0;
-}
-.theme-toggle:hover { border-color: var(--primary); }
 
 /* 입력 */
 .inp {
