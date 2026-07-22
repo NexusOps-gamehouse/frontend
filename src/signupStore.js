@@ -10,7 +10,7 @@ export const signupStore = {
   game: '',
   playStyle: '',
   position: '',
-  mic: true,
+  mic: null,
   tier: '',
   playTimes: [],   // ['저녁', '새벽']
   gameModes: [],   // ['랭크', '칼바람']
@@ -22,7 +22,7 @@ export function resetSignupStore() {
     email: '', password: '', nickname: '',
     imageFile: null, imagePreview: null,
     gender: '비공개', ageRange: '비공개',
-    game: '', playStyle: '', position: '', mic: true, tier: '',
+    game: '', playStyle: '', position: '', mic: null, tier: '',
     playTimes: [], gameModes: [], riotNickname: '',
   });
 }
