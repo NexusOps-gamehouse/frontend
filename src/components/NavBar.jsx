@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { timeAgo } from '../utils';
+import logo from '../assets/gamehouse-logo.png';
 
 const POLL_INTERVAL = 10000;
 
 export default function NavBar() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState(null);
-  const lastNotiId = useRef(null); // 마지막으로 본 알림 id (토스트 중복 방지)
+  const lastNotiId = useRef(null);
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -69,53 +70,68 @@ export default function NavBar() {
     if (n.link) navigate(n.link);
   };
 
-  const doLogout = () => {
-    logout();
-    navigate('/');
-  };
-
   return (
     <>
       <nav className="gnb">
-        <Link to="/" className="logo">DUO.GG</Link>
-        <div className="gnb-r">
-          <button
-            className="theme-toggle"
-            onClick={toggleTheme}
-            aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-            title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-          >
-            {theme === 'dark' ? '🌙' : '☀️'}
-          </button>
-          {user ? (
-            <>
-              <div className="noti-wrap" ref={wrapRef}>
-                <button className="chip" onClick={toggleNoti}>
-                  🔔{unread > 0 ? ` ${unread}` : ''}
-                </button>
-                {open && (
-                  <div className="noti-dropdown">
-                    {items.length === 0 && <div className="noti-empty">알림이 없습니다.</div>}
-                    {items.map((n) => (
-                      <div key={n.id}
-                           className={`noti-item ${n.read ? '' : 'unread'}`}
-                           onClick={() => clickNoti(n)}>
-                        <div>{n.message}</div>
-                        <div className="meta">{timeAgo(n.createdAt)}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+        <div className="gnb-inner">
+          <div className="gnb-left">
+            <Link to="/" className="logo-img" aria-label="GAME HOUSE 홈">
+              <img src={logo} alt="GAME HOUSE" />
+            </Link>
+            {user && (
+              <div className="gnb-menu">
+                <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>모집글</NavLink>
+                <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'active' : '')}>내 파티</NavLink>
+                <NavLink to="/chat" end className={({ isActive }) => (isActive ? 'active' : '')}>채팅</NavLink>
               </div>
-              <button className="chip" onClick={() => navigate('/mypage')}>마이페이지</button>
-              <button className="chip" onClick={doLogout}>로그아웃</button>
-            </>
-          ) : (
-            <>
-              <button className="chip" onClick={() => navigate('/login')}>로그인</button>
-              <button className="chip" onClick={() => navigate('/signup')}>회원가입</button>
-            </>
-          )}
+            )}
+          </div>
+
+          <div className="gnb-r">
+            <button
+              className="icon-btn"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            >
+              {theme === 'dark' ? '🌙' : '☀️'}
+            </button>
+
+            {user ? (
+              <>
+                <div className="noti-wrap" ref={wrapRef}>
+                  <button className="icon-btn" onClick={toggleNoti} aria-label="알림">
+                    🔔
+                    {unread > 0 && <span className="badge">{unread > 99 ? '99+' : unread}</span>}
+                  </button>
+                  {open && (
+                    <div className="noti-dropdown">
+                      {items.length === 0 && <div className="noti-empty">알림이 없습니다.</div>}
+                      {items.map((n) => (
+                        <div key={n.id}
+                             className={`noti-item ${n.read ? '' : 'unread'}`}
+                             onClick={() => clickNoti(n)}>
+                          <div>{n.message}</div>
+                          <div className="meta">{timeAgo(n.createdAt)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button className="profile-btn" onClick={() => navigate('/mypage')}>
+                  <span className="profile-av">{user.nickname?.[0] || '?'}</span>
+                  <span>{user.nickname}</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="ui-btn-secondary" onClick={() => navigate('/login')}>로그인</button>
+                <button className="ui-btn-primary" style={{ height: 40, padding: '0 20px', fontSize: 14 }}
+                        onClick={() => navigate('/signup')}>회원가입</button>
+              </>
+            )}
+          </div>
         </div>
       </nav>
       {toast && <div className="toast">🔔 {toast}</div>}

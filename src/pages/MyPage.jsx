@@ -20,7 +20,7 @@ const APP_TAG_CLASS = {
 
 export default function MyPage() {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [myPosts, setMyPosts] = useState([]);
   const [myApps, setMyApps] = useState([]);
 
@@ -30,6 +30,12 @@ export default function MyPage() {
     api.get('/my/applications').then(({ data }) => setMyApps(data)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const doLogout = () => {
+    if (!confirm('로그아웃 할까요?')) return;
+    logout();
+    navigate('/');
+  };
 
   if (!user) return null;
 
@@ -120,6 +126,11 @@ export default function MyPage() {
             </span>
           </div>
         ))}
+
+        {/* 로그아웃 */}
+        <div style={{ textAlign: 'center', marginTop: 48 }}>
+          <button className="textlink" onClick={doLogout}>로그아웃</button>
+        </div>
       </div>
     </div>
   );

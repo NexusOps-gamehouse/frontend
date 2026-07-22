@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
 /* 와이어프레임 스타일 기반 */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -40,14 +41,68 @@ body {
 .center.wide { max-width: 560px; }
 .center.chat { max-width: 640px; }
 
-/* GNB */
+/* ===== GNB (글래스모피즘) ===== */
 .gnb {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 32px; border-bottom: 1px solid #e5e5e5; background: #fff;
-  position: sticky; top: 0; z-index: 10;
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(255, 255, 255, .8);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
 }
-.logo { font-size: 16px; font-weight: 800; cursor: pointer; text-decoration: none; color: #222; }
-.gnb-r { display: flex; gap: 8px; align-items: center; position: relative; }
+[data-theme='dark'] .gnb { background: rgba(15, 23, 42, .75); }
+
+.gnb-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 72px;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+}
+.gnb-left { display: flex; align-items: center; gap: 48px; min-width: 0; }
+
+/* 로고 (이미지) */
+.logo-img { display: flex; align-items: center; flex-shrink: 0; }
+.logo-img img {
+  height: 36px; width: auto; display: block;
+  transition: filter .2s ease;
+}
+.logo-img:hover img { filter: brightness(1.15); }
+
+
+/* 메뉴 */
+.gnb-menu { display: flex; gap: 32px; font-size: 15px; font-weight: 600; }
+.gnb-menu a {
+  color: var(--text-muted); transition: color .2s ease;
+  padding-bottom: 2px; border-bottom: 2px solid transparent;
+}
+.gnb-menu a:hover { color: var(--primary); }
+.gnb-menu a.active { color: var(--text-main); font-weight: 800; border-bottom-color: var(--primary); }
+
+/* 우측 */
+.gnb-r { display: flex; gap: 12px; align-items: center; position: relative; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--surface); color: var(--text-main);
+  border: 1px solid var(--border); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s ease; position: relative; flex-shrink: 0;
+}
+.icon-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-2px); }
+.icon-btn .badge {
+  position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px;
+  padding: 0 5px; border-radius: 9px; background: var(--danger); color: #fff;
+  font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+
+/* 프로필 알약 버튼 */
+.profile-btn {
+  display: flex; align-items: center; gap: 10px; padding: 6px 16px 6px 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 30px; font-size: 14px; font-weight: 600; cursor: pointer;
+  color: var(--text-main); transition: border-color .2s ease; white-space: nowrap;
+}
+.profile-btn:hover { border-color: var(--primary); }
+.profile-av {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--primary); color: #fff; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
+}
 
 /* 테마 토글 */
 .theme-toggle {
