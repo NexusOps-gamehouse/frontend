@@ -93,7 +93,7 @@ export default function ChatPage() {
       <div className="center chat">
         {/* 헤더 */}
         <div className="between"
-             style={{ paddingBottom: 12, borderBottom: '1px solid #e5e5e5', marginBottom: 12 }}>
+             style={{ paddingBottom: 12, borderBottom: '1px solid var(--border)', marginBottom: 12 }}>
           <div>
             <div className="name" style={{ cursor: 'pointer' }}
                  onClick={() => navigate(`/post/${room.postId}`)}>
@@ -106,56 +106,63 @@ export default function ChatPage() {
           )}
         </div>
 
-        {/* 멤버 목록 */}
-        <div className="flex" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {room.members.map((m) => (
-            <div key={m.user.id} className="member-chip">
-              <span onClick={() => navigate(`/profile/${m.user.id}`)}
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Avatar user={m.user} size="sm" />
-                <span style={{ fontSize: 12 }}>{m.user.nickname}</span>
-              </span>
-              {m.owner && <span className="tag">방장</span>}
-              {!m.owner && m.confirmed && <span className="tag">✔ 확정</span>}
-              {isOwner && !m.owner && !m.confirmed && m.applicationId && (
-                <button className="textlink" onClick={() => confirmMember(m.applicationId)}>확정</button>
-              )}
-              {isOwner && !m.owner && (
-                <button className="textlink" onClick={() => kick(m.user.id, m.user.nickname)}>내보내기</button>
-              )}
+        <div className="chat-layout">
+          {/* 참여자 사이드바 */}
+          <aside className="chat-sidebar">
+            <div className="meta" style={{ fontWeight: 700, marginBottom: 2 }}>참여자 {room.members.length}</div>
+            {room.members.map((m) => (
+              <div key={m.user.id} className="member-chip">
+                <span onClick={() => navigate(`/profile/${m.user.id}`)}
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Avatar user={m.user} size="sm" />
+                  <span style={{ fontSize: 12 }}>{m.user.nickname}</span>
+                </span>
+                <span className="member-actions">
+                  {m.owner && <span className="ui-tag is-primary">방장</span>}
+                  {!m.owner && m.confirmed && <span className="ui-tag is-online">✔ 확정</span>}
+                  {isOwner && !m.owner && !m.confirmed && m.applicationId && (
+                    <button className="textlink" onClick={() => confirmMember(m.applicationId)}>확정</button>
+                  )}
+                  {isOwner && !m.owner && !m.confirmed && (
+                    <button className="textlink" onClick={() => kick(m.user.id, m.user.nickname)}>내보내기</button>
+                  )}
+                </span>
+              </div>
+            ))}
+          </aside>
+
+          {/* 메시지 영역 */}
+          <div className="chat-main">
+            <div className="chat-messages">
+              {messages.map((m) => {
+                const mine = m.senderId === user?.id;
+                return mine ? (
+                  <div key={m.id} className="msg-row is-me">
+                    <div className="bubble me">{m.content}</div>
+                  </div>
+                ) : (
+                  <div key={m.id} className="msg-row">
+                    <Avatar user={{ nickname: m.senderNickname }} size="sm" />
+                    <div className="msg-body">
+                      <div className="meta" style={{ marginBottom: 2 }}>{m.senderNickname}</div>
+                      <div className="bubble">{m.content}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={bottomRef} />
             </div>
-          ))}
-        </div>
 
-        {/* 메시지 */}
-        <div className="chat-messages">
-          {messages.map((m) => {
-            const mine = m.senderId === user?.id;
-            return mine ? (
-              <div key={m.id} style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-                <div className="bubble me">{m.content}</div>
-              </div>
-            ) : (
-              <div key={m.id} className="flex" style={{ alignItems: 'flex-start', marginBottom: 10 }}>
-                <Avatar user={{ nickname: m.senderNickname }} size="sm" />
-                <div>
-                  <div className="meta" style={{ marginBottom: 2 }}>{m.senderNickname}</div>
-                  <div className="bubble">{m.content}</div>
-                </div>
-              </div>
-            );
-          })}
-          <div ref={bottomRef} />
+            <form className="flex" onSubmit={send}>
+              <input className="inp" style={{ flex: 1, margin: 0 }}
+                     placeholder={connected ? '메시지 입력' : '연결 중...'}
+                     value={input} onChange={(e) => setInput(e.target.value)} />
+              <button className="btn" style={{ width: 80 }} type="submit" disabled={!connected}>
+                전송
+              </button>
+            </form>
+          </div>
         </div>
-
-        <form className="flex" onSubmit={send}>
-          <input className="inp" style={{ flex: 1, margin: 0 }}
-                 placeholder={connected ? '메시지 입력' : '연결 중...'}
-                 value={input} onChange={(e) => setInput(e.target.value)} />
-          <button className="btn" style={{ width: 80 }} type="submit" disabled={!connected}>
-            전송
-          </button>
-        </form>
       </div>
     </div>
   );
