@@ -117,11 +117,12 @@ body {
 
 /* 입력 */
 .inp {
-  width: 100%; height: 38px; border: 1px solid #bbb; border-radius: 7px;
-  padding: 0 12px; font-size: 13px; margin-bottom: 10px; background: #fff;
-  font-family: inherit;
+  width: 100%; height: 38px; border: 1px solid var(--border); border-radius: 7px;
+  padding: 0 12px; font-size: 13px; margin-bottom: 10px; background: var(--surface);
+  color: var(--text-main); font-family: inherit;
 }
-.inp:focus { outline: none; border-color: #333; }
+.inp:focus { outline: none; border-color: var(--primary); }
+.inp::placeholder { color: var(--text-muted); }
 textarea.inp { height: 140px; padding-top: 10px; resize: vertical; }
 
 /* 버튼 */
@@ -361,3 +362,60 @@ select.inp { padding: 0 8px; }
   box-shadow: 0 4px 12px var(--primary-glow); transition: all .2s; white-space: nowrap;
 }
 .ui-btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 6px 16px var(--primary-glow); }
+.ui-btn-primary:disabled { background: var(--text-muted); box-shadow: none; cursor: not-allowed; transform: none; filter: none; opacity: .7; }
+
+/* 회원가입 폼 (SignupPage 전용) */
+
+/* 3단계 스텝 인디케이터 */
+.steps { display: flex; gap: 6px; margin-bottom: 18px; }
+.step-dot { width: 28px; height: 4px; border-radius: 2px; background: var(--border); transition: background .2s; }
+.step-dot.is-active { background: var(--primary); }
+
+/* 필드 그룹(입력 + 메시지)을 묶어 일정 간격 유지 */
+.field { margin-bottom: 12px; }
+.field .inp, .field .inp-wrap { margin-bottom: 0; }
+.field .check-msg, .field .field-hint { margin: 7px 0 0 10px; }
+
+/* 입력창 + 우측 버튼(이메일 인증 / 중복확인) 한 줄 배치 */
+.field-row { display: flex; gap: 10px; align-items: flex-start; }
+.field-row .inp { flex: 1; margin-bottom: 0; }
+.field-row .btn2.sm { height: 38px; flex-shrink: 0; }
+
+/* 비밀번호 표시/숨김 토글 */
+.inp-wrap { position: relative; }
+.inp-wrap .inp { padding-right: 40px; }
+.inp-toggle {
+  position: absolute; right: 8px; top: 0; height: 38px; width: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text-muted);
+}
+.inp-toggle:hover { color: var(--text-main); }
+
+/* 입력 힌트 (색은 토큰 기반 muted, 위치는 .field .field-hint 에서 지정) */
+.field-hint { font-size: 11px; color: var(--text-muted); }
+
+/* 프로필 이미지 드롭존 */
+.dropzone {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+  padding: 24px 20px; margin: 4px 0 14px; cursor: pointer; color: var(--text-muted);
+  background: rgba(148,163,184,.06); border: 1px dashed var(--border); border-radius: var(--radius-md);
+  transition: border-color .2s;
+}
+.dropzone:hover { border-color: var(--primary); }
+.dropzone p { font-size: 13px; line-height: 1.5; }
+
+/* 업로드 완료 상태 */
+.upload-filled {
+  display: flex; align-items: center; gap: 14px; margin: 4px 0 14px;
+  padding: 14px 28px 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface);
+}
+.upload-filled .upload-info { flex: 1; min-width: 0; }
+.upload-filled .upload-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.upload-filled .ui-btn-secondary { height: 30px; padding: 0 12px; font-size: 12.5px; }
+
+/* 확인(3단계) '수정' 버튼 hover 시 살짝 떠오르는 효과 (ui-btn-primary와 동일 모션) */
+.signup-lift { transition: transform .2s, box-shadow .2s, border-color .2s; }
+.signup-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+
+/* 설문(2단계) 필수 항목 라벨의 빨간 별표 */
+.req { color: var(--danger); font-weight: 700; margin-left: 1px; }

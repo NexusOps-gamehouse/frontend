@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { signupStore, resetSignupStore } from '../signupStore';
+import StepIndicator from '../components/StepIndicator';
 
 export default function ConfirmPage() {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ export default function ConfirmPage() {
     <div className="page">
       <div className="center">
         <p className="h2">이대로 만들까요? <span className="meta">3 / 3</span></p>
+        <StepIndicator current={3} total={3} />
         <div className="card">
           <div className="flex" style={{ marginBottom: 12 }}>
             <div className="av lg">
@@ -75,9 +77,10 @@ export default function ConfirmPage() {
         </div>
         {error && <p className="error-msg">{error}</p>}
         <div className="flex" style={{ marginTop: 16 }}>
-          <button className="btn2" style={{ flex: 1 }} onClick={() => navigate('/signup/survey')}>수정</button>
-          <button className="btn" style={{ flex: 1 }} onClick={submit} disabled={loading}>
-            {loading ? '생성 중...' : '확인 → 계정생성 완료'}
+          <button className="btn2 signup-lift" style={{ flex: 1, height: 48, borderRadius: 'var(--radius-md)' }} onClick={() => navigate('/signup/survey')}>이전</button>
+          <button className="ui-btn-primary" style={{ flex: 1, height: 48, fontSize: 13, fontWeight: 600 }}
+                  onClick={submit} disabled={loading}>
+            {loading ? '생성 중...' : '계정생성'}
           </button>
         </div>
       </div>
