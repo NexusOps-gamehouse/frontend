@@ -1,0 +1,279 @@
+/* ===========================
+   RESET
+=========================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+
+    font-family:"Pretendard",sans-serif;
+
+    background:#0F172A;
+
+}
+
+/* ===========================
+   PAGE
+=========================== */
+
+.login-page{
+
+    width:100%;
+
+    min-height:100vh;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:#0F172A;
+
+}
+
+/* ===========================
+   LOGIN CARD
+=========================== */
+
+.login-card{
+
+    width:430px;
+
+    background:#1E293B;
+
+    border-radius:14px;
+
+    padding:45px;
+
+    box-shadow:
+
+    0 10px 35px rgba(0,0,0,.35);
+
+}
+
+/* ===========================
+   LOGO
+=========================== */
+
+.logo{
+
+    width:170px;
+
+    display:block;
+
+    margin:0 auto 25px;
+
+}
+
+/* ===========================
+   TITLE
+=========================== */
+
+.welcome-title{
+
+    text-align:center;
+
+    color:white;
+
+    font-size:30px;
+
+    font-weight:700;
+
+    margin-bottom:10px;
+
+}
+
+.welcome-text{
+
+    text-align:center;
+
+    color:#CBD5E1;
+
+    font-size:15px;
+
+    margin-bottom:35px;
+
+}
+
+/* ===========================
+   INPUT
+=========================== */
+
+.input-group{
+
+    display:flex;
+
+    align-items:center;
+
+    height:54px;
+
+    background:#334155;
+
+    border:1px solid #475569;
+
+    border-radius:8px;
+
+    padding:0 16px;
+
+    margin-bottom:18px;
+
+}
+
+.input-group svg{
+
+    color:#94A3B8;
+
+    margin-right:10px;
+
+}
+
+.input-group input{
+
+    flex:1;
+
+    border:none;
+
+    outline:none;
+
+    background:none;
+
+    color:white;
+
+    font-size:15px;
+
+}
+
+.input-group input::placeholder{
+
+    color:#94A3B8;
+
+}
+
+.eye-btn{
+
+    border:none;
+
+    background:none;
+
+    color:#94A3B8;
+
+    cursor:pointer;
+
+    display:flex;
+
+    align-items:center;
+
+}
+
+/* ===========================
+   BUTTON
+=========================== */
+
+.login-btn{
+
+    width:100%;
+
+    height:52px;
+
+    margin-top:5px;
+
+    border:none;
+
+    border-radius:8px;
+
+    background:#003399;
+
+    color:white;
+
+    font-size:16px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+}
+
+.login-btn:hover{
+
+    background:#0047CC;
+
+}
+
+/* ===========================
+   BOTTOM MENU
+=========================== */
+
+.bottom-menu{
+
+    margin-top:30px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:12px;
+
+}
+
+.bottom-menu span{
+
+    color:#64748B;
+
+}
+
+.bottom-menu button{
+
+    border:none;
+
+    background:none;
+
+    color:#CBD5E1;
+
+    font-size:14px;
+
+    cursor:pointer;
+
+}
+
+.bottom-menu button:hover{
+
+    color:#DEB84F;
+
+}
+
+/* ===========================
+   MOBILE
+=========================== */
+
+@media(max-width:600px){
+
+.login-card{
+
+width:90%;
+
+padding:35px 25px;
+
+}
+
+.logo{
+
+width:140px;
+
+}
+
+.welcome-title{
+
+font-size:26px;
+
+}
+
+}
