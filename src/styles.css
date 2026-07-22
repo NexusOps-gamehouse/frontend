@@ -59,10 +59,12 @@ body {
 /* 로고 (이미지) */
 .logo-img { display: flex; align-items: center; flex-shrink: 0; }
 .logo-img img {
-  height: 70px;   /* 36px → 48px */
+  height: 132px;
   width: auto; display: block;
   transition: filter .2s ease;
 }
+.logo-img img.logo-img-brand { height: 48px; }
+.logo-img img:not(.logo-img-brand) { position: relative; top: 4px; }
 .logo-img:hover img { filter: brightness(1.15); }
 
 
@@ -362,7 +364,7 @@ select.inp { padding: 0 8px; }
 .ui-btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 6px 16px var(--primary-glow); }
 .ui-btn-primary:disabled { background: var(--text-muted); box-shadow: none; cursor: not-allowed; transform: none; filter: none; opacity: .7; }
 
-/* ===== 회원가입 폼 (SignupPage 전용) ===== */
+/* 회원가입 폼 (SignupPage 전용) */
 
 /* 3단계 스텝 인디케이터 */
 .steps { display: flex; gap: 6px; margin-bottom: 18px; }
