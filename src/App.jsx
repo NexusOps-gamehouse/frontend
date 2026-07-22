@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import ChatPage from './pages/ChatPage';
 import MyPage from './pages/MyPage';
 import ProfileEditPage from './pages/ProfileEditPage';
+import ChatListPage from './pages/ChatListPage';
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/post/:id/edit" element={<Private><PostFormPage /></Private>} />
         <Route path="/post/:id/applicants" element={<ApplicantsPage />} />
         <Route path="/profile/:id" element={<Private><ProfilePage /></Private>} />
+        <Route path="/chat" element={<Private><ChatListPage /></Private>} />
         <Route path="/chat/:roomId" element={<Private><ChatPage /></Private>} />
         <Route path="/mypage" element={<Private><MyPage /></Private>} />
         <Route path="/mypage/edit" element={<Private><ProfileEditPage /></Private>} />
