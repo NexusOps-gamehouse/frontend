@@ -4,7 +4,8 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { timeAgo } from '../utils';
-import logo from '../assets/gamehouse-logo.png';
+import logo from '../assets/Gamehouse-Pont.png';
+import brandLogo from '../assets/Gamehouse-Logo.png';
 
 const POLL_INTERVAL = 10000;
 
@@ -76,6 +77,7 @@ export default function NavBar() {
         <div className="gnb-inner">
           <div className="gnb-left">
             <Link to="/" className="logo-img" aria-label="GAME HOUSE 홈">
+              <img src={brandLogo} alt="GAME HOUSE 로고" className="logo-img-brand" />
               <img src={logo} alt="GAME HOUSE" />
             </Link>
             {user && (
@@ -89,12 +91,13 @@ export default function NavBar() {
 
           <div className="gnb-r">
             <button
+              type="button"
               className="icon-btn"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
               title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
             >
-              {theme === 'dark' ? '🌙' : '☀️'}
+              {theme === 'dark' ? '☀️' : '🌙'}
             </button>
 
             {user ? (
@@ -126,9 +129,14 @@ export default function NavBar() {
               </>
             ) : (
               <>
-                <button className="ui-btn-secondary" onClick={() => navigate('/login')}>로그인</button>
-                <button className="ui-btn-primary" style={{ height: 40, padding: '0 20px', fontSize: 14 }}
-                        onClick={() => navigate('/signup')}>회원가입</button>
+                <Link className="ui-btn-primary" to="/login"
+                      style={{ height: 40, padding: '0 20px', fontSize: 14, display: 'inline-flex', alignItems: 'center' }}>
+                  로그인
+                </Link>
+                <Link className="ui-btn-primary" to="/signup"
+                      style={{ height: 40, padding: '0 20px', fontSize: 14, display: 'inline-flex', alignItems: 'center' }}>
+                  회원가입
+                </Link>
               </>
             )}
           </div>
