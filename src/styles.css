@@ -59,7 +59,8 @@ body {
 /* 로고 (이미지) */
 .logo-img { display: flex; align-items: center; flex-shrink: 0; }
 .logo-img img {
-  height: 36px; width: auto; display: block;
+  height: 70px;   /* 36px → 48px */
+  width: auto; display: block;
   transition: filter .2s ease;
 }
 .logo-img:hover img { filter: brightness(1.15); }
