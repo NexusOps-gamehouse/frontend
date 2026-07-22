@@ -2,16 +2,21 @@ name: frontend-ci-cd
 
 # feature/* -> develop PR 시 검증, develop merge 시 배포까지 수행한다.
 # staging/main 배포는 develop 파이프라인 검증 후 별도로 확장한다.
+#
+# paths-ignore: 문서(.md)만 바뀐 경우 이미지 빌드/배포는 무의미하므로 스킵한다.
 on:
   pull_request:
     branches: [develop]
+    paths-ignore: ['**.md']
   push:
     branches: [develop]
+    paths-ignore: ['**.md']
 
 # 같은 브랜치에 커밋이 연달아 올라오면 이전 실행을 취소한다.
+# 단, push(=develop merge=배포)는 중간에 끊기면 안 되므로 PR 실행만 취소한다.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # 최소 권한만 부여한다. PR 실행은 Docker Hub 자격증명을 사용하지 않는다.
 permissions:
@@ -37,9 +42,10 @@ jobs:
 
       # SAST: 토큰/비밀번호가 코드에 섞여 들어갔는지 검사한다.
       # merge 후에는 git 히스토리에 남아 되돌리기 어려우므로 반드시 PR 시점에 돌린다.
+      # 이미지 태그는 :latest 대신 고정 버전을 쓴다(재현성/공급망 안정성).
       - name: Secret scan (gitleaks)
         run: |
-          docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:latest \
+          docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:v8.18.4 \
             detect --source=/repo --no-git --redact --verbose
 
   # ---------------------------------------------------------------
@@ -84,11 +90,14 @@ jobs:
             --add-host backend:127.0.0.1 \
             ${{ env.IMAGE_NAME }}:ci
 
+          # 200만 보면 빌드가 깨져 빈 index.html이 나와도 통과한다.
+          # SPA 마운트 지점(<div id="root">)까지 확인해 "실제 빌드 산출물"을 검증한다.
           ok=0
           for i in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ || echo 000)
-            if [ "${code}" = "200" ]; then
-              echo "HTTP 200 - nginx is up and serving the SPA"
+            body=$(curl -s -w '\n%{http_code}' http://localhost:8080/ || echo -e '\n000')
+            code=$(echo "${body}" | tail -n1)
+            if [ "${code}" = "200" ] && echo "${body}" | grep -q '<div id="root">'; then
+              echo "HTTP 200 + SPA root found - nginx is serving the built app"
               ok=1
               break
             fi
@@ -97,7 +106,7 @@ jobs:
           done
 
           if [ "${ok}" != "1" ]; then
-            echo "::error::Frontend did not return HTTP 200 within 60s"
+            echo "::error::Frontend did not serve a valid SPA (HTTP 200 + #root) within 60s"
             docker logs --tail=200 gh-frontend-ci
             exit 1
           fi
