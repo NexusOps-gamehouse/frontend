@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { timeAgo } from '../utils';
 import logo from '../assets/Gamehouse-Pont.png';
 import brandLogo from '../assets/Gamehouse-Logo.png';
@@ -9,8 +10,8 @@ import brandLogo from '../assets/Gamehouse-Logo.png';
 const POLL_INTERVAL = 10000;
 
 export default function NavBar() {
-const { user, logout } = useAuth();
-const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);

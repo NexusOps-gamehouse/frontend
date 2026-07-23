@@ -34,6 +34,7 @@ export default function App() {
         <Route path="/post/:id" element={<PostDetailPage />} />
         <Route path="/post/:id/edit" element={<Private><PostFormPage /></Private>} />
         <Route path="/post/:id/applicants" element={<ApplicantsPage />} />
+        {import.meta.env.DEV && <Route path="/profile/edit" element={<ProfileEditPage />} />}
         <Route path="/profile/:id" element={<Private><ProfilePage /></Private>} />
         <Route path="/chat" element={<Private><ChatListPage /></Private>} />
         <Route path="/chat/:roomId" element={<Private><ChatPage /></Private>} />
