@@ -163,12 +163,9 @@ export default function PostFormPage() {
                    value={playTime} onChange={(e) => setPlayTime(e.target.value)} />
 
             <div className="pf-q">마이크 여부</div>
-            <div className="row">
-              <button type="button" className={`chip ${micRequired === true ? 'on' : ''}`}
-                      onClick={() => setMicRequired(true)}>필수</button>
-              <button type="button" className={`chip ${!micRequired ===false ? 'on' : ''}`}
-                      onClick={() => setMicRequired(false)}>없어도 됨</button>
-            </div>
+            <Chips options={['필수', '없어도 됨']}
+                   value={micRequired === null ? '' : micRequired ? '필수' : '없어도 됨'}
+                   onChange={(v) => setMicRequired(v === '' ? null : v === '필수')} />
 
             <div className="pf-q">
               찾는 포지션 <span className="opt">(복수 선택 가능)</span>
@@ -179,12 +176,9 @@ export default function PostFormPage() {
             <div className="pf-q">
               희망 파티원 수 <span className="opt">(본인 포함)</span>
             </div>
-            <div className="row">
-              {MEMBER_COUNTS.map((n) => (
-                <button key={n} type="button" className={`chip ${targetMembers === n ? 'on' : ''}`}
-                        onClick={() => setTargetMembers(n)}>{n}명</button>
-              ))}
-            </div>
+            <Chips options={MEMBER_COUNTS.map((n) => `${n}명`)}
+                   value={targetMembers === null ? '' : `${targetMembers}명`}
+                   onChange={(v) => setTargetMembers(v === '' ? null : parseInt(v, 10))} />
 
             {error && <div className="pf-error">{error}</div>}
 
