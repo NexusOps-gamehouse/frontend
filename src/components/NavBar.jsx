@@ -74,21 +74,28 @@ export default function NavBar() {
   return (
     <>
       <nav className="gnb">
-        <div className="gnb-inner">
-          <div className="gnb-left">
-            <Link to="/" className="logo-img" aria-label="GAME HOUSE 홈">
-              <img src={brandLogo} alt="GAME HOUSE 로고" className="logo-img-brand" />
-              <img src={logo} alt="GAME HOUSE" />
-            </Link>
-            {user && (
-              <div className="gnb-menu">
-                <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>모집글</NavLink>
-                <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'active' : '')}>내 파티</NavLink>
-                <NavLink to="/chat" end className={({ isActive }) => (isActive ? 'active' : '')}>채팅</NavLink>
-              </div>
-            )}
-          </div>
+  <div className="gnb-inner">
+    <div className="gnb-left">
+    <Link to="/" className="logo-img" aria-label="GAME HOUSE 홈">
+      <img src={brandLogo} alt="GAME HOUSE 로고" className="logo-img-brand" />
+      <img src={logo} alt="GAME HOUSE" />
+    </Link>
 
+    {user && (
+      <div className="gnb-menu">
+        <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
+          모집글
+        </NavLink>
+        <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'active' : '')}>
+          내 파티
+        </NavLink>
+        <NavLink to="/chat" end className={({ isActive }) => (isActive ? 'active' : '')}>
+          채팅
+        </NavLink>
+      </div>
+    )}
+  </div>
+             
           <div className="gnb-r">
             <button
               type="button"
