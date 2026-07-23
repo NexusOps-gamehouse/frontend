@@ -73,6 +73,7 @@ body {
 .gnb-menu a {
   color: var(--text-muted); transition: color .2s ease;
   padding-bottom: 2px; border-bottom: 2px solid transparent;
+  text-decoration: none;
 }
 .gnb-menu a:hover { color: var(--primary); }
 .gnb-menu a.active { color: var(--text-main); font-weight: 800; border-bottom-color: var(--primary); }
