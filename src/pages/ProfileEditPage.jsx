@@ -77,8 +77,9 @@ export default function ProfileEditPage() {
         <div className="profile-edit-choice"><p>하는 게임</p><Chips options={GAMES} value={game} onChange={setGame} /></div>
         <div className="profile-edit-choice"><p>주로 하는 게임 모드 <em>복수 선택</em></p><MultiChips options={GAME_MODES} values={gameModes} onChange={setGameModes} /></div>
         <div className="profile-edit-grid">
-          <div className="profile-edit-choice"><p>게임 성향</p><Chips options={['빡겜', '즐겜']} value={playStyle} onChange={setPlay Style} /></div>
+          <div className="profile-edit-choice"><p>게임 성향</p><Chips options={['빡겜', '즐겜']} value={playStyle} onChange={setPlayStyle} /></div>
           <div className="profile-edit-choice"><p>주 포지션</p><Chips options={POSITIONS} value={position} onChange={setPosition} />
+        </div>
         </div>
         <div className="profile-edit-choice"><p>주로 플레이하는 시간대 <em>복수 선택</em></p><MultiChips options={PLAY_TIMES} values={playTimes} onChange={setPlayTimes} /></div>
         <div className="profile-edit-grid">
@@ -98,3 +99,4 @@ export default function ProfileEditPage() {
       </div>
     </main>            
   );
+}
