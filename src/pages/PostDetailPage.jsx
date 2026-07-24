@@ -4,7 +4,10 @@ import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 import FriendButton from '../components/FriendButton';
+import TierBadge from '../components/TierBadge';
 import { timeAgo, csv, profileTags, profileMeta } from '../utils';
+import RiotProfileCard from '../components/RiotProfileCard';
+import { profileFromUser } from '../api/riot';
 
 // styles.css에 없는 것만 여기서 정의 (.dp 스코프, 색은 전역 토큰 참조)
 const styles = `
@@ -152,7 +155,7 @@ export default function PostDetailPage() {
           <p className="dp-body">{post.content}</p>
         </div>
 
-        {/* 작성자 */}
+{/* 작성자 */}
         <div className="dp-section">작성자</div>
         <div className="dp-card clickable" onClick={() => navigate(`/profile/${post.author.id}`)}>
           <div className="between" style={{ gap: 12, flexWrap: 'wrap' }}>
@@ -162,11 +165,13 @@ export default function PostDetailPage() {
                 <div className="ui-author-name">
                   {post.author.nickname}
                   <span className={`dp-dot ${post.author.online ? '' : 'off'}`} />
-                  {post.author.tier && <span className="ui-tier">{post.author.tier}</span>}
+                  <TierBadge user={post.author} />
                 </div>
                 <div className="ui-time">
                   {[profileMeta(post.author), profileTags(post.author).join(' ')].filter(Boolean).join(' · ')}
                 </div>
+                {/* 티어는 위 배지에 이미 있으므로 모스트 챔피언만 */}
+                <RiotProfileCard profile={profileFromUser(post.author)} variant="compact" showTier={false} />
               </div>
             </div>
             <div onClick={(e) => e.stopPropagation()}>
@@ -228,10 +233,12 @@ export default function PostDetailPage() {
                       <div className="ui-author-name">
                         {app.applicant.nickname}
                         <span className={`dp-dot ${app.applicant.online ? '' : 'off'}`} />
+                        <TierBadge user={app.applicant} />
                       </div>
                       <div className="ui-time">
                         {[profileMeta(app.applicant), profileTags(app.applicant).join(' ')].filter(Boolean).join(' · ')}
                       </div>
+                      <RiotProfileCard profile={profileFromUser(app.applicant)} variant="compact" showTier={false} />
                     </div>
                   </div>
                   <div className="flex">

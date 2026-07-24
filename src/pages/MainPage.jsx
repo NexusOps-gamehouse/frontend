@@ -4,6 +4,7 @@ import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { GAMES, GAME_MODES } from '../constants';
 import { timeAgo } from '../utils';
+import TierBadge from '../components/TierBadge';
 import './MainPage.css';
 
 const STATUS_LABEL = { PENDING: '대기중', APPROVED: '승인됨', CONFIRMED: '확정', REJECTED: '거절됨' };
@@ -142,7 +143,7 @@ export default function MainPage() {
                       <div className="ui-author-info">
                         <div className="ui-author-name">
                           {post.author.nickname}
-                          {post.author.tier && <span className="ui-tier">{post.author.tier}</span>}
+                          <TierBadge user={post.author} />
                         </div>
                         <div className="ui-time">{timeAgo(post.createdAt)}</div>
                       </div>

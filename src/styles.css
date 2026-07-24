@@ -187,12 +187,26 @@ textarea.inp { height: 140px; padding-top: 10px; resize: vertical; }
 
 /* 칩 */
 .chip {
-  font-size: 12px; border: 1px solid #bbb; border-radius: 99px; padding: 5px 14px;
-  color: #555; background: #fff; cursor: pointer; display: inline-block;
-  font-family: inherit;
+  font-size: 14px; border: 1px solid var(--border); border-radius: 99px; padding: 9px 18px;
+  color: var(--text-muted); background: var(--surface); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px; min-height: 40px;
+  font-family: inherit; transition: border-color .15s ease;
 }
-.chip.on { background: #333; color: #fff; border-color: #333; }
-.row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.chip:hover { border-color: var(--primary); }
+.chip.on { background: var(--text-main); color: var(--surface); border-color: var(--text-main); }
+.chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* 아이콘이 들어간 칩 (포지션 / 티어) */
+.chip.has-icon { padding: 6px 16px 6px 10px; }
+.chip > svg, .chip > img { flex-shrink: 0; }
+/* 미선택 상태에서는 엠블럼 채도를 낮춰 고른 항목이 먼저 눈에 들어오게 한다 */
+.chip > img { filter: saturate(.3) opacity(.75); transition: filter .15s ease; }
+.chip.on > img { filter: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chip, .chip > img { transition: none; }
+}
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 
 /* 아바타 / 상태 */
 .av {
@@ -212,7 +226,7 @@ textarea.inp { height: 140px; padding-top: 10px; resize: vertical; }
 .card.clickable { cursor: pointer; }
 .card.clickable:hover { border-color: #999; }
 .tag { font-size: 11px; background: #f0f0f0; border-radius: 4px; padding: 2px 8px; color: #666; }
-.q { font-size: 12px; color: #777; margin-bottom: 6px; }
+.q { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
 .name { font-size: 14px; font-weight: 600; }
 .meta { font-size: 12px; color: #999; }
 .flex { display: flex; gap: 10px; align-items: center; }
@@ -491,3 +505,24 @@ select.inp { padding: 0 8px; }
 
 /* 설문(2단계) 필수 항목 라벨의 빨간 별표 */
 .req { color: var(--danger); font-weight: 700; margin-left: 1px; }
+
+/* ===== 설문(2단계) 2단 배치 ===== */
+/* 문항이 10개라 한 열로 쌓으면 스크롤이 길어진다. 넓은 문항만 두 칸을 쓴다. */
+.survey { max-width: 900px; margin: 0 auto; }
+
+.survey-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 40px;
+  align-items: start;
+  margin-top: 4px;
+}
+.survey-grid .qb.full { grid-column: 1 / -1; }
+.survey-grid .q { margin-bottom: 8px; }
+.survey-grid .row { margin-bottom: 16px; }
+
+/* 좁은 화면에서는 한 열로 되돌린다 */
+@media (max-width: 720px) {
+  .survey { max-width: 420px; }
+  .survey-grid { grid-template-columns: 1fr; column-gap: 0; }
+}
