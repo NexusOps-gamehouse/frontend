@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
+import './IDFinderPage.css';
 
 export default function IDFinderPage() {
   const navigate = useNavigate();
@@ -33,47 +34,51 @@ export default function IDFinderPage() {
   };
 
   return (
-    <main className="auth-page">
-  <div className="auth-card">
-    <h1>아이디 찾기</h1>
+  <main className="auth-find-page">
+    <div className="auth-find-card">
 
-    <p className="auth-desc">
-      가입한 닉네임을 입력하면
-      이메일을 확인할 수 있습니다.
-    </p>
+      <h1>아이디 찾기</h1>
 
-    <input
-      className="inp"
-      placeholder="닉네임"
-      value={nickname}
-      onChange={(e) => setNickname(e.target.value)}
-      onKeyDown={(e) => e.key === 'Enter' && findEmail()}
-    />
+      <p className="auth-find-desc">
+        가입한 닉네임을 입력하면
+        이메일을 확인할 수 있습니다.
+      </p>
 
-    <button
-      type="button"
-      className="ui-btn-primary"
-      onClick={findEmail}
-      disabled={loading}
-    >
-      {loading ? '조회 중...' : '이메일 찾기'}
-    </button>
+      <input
+        className="inp"
+        placeholder="닉네임"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && findEmail()}
+      />
 
-    {email && (
-      <div className="auth-result">
-        <p>가입된 이메일</p>
-        <strong>{email}</strong>
+      <button
+        type="button"
+        className="ui-btn-primary"
+        onClick={findEmail}
+        disabled={loading}
+      >
+        {loading ? '조회 중...' : '이메일 찾기'}
+      </button>
 
-        <button
-          type="button"
-          className="ui-btn-secondary"
-          onClick={() => navigate('/login')}
-        >
-          로그인으로 이동
-        </button>
-      </div>
-    )}
-  </div>
-</main>
-  );
+      {email && (
+        <div className="auth-find-result">
+          <p>가입된 이메일</p>
+          <strong>{email}</strong>
+
+          <div className="auth-find-actions">
+            <button
+              type="button"
+              className="ui-btn-secondary"
+              onClick={() => navigate('/login')}
+            >
+              로그인으로 이동
+            </button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  </main>
+);
 }
