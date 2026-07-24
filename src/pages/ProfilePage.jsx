@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import Avatar from '../components/Avatar';
+import FriendButton from '../components/FriendButton';
 import { csv, profileTags, profileMeta } from '../utils';
 
 export default function ProfilePage() {
@@ -45,7 +46,10 @@ export default function ProfilePage() {
             {profile.riotNickname && <div>롤 닉네임: {profile.riotNickname}</div>}
           </div>
         </div>
-        <button className="btn2" style={{ marginTop: 8 }} onClick={() => navigate(-1)}>뒤로</button>
+        <div className="flex" style={{ marginTop: 12, gap: 8, alignItems: 'stretch' }}>
+          <FriendButton userId={profile.id} block />
+          <button className="btn2" style={{ flex: 1, height: 44 }} onClick={() => navigate(-1)}>뒤로</button>
+        </div>
       </div>
     </div>
   );

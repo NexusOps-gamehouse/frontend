@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useFriends } from '../context/FriendContext';
 import Avatar from '../components/Avatar';
 import { csv, profileTags, profileMeta } from '../utils';
 
@@ -21,6 +22,7 @@ const APP_TAG_CLASS = {
 export default function MyPage() {
   const navigate = useNavigate();
   const { user, updateUser, logout } = useAuth();
+  const { friends, receivedCount } = useFriends();
   const [myPosts, setMyPosts] = useState([]);
   const [myApps, setMyApps] = useState([]);
 
@@ -41,7 +43,41 @@ export default function MyPage() {
 
   return (
     <div className="page">
-      <div className="ui-narrow">
+      <div className="mypage-layout">
+        {/* 좌측 사이드바: 친구 목록 */}
+        <aside className="mypage-side">
+          <div className="mypage-side-head">
+            <span>친구 {friends.length}</span>
+            {receivedCount > 0 && (
+              <Link to="/friends" className="side-req-link">받은 신청 {receivedCount} ›</Link>
+            )}
+          </div>
+          {friends.length === 0 ? (
+            <div className="side-empty">
+              <p>아직 친구가 없습니다.</p>
+              <Link to="/friends" className="side-req-link">친구 관리 ›</Link>
+            </div>
+          ) : (
+            <>
+              {friends.slice(0, 12).map((f) => (
+                <div key={f.id} className="side-friend" onClick={() => navigate(`/profile/${f.user.id}`)}>
+                  <Avatar user={f.user} />
+                  <span className="side-friend-name">{f.user.nickname}</span>
+                  <span style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%',
+                                 background: f.user.online ? 'var(--online)' : 'var(--border)',
+                                 boxShadow: f.user.online ? '0 0 6px var(--online)' : 'none' }} />
+                </div>
+              ))}
+              <Link to="/friends" className="side-req-link"
+                    style={{ display: 'inline-block', marginTop: 12, fontSize: 12 }}>
+                친구 전체 보기 ›
+              </Link>
+            </>
+          )}
+        </aside>
+
+        {/* 우측 메인 콘텐츠 */}
+        <div className="mypage-main">
         {/* 프로필 카드 */}
         <div className="ui-profile-card">
           <div className="between">
@@ -130,6 +166,7 @@ export default function MyPage() {
         {/* 로그아웃 */}
         <div style={{ textAlign: 'center', marginTop: 48 }}>
           <button className="textlink" onClick={doLogout}>로그아웃</button>
+        </div>
         </div>
       </div>
     </div>
