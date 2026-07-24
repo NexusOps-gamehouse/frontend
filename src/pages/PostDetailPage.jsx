@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
+import FriendButton from '../components/FriendButton';
 import { timeAgo, csv, profileTags, profileMeta } from '../utils';
 
 // styles.css에 없는 것만 여기서 정의 (.dp 스코프, 색은 전역 토큰 참조)
@@ -154,17 +155,22 @@ export default function PostDetailPage() {
         {/* 작성자 */}
         <div className="dp-section">작성자</div>
         <div className="dp-card clickable" onClick={() => navigate(`/profile/${post.author.id}`)}>
-          <div className="ui-author">
-            <span className="ui-avatar-ring"><Avatar user={post.author} /></span>
-            <div className="ui-author-info">
-              <div className="ui-author-name">
-                {post.author.nickname}
-                <span className={`dp-dot ${post.author.online ? '' : 'off'}`} />
-                {post.author.tier && <span className="ui-tier">{post.author.tier}</span>}
+          <div className="between" style={{ gap: 12, flexWrap: 'wrap' }}>
+            <div className="ui-author">
+              <span className="ui-avatar-ring"><Avatar user={post.author} /></span>
+              <div className="ui-author-info">
+                <div className="ui-author-name">
+                  {post.author.nickname}
+                  <span className={`dp-dot ${post.author.online ? '' : 'off'}`} />
+                  {post.author.tier && <span className="ui-tier">{post.author.tier}</span>}
+                </div>
+                <div className="ui-time">
+                  {[profileMeta(post.author), profileTags(post.author).join(' ')].filter(Boolean).join(' · ')}
+                </div>
               </div>
-              <div className="ui-time">
-                {[profileMeta(post.author), profileTags(post.author).join(' ')].filter(Boolean).join(' · ')}
-              </div>
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              <FriendButton userId={post.author.id} compact />
             </div>
           </div>
         </div>
@@ -243,6 +249,7 @@ export default function PostDetailPage() {
                     )}
                     {app.status === 'CONFIRMED' && <span className="ui-tag2 dp-ok">✔ 확정</span>}
                     {app.status === 'REJECTED' && <span className="ui-time">거절됨</span>}
+                    <FriendButton userId={app.applicant.id} compact />
                   </div>
                 </div>
               </div>

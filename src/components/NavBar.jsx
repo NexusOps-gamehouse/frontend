@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useFriends } from '../context/FriendContext';
 import { useTheme } from '../context/ThemeContext';
 import { timeAgo } from '../utils';
 import logo from '../assets/Gamehouse-Pont.png';
@@ -11,6 +12,7 @@ const POLL_INTERVAL = 10000;
 
 export default function NavBar() {
   const { user } = useAuth();
+  const { receivedCount } = useFriends();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
@@ -91,6 +93,12 @@ export default function NavBar() {
         </NavLink>
         <NavLink to="/chat" end className={({ isActive }) => (isActive ? 'active' : '')}>
           채팅
+        </NavLink>
+        <NavLink to="/friends" className={({ isActive }) => (isActive ? 'active' : '')}>
+          친구
+          {receivedCount > 0 && (
+            <span className="nav-badge">{receivedCount > 99 ? '99+' : receivedCount}</span>
+          )}
         </NavLink>
       </div>
     )}
