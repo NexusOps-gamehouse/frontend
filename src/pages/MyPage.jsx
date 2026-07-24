@@ -4,7 +4,9 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useFriends } from '../context/FriendContext';
 import Avatar from '../components/Avatar';
-import { csv, profileTags, profileMeta } from '../utils';
+import TierBadge from '../components/TierBadge';
+import RiotLinkCard from '../components/RiotLinkCard';
+import { csv, profileTags, profileMeta, riotIdOf } from '../utils';
 
 const APP_STATUS = {
   PENDING: '대기중',
@@ -90,11 +92,14 @@ export default function MyPage() {
                   {user.nickname}
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  {[profileMeta(user), profileTags(user).join(' ')].filter(Boolean).join(' · ')}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span>{[profileMeta(user), profileTags(user).join(' ')].filter(Boolean).join(' · ')}</span>
+                    <TierBadge user={user} height={20} />
+                  </span>
                 </div>
-                {(csv(user.gameModes).length > 0 || user.riotNickname) && (
+                {(csv(user.gameModes).length > 0 || riotIdOf(user)) && (
                   <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-                    {[csv(user.gameModes).join('/'), user.riotNickname].filter(Boolean).join(' · ')}
+                    {[csv(user.gameModes).join('/'), riotIdOf(user)].filter(Boolean).join(' · ')}
                   </div>
                 )}
               </div>
@@ -104,6 +109,8 @@ export default function MyPage() {
             </button>
           </div>
         </div>
+
+        <RiotLinkCard />
 
         {/* 내 모집글 */}
         <p className="ui-section-title">내 모집글</p>

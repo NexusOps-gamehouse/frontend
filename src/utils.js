@@ -1,3 +1,4 @@
+import { formatRiotId } from './api/riot';
 export function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
   const min = Math.floor(diff / 60000);
@@ -22,5 +23,26 @@ export function profileTags(u) {
 
 export function profileMeta(u) {
   if (!u) return '';
-  return [u.game, u.position, u.tier].filter(Boolean).join(' · ');
+  // tier에는 설문 한글값('다이아몬드')과 라이엇 enum('DIAMOND')이 둘 다 들어올 수 있다
+  // 티어는 <TierBadge />가 엠블럼과 함께 따로 표시한다
+  return [u.game, u.position].filter(Boolean).join(' · ');
 }
+
+/** UserDto → 'Hide on bush#KR1' (미연동이면 '') */
+export function riotIdOf(u) {
+  return formatRiotId(u?.gameName, u?.tagLine);
+}
+
+/** 입력 중 자동 하이픈. 01012345678 → 010-1234-5678 */
+export function formatPhone(v) {
+  const d = (v ?? '').replace(/\D/g, '').slice(0, 11);
+  if (d.length < 4) return d;
+  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;  // 011-123-4567
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+}
+
+export const isValidPhone = (v) => /^01[016789]-\d{3,4}-\d{4}$/.test(v ?? '');
+
+/** 이름: 한글/영문/공백만, 2~20자 */
+export const isValidName = (v) => /^[가-힣a-zA-Z][가-힣a-zA-Z\s]{1,19}$/.test((v ?? '').trim());

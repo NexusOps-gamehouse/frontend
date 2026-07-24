@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
+import { parseRiotId } from '../api/riot';
 import { signupStore } from '../signupStore';
+import { formatPhone, isValidPhone, isValidName } from '../utils';
 import StepIndicator from '../components/StepIndicator';
 
 function EyeIcon({ off }) {
@@ -29,10 +31,18 @@ export default function SignupPage() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [nickname, setNickname] = useState(signupStore.nickname);
+  const [name, setName] = useState(signupStore.name);
+  const [phone, setPhone] = useState(signupStore.phone);
   const [preview, setPreview] = useState(signupStore.imagePreview);
   // null: 미인증 | 'ok': 인증 가능 | 'dup': 중복
   const [emailCheck, setEmailCheck] = useState(null);
   const [nicknameCheck, setNicknameCheck] = useState(null);
+
+  // 라이엇 계정 (선택) — 여기서는 형식만 확인하고 저장만 한다.
+  // 실제 연동(티어·모스트 조회)은 로그인 후 마이페이지에서. sync API가 토큰을 요구한다.
+  const [riotId, setRiotId] = useState(signupStore.riotId);
+  const riotParsed = riotId.trim() ? parseRiotId(riotId) : null;
+  const riotFormatError = Boolean(riotId.trim()) && riotParsed === null;
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -73,15 +83,25 @@ export default function SignupPage() {
   };
 
   // 실시간 검증 상태
+  const nameValid = isValidName(name);
+  const phoneValid = isValidPhone(phone);
   const passwordValid = password.length >= 4;
   const passwordMatch = passwordConfirm.length > 0 && password === passwordConfirm;
   const canSubmit =
-    emailCheck === 'ok' && nicknameCheck === 'ok' && passwordValid && passwordMatch;
+    emailCheck === 'ok' && nicknameCheck === 'ok' && passwordValid && passwordMatch
+    && nameValid && phoneValid && !riotFormatError;
 
   const next = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    Object.assign(signupStore, { email, password, nickname });
+    Object.assign(signupStore, {
+      email, password, nickname,
+      name: name.trim(),
+      phone,
+      riotId: riotId.trim(),
+      riotGameName: riotParsed?.gameName ?? '',
+      riotTagLine: riotParsed?.tagLine ?? '',
+    });
     navigate('/signup/survey');
   };
 
@@ -92,6 +112,44 @@ export default function SignupPage() {
         <StepIndicator current={1} total={3} />
 
         <form onSubmit={next}>
+          {/* 이름 */}
+          <div className="field">
+            <input id="signup-name" className="inp" type="text" placeholder="이름"
+                   aria-label="이름" autoComplete="name"
+                   value={name} onChange={(e) => setName(e.target.value)} required />
+            {name.length > 0 && !nameValid
+              ? <p className="check-msg dup" role="alert">한글 또는 영문 2자 이상 입력해주세요.</p>
+              : <p className="field-hint">실명을 입력해주세요. 다른 사용자에게 공개되지 않습니다.</p>}
+          </div>
+
+          {/* 전화번호 */}
+          <div className="field">
+            <input id="signup-phone" className="inp" type="tel" placeholder="전화번호"
+                   aria-label="전화번호" autoComplete="tel" inputMode="numeric" maxLength={13}
+                   value={phone}
+                   onChange={(e) => setPhone(formatPhone(e.target.value))} required />
+            {phone.length > 0 && !phoneValid
+              ? <p className="check-msg dup" role="alert">올바른 휴대폰 번호가 아닙니다.</p>
+              : <p className="field-hint">숫자만 입력하면 자동으로 하이픈이 붙습니다.</p>}
+          </div>
+
+          {/* 닉네임 + 중복확인 */}
+          <div className="field">
+            <div className="field-row">
+              <input id="signup-nickname" className="inp" type="text" placeholder="닉네임"
+                     aria-label="닉네임"
+                     value={nickname}
+                     onChange={(e) => { setNickname(e.target.value); setNicknameCheck(null); }}
+                     required />
+              <button className="btn2 sm" type="button" onClick={checkNickname}
+                      disabled={!nickname || nicknameCheck === 'ok'}
+                      aria-label="닉네임 중복확인">
+                {nicknameCheck === 'ok' ? '확인 완료 ✓' : '중복확인'}
+              </button>
+            </div>
+            {renderCheck(nicknameCheck, '사용 가능합니다.', '이미 사용 중입니다.')}
+          </div>
+
           {/* 이메일 + 중복확인 */}
           <div className="field">
             <div className="field-row">
@@ -139,21 +197,16 @@ export default function SignupPage() {
             )}
           </div>
 
-          {/* 닉네임 + 중복확인 */}
+          {/* 라이엇 계정 (선택) */}
           <div className="field">
-            <div className="field-row">
-              <input id="signup-nickname" className="inp" type="text" placeholder="닉네임"
-                     aria-label="닉네임"
-                     value={nickname}
-                     onChange={(e) => { setNickname(e.target.value); setNicknameCheck(null); }}
-                     required />
-              <button className="btn2 sm" type="button" onClick={checkNickname}
-                      disabled={!nickname || nicknameCheck === 'ok'}
-                      aria-label="닉네임 중복확인">
-                {nicknameCheck === 'ok' ? '확인 완료 ✓' : '중복확인'}
-              </button>
-            </div>
-            {renderCheck(nicknameCheck, '사용 가능합니다.', '이미 사용 중입니다.')}
+            <input id="signup-riot-id" className="inp" type="text"
+                   placeholder="롤 닉네임#태그  예: Hide on bush#KR1"
+                   aria-label="라이엇 ID"
+                   value={riotId}
+                   onChange={(e) => setRiotId(e.target.value)} />
+            {riotFormatError
+              ? <p className="check-msg dup" role="alert">이름#태그 형식으로 입력해 주세요.</p>
+              : <p className="field-hint">가입 후 마이페이지에서 연동하면 티어가 표시됩니다. (선택)</p>}
           </div>
 
           {/* 프로필 이미지 */}
