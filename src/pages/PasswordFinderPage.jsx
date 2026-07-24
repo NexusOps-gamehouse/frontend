@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
+import './PasswordFinderPage.css';
 
 export default function PasswordFinderPage() {
   const navigate = useNavigate();
@@ -32,53 +33,75 @@ export default function PasswordFinderPage() {
     }
   };
 
+  const goLogin = () => {
+    navigate('/login');
+  };
+
   return (
-    <main className="auth-page">
-      <div className="auth-card">
+    <main className="auth-find-page">
+      <div className="auth-find-card">
+
         <h1>비밀번호 찾기</h1>
 
-        {!tempPassword ? (
-          <>
-            <input
-              className="inp"
-              placeholder="이메일"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        <p className="auth-find-desc">
+          가입한 이메일과 닉네임을 입력하면
+          임시 비밀번호를 발급해 드립니다.
+        </p>
 
-            <input
-              className="inp"
-              placeholder="닉네임"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-            />
+        <input
+          className="inp"
+          type="email"
+          placeholder="이메일"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-            <button
-              className="ui-btn-primary"
-              onClick={resetPassword}
-              disabled={loading}
+        <input
+          className="inp"
+          placeholder="닉네임"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && resetPassword()}
+        />
+
+        <button
+          type="button"
+          className="ui-btn-primary"
+          onClick={resetPassword}
+          disabled={loading}
+        >
+          {loading ? '발급 중...' : '임시 비밀번호 발급'}
+        </button>
+
+        {tempPassword && (
+          <div className="auth-find-result">
+            <p>임시 비밀번호</p>
+
+            <strong>{tempPassword}</strong>
+
+            <p
+              style={{
+                marginTop: '16px',
+                fontSize: '14px',
+                lineHeight: 1.6,
+              }}
             >
-              {loading ? '발급 중...' : '임시 비밀번호 발급'}
-            </button>
-          </>
-        ) : (
-          <>
-            <h3>임시 비밀번호</h3>
-
-            <h2>{tempPassword}</h2>
-
-            <p>
-              로그인 후 마이페이지에서 반드시 비밀번호를 변경해 주세요.
+              로그인 후 <strong>마이페이지에서 반드시 비밀번호를 변경</strong>
+              해주세요.
             </p>
 
-            <button
-              className="ui-btn-primary"
-              onClick={() => navigate('/login')}
-            >
-              로그인하기
-            </button>
-          </>
+            <div className="auth-find-actions">
+              <button
+                type="button"
+                className="ui-btn-secondary"
+                onClick={goLogin}
+              >
+                로그인으로 이동
+              </button>
+            </div>
+          </div>
         )}
+
       </div>
     </main>
   );

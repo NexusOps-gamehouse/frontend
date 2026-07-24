@@ -75,10 +75,16 @@ export default function LoginPage() {
             <button
               type="button"
               className="eye-btn"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={
+                showPassword ? '비밀번호 숨기기' : '비밀번호 표시'
+              }
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? (
+                <EyeOff size={18} />
+              ) : (
+                <Eye size={18} />
+              )}
             </button>
           </div>
 
@@ -101,15 +107,11 @@ export default function LoginPage() {
 
             <span>|</span>
 
-            <Link to="/find-id">
-              아이디 찾기
-            </Link>
+            <Link to="/find-id">아이디 찾기</Link>
 
             <span>|</span>
 
-            <Link to="/find-password">
-              비밀번호 찾기
-            </Link>
+            <Link to="/find-password">비밀번호 찾기</Link>
           </div>
         </form>
       </div>
