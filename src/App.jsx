@@ -3,6 +3,8 @@ import { useAuth } from './context/AuthContext';
 import NavBar from './components/NavBar';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import IDFinderPage from './pages/IDFinderPage';
+import PasswordFinderPage from './pages/PasswordFinderPage';
 import SurveyPage from './pages/SurveyPage';
 import ConfirmPage from './pages/ConfirmPage';
 import MainPage from './pages/MainPage';
@@ -28,6 +30,8 @@ export default function App() {
         <Route path="/" element={<MainPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/find-id" element={<IDFinderPage />} />
+        <Route path="/find-password" element={<PasswordFinderPage />} />
         <Route path="/signup/survey" element={<SurveyPage />} />
         <Route path="/signup/confirm" element={<ConfirmPage />} />
         <Route path="/post/new" element={<Private><PostFormPage /></Private>} />
