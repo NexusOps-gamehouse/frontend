@@ -10,7 +10,7 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  const toggleTheme = () => setTheme((previous) => (previous === 'dark' ? 'light' : 'dark'));
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
@@ -20,7 +20,7 @@ export function ThemeProvider({ children }) {
 }
 
 export function useTheme() {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within a ThemeProvider');
-  return ctx;
+  const context = useContext(ThemeContext);
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
+  return context;
 }

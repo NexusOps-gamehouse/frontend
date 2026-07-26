@@ -8,12 +8,22 @@ export default function PasswordFinderPage() {
 
   const [email, setEmail] = useState('');
   const [nickname, setNickname] = useState('');
-  const [tempPassword, setTempPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [changed, setChanged] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const resetPassword = async () => {
-    if (!email.trim() || !nickname.trim()) {
-      alert('이메일과 닉네임을 모두 입력해 주세요.');
+    if (!email.trim() || !nickname.trim() || !newPassword || !passwordConfirm) {
+      alert('모든 항목을 입력해 주세요.');
+      return;
+    }
+    if (newPassword.length < 4) {
+      alert('비밀번호는 4자 이상이어야 합니다.');
+      return;
+    }
+    if (newPassword !== passwordConfirm) {
+      alert('새 비밀번호가 일치하지 않습니다.');
       return;
     }
 
@@ -23,9 +33,11 @@ export default function PasswordFinderPage() {
       const { data } = await api.post('/users/reset-password', {
         email,
         nickname,
+        newPassword,
       });
 
-      setTempPassword(data.tempPassword);
+      setChanged(true);
+      alert(data.message || '비밀번호가 변경되었습니다.');
     } catch (err) {
       alert(errMsg(err));
     } finally {
@@ -44,8 +56,8 @@ export default function PasswordFinderPage() {
         <h1>비밀번호 찾기</h1>
 
         <p className="auth-find-desc">
-          가입한 이메일과 닉네임을 입력하면
-          임시 비밀번호를 발급해 드립니다.
+          가입한 이메일과 닉네임을 확인한 뒤
+          새로운 비밀번호로 변경합니다.
         </p>
 
         <input
@@ -61,6 +73,22 @@ export default function PasswordFinderPage() {
           placeholder="닉네임"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
+        />
+
+        <input
+          className="inp"
+          type="password"
+          placeholder="새 비밀번호 (4자 이상)"
+          value={newPassword}
+          onChange={(e) => { setNewPassword(e.target.value); setChanged(false); }}
+        />
+
+        <input
+          className="inp"
+          type="password"
+          placeholder="새 비밀번호 확인"
+          value={passwordConfirm}
+          onChange={(e) => { setPasswordConfirm(e.target.value); setChanged(false); }}
           onKeyDown={(e) => e.key === 'Enter' && resetPassword()}
         />
 
@@ -70,25 +98,12 @@ export default function PasswordFinderPage() {
           onClick={resetPassword}
           disabled={loading}
         >
-          {loading ? '발급 중...' : '임시 비밀번호 발급'}
+          {loading ? '변경 중...' : '비밀번호 변경'}
         </button>
 
-        {tempPassword && (
+        {changed && (
           <div className="auth-find-result">
-            <p>임시 비밀번호</p>
-
-            <strong>{tempPassword}</strong>
-
-            <p
-              style={{
-                marginTop: '16px',
-                fontSize: '14px',
-                lineHeight: 1.6,
-              }}
-            >
-              로그인 후 <strong>마이페이지에서 반드시 비밀번호를 변경</strong>
-              해주세요.
-            </p>
+            <strong>비밀번호가 변경되었습니다.</strong>
 
             <div className="auth-find-actions">
               <button
