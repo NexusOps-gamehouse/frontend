@@ -4,6 +4,8 @@ import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { GAMES, GAME_MODES } from '../constants';
 import { timeAgo } from '../utils';
+import TierBadge from '../components/TierBadge';
+import './MainPage.css';
 
 const STATUS_LABEL = { PENDING: '대기중', APPROVED: '승인됨', CONFIRMED: '확정', REJECTED: '거절됨' };
 
@@ -51,94 +53,118 @@ export default function MainPage() {
     navigate('/post/new');
   };
 
-  const FilterChips = ({ options, value, onChange }) => (
-    <>
-      <button type="button" className={`chip ${value === '' ? 'on' : ''}`}
-              onClick={() => onChange('')}>전체</button>
-      {options.map((o) => (
-        <button key={o.value ?? o} type="button"
-                className={`chip ${value === (o.value ?? o) ? 'on' : ''}`}
-                onClick={() => onChange(o.value ?? o)}>
-          {o.label ?? o}
-        </button>
-      ))}
-    </>
+  // 좌측 사이드바 필터 버튼 그룹
+  const FilterGroup = ({ title, options, value, onChange, allLabel = '전체' }) => (
+    <div className="filter-group">
+      <div className="filter-title">{title}</div>
+      <button type="button" className={`fchip ${value === '' ? 'on' : ''}`}
+              onClick={() => onChange('')}>{allLabel}</button>
+      {options.map((o) => {
+        const val = o.value ?? o;
+        const label = o.label ?? o;
+        return (
+          <button key={val} type="button"
+                  className={`fchip ${value === val ? 'on' : ''}`}
+                  onClick={() => onChange(val)}>
+            {label}
+          </button>
+        );
+      })}
+    </div>
   );
 
   return (
-    <div className="page">
-      <div className="between" style={{ marginBottom: 14 }}>
-        <p className="h2" style={{ margin: 0 }}>모집글</p>
-        <button className="btn sm" onClick={writePost}>+ 모집글 작성</button>
-      </div>
+    <div className="page mainpage wrap">
+      {/* 좌측 필터 */}
+      <aside className="side">
+        <FilterGroup title="GAME" options={GAMES} value={game} onChange={setGame} />
+        <FilterGroup title="MODE" options={GAME_MODES} value={gameMode} onChange={setGameMode} />
+        <FilterGroup
+          title="STATUS"
+          options={[{ label: '모집중', value: 'RECRUITING' }, { label: '모집완료', value: 'CLOSED' }]}
+          value={status} onChange={setStatus} allLabel="전체 보기"
+        />
+      </aside>
 
-      {/* 검색 */}
-      <form className="flex" style={{ marginBottom: 10 }} onSubmit={search}>
-        <select className="inp" style={{ width: 100, margin: 0 }}
-                value={searchType} onChange={(e) => setSearchType(e.target.value)}>
-          <option value="title">글제목</option>
-          <option value="nickname">글쓴이</option>
-        </select>
-        <input className="inp" style={{ flex: 1, margin: 0 }} placeholder="검색어"
-               value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-        <button className="btn sm" type="submit" style={{ height: 38 }}>검색</button>
-      </form>
-
-      {/* 필터 */}
-      <div className="row" style={{ marginBottom: 4 }}>
-        <FilterChips options={GAMES} value={game} onChange={setGame} />
-      </div>
-      <div className="row" style={{ marginBottom: 4 }}>
-        <FilterChips options={GAME_MODES} value={gameMode} onChange={setGameMode} />
-      </div>
-      <div className="row" style={{ marginBottom: 16 }}>
-        <FilterChips options={[{ label: '모집중', value: 'RECRUITING' }, { label: '모집완료', value: 'CLOSED' }]}
-                     value={status} onChange={setStatus} />
-      </div>
-
-      {posts.length === 0 && (
-        <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>
-          조건에 맞는 모집글이 없습니다.
+      {/* 메인 콘텐츠 */}
+      <main>
+        <div className="head">
+          <h1>
+            파티 찾기
+            <span className="cnt">{posts.length}개의 파티 대기중</span>
+          </h1>
+          <button className="ui-btn-primary" onClick={writePost}>+ 모집글 작성</button>
         </div>
-      )}
 
-      {posts.map((post) => (
-        <div key={post.id} className="card">
-          <div className="between" style={{ gap: 10, flexWrap: 'wrap' }}>
-            <div className="flex" style={{ minWidth: 0, flexWrap: 'wrap' }}>
-              <span className={`dot ${post.author.online ? '' : 'off'}`}
-                    title={post.author.online ? '방장 온라인' : '방장 오프라인'} />
-              <span className="name" style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/post/${post.id}`)}>
-                {post.title}
-              </span>
-              {post.game && <span className="tag">{post.game}</span>}
-              {post.gameMode && <span className="tag">{post.gameMode}</span>}
-              <span className="tag">{post.currentMembers}/{post.targetMembers}명</span>
-              <span className="tag" style={post.status === 'RECRUITING'
-                ? { background: '#e8f5ec', color: '#2b7a43' } : undefined}>
-                {post.status === 'RECRUITING' ? '모집중' : '모집완료'}
-              </span>
-            </div>
-            <div className="flex">
-              <span className="meta">
-                {post.author.nickname}
-                {post.author.tier ? ` · ${post.author.tier}` : ''}
-                {` · ${timeAgo(post.createdAt)}`}
-              </span>
-              {post.mine ? (
-                <button className="btn2 sm" onClick={() => navigate(`/post/${post.id}`)}>
-                  관리{post.pendingCount > 0 ? ` (신청 ${post.pendingCount})` : ''}
-                </button>
-              ) : post.myApplicationStatus ? (
-                <span className="tag">{STATUS_LABEL[post.myApplicationStatus]}</span>
-              ) : post.status === 'RECRUITING' ? (
-                <button className="btn sm" onClick={() => apply(post.id)}>참가 신청</button>
-              ) : null}
-            </div>
+        {/* 검색바 */}
+        <form className="searchbar" onSubmit={search}>
+          <select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
+            <option value="title">제목 + 내용</option>
+            <option value="nickname">글쓴이</option>
+          </select>
+          <input placeholder="어떤 파티를 찾으시나요? (예: 골드 듀오, 즐겜)"
+                 value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+          <button className="btn-search" type="submit">검색</button>
+        </form>
+
+        {/* 카드 그리드 */}
+        {posts.length === 0 ? (
+          <div className="ui-empty"><p>조건에 맞는 모집글이 없습니다.</p></div>
+        ) : (
+          <div className="ui-grid">
+            {posts.map((post) => {
+              const recruiting = post.status === 'RECRUITING';
+              const isValo = post.game && post.game.includes('발로란트');
+              return (
+                <div key={post.id} className={`ui-post-card${recruiting ? '' : ' is-closed'}`}>
+                  <div className="ui-card-header">
+                    <span className={`ui-game-badge${isValo ? ' is-valo' : ''}`}>
+                      {post.game || '기타'}
+                    </span>
+                    <span className={`ui-status ${recruiting ? 'is-open' : 'is-done'}`}>
+                      {recruiting ? '모집중' : '모집완료'}
+                    </span>
+                  </div>
+
+                  <div className="ui-card-title" onClick={() => navigate(`/post/${post.id}`)}>
+                    {post.title}
+                  </div>
+
+                  <div className="ui-tags">
+                    {post.gameMode && <span className="ui-tag2">{post.gameMode}</span>}
+                    <span className="ui-tag2">{post.currentMembers}/{post.targetMembers}명</span>
+                  </div>
+
+                  <div className="ui-card-footer">
+                    <div className="ui-author">
+                      <div className="ui-author-av">
+                        {post.author.nickname?.[0] || '?'}
+                      </div>
+                      <div className="ui-author-info">
+                        <div className="ui-author-name">
+                          {post.author.nickname}
+                          <TierBadge user={post.author} />
+                        </div>
+                        <div className="ui-time">{timeAgo(post.createdAt)}</div>
+                      </div>
+                    </div>
+
+                    {post.mine ? (
+                      <button className="ui-btn-join" onClick={() => navigate(`/post/${post.id}`)}>
+                        관리{post.pendingCount > 0 ? ` (신청 ${post.pendingCount})` : ''}
+                      </button>
+                    ) : post.myApplicationStatus ? (
+                      <span className="ui-tag2">{STATUS_LABEL[post.myApplicationStatus]}</span>
+                    ) : recruiting ? (
+                      <button className="ui-btn-join" onClick={() => apply(post.id)}>참가 신청</button>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      ))}
+        )}
+      </main>
     </div>
   );
 }
