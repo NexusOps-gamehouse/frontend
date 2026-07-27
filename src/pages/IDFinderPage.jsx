@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
+import { formatPhone, isValidName, isValidPhone } from '../utils';
 import './IDFinderPage.css';
 
 export default function IDFinderPage() {
   const navigate = useNavigate();
 
-  const [nickname, setNickname] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   const findEmail = async () => {
-    if (!nickname.trim()) {
-      alert('닉네임을 입력해 주세요.');
+    if (!isValidName(name)) {
+      alert('가입할 때 입력한 본명을 정확히 입력해 주세요.');
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      alert('올바른 휴대폰 번호를 입력해 주세요.');
       return;
     }
 
@@ -21,7 +27,8 @@ export default function IDFinderPage() {
     try {
       const { data } = await api.get('/users/find-email', {
         params: {
-          nickname,
+          name: name.trim(),
+          phone,
         },
       });
 
@@ -40,15 +47,36 @@ export default function IDFinderPage() {
       <h1>아이디 찾기</h1>
 
       <p className="auth-find-desc">
-        가입한 닉네임을 입력하면
+        가입할 때 입력한 본명과 전화번호를 입력하면
         이메일을 확인할 수 있습니다.
       </p>
 
       <input
         className="inp"
-        placeholder="닉네임"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
+        type="text"
+        placeholder="본명"
+        aria-label="본명"
+        autoComplete="name"
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value);
+          setEmail('');
+        }}
+      />
+
+      <input
+        className="inp"
+        type="tel"
+        placeholder="전화번호"
+        aria-label="전화번호"
+        autoComplete="tel"
+        inputMode="numeric"
+        maxLength={13}
+        value={phone}
+        onChange={(e) => {
+          setPhone(formatPhone(e.target.value));
+          setEmail('');
+        }}
         onKeyDown={(e) => e.key === 'Enter' && findEmail()}
       />
 
