@@ -7,14 +7,15 @@ export default function PasswordFinderPage() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
-  const [nickname, setNickname] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [changed, setChanged] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const resetPassword = async () => {
-    if (!email.trim() || !nickname.trim() || !newPassword || !passwordConfirm) {
+    if (!email.trim() || !name.trim() || !phone.trim() || !newPassword || !passwordConfirm) {
       alert('모든 항목을 입력해 주세요.');
       return;
     }
@@ -32,8 +33,10 @@ export default function PasswordFinderPage() {
     try {
       const { data } = await api.post('/users/reset-password', {
         email,
-        nickname,
+        name,
+        phone,
         newPassword,
+        newPasswordConfirm: passwordConfirm,
       });
 
       setChanged(true);
@@ -56,7 +59,7 @@ export default function PasswordFinderPage() {
         <h1>비밀번호 찾기</h1>
 
         <p className="auth-find-desc">
-          가입한 이메일과 닉네임을 확인한 뒤
+          가입한 이메일과 이름, 전화번호를 확인한 뒤
           새로운 비밀번호로 변경합니다.
         </p>
 
@@ -70,9 +73,17 @@ export default function PasswordFinderPage() {
 
         <input
           className="inp"
-          placeholder="닉네임"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
+          placeholder="이름"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <input
+          className="inp"
+          type="tel"
+          placeholder="전화번호 (예: 010-1234-5678)"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
         />
 
         <input
