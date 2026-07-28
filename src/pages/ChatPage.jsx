@@ -5,8 +5,9 @@ import SockJS from 'sockjs-client';
 import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
+import { WS_URL } from '../config';
 
-const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
+const wsUrl = WS_URL;
 
 export default function ChatPage() {
   const navigate = useNavigate();
