@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
+import { formatPhone, isValidPhone } from '../utils';
 import './PasswordFinderPage.css';
 
 export default function PasswordFinderPage() {
@@ -17,6 +18,10 @@ export default function PasswordFinderPage() {
   const resetPassword = async () => {
     if (!email.trim() || !name.trim() || !phone.trim() || !newPassword || !passwordConfirm) {
       alert('모든 항목을 입력해 주세요.');
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      alert('올바른 휴대폰 번호를 입력해 주세요.');
       return;
     }
     if (newPassword.length < 4) {
@@ -81,9 +86,13 @@ export default function PasswordFinderPage() {
         <input
           className="inp"
           type="tel"
-          placeholder="전화번호 (예: 010-1234-5678)"
+          placeholder="전화번호"
+          aria-label="전화번호"
+          autoComplete="tel"
+          inputMode="numeric"
+          maxLength={13}
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => { setPhone(formatPhone(e.target.value)); setChanged(false); }}
         />
 
         <input
