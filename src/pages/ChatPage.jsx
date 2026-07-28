@@ -42,7 +42,7 @@ export default function ChatPage() {
       reconnectDelay: 3000,
       onConnect: () => {
         setConnected(true);
-        client.subscribe(`/topic/rooms/${roomId}`, (frame) => {
+        client.subscribe(`/topic/rooms.${roomId}`, (frame) => {
           const msg = JSON.parse(frame.body);
           setMessages((prev) => [...prev, msg]);
         });
