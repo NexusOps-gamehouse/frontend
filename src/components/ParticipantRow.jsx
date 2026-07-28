@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { profileFromUser } from '../api/riot';
 import RiotProfileCard from './RiotProfileCard';
+import { assetUrl } from '../config';
 
 /**
  * 모집글 참가자 한 줄. user는 UserDto.
@@ -20,7 +21,7 @@ export default function ParticipantRow({ user, host = false }) {
   return (
     <div className="flex" style={{ gap: 12, padding: '10px 0' }}>
       <div className="av">
-        {user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.nickname?.[0] ?? '?')}
+        {user.profileImageUrl ? <img src={assetUrl(user.profileImageUrl)} alt="" /> : (user.nickname?.[0] ?? '?')}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
