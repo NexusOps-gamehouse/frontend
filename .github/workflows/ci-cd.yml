@@ -156,3 +156,76 @@ jobs:
         run: |
           echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop"
           echo "docker run -d -p 5173:5173 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop"
+  deploy:
+    name: deploy
+    needs: publish
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+  
+    permissions:
+      id-token: write
+      contents: read
+  
+    steps:
+      - uses: actions/checkout@v4
+  
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+  
+      - name: Encode ENV_FILE
+        run: |
+          printf "%s" "${{ secrets.ENV_FILE }}" | base64 -w0 > env.b64
+  
+      - name: Deploy via SSM
+        run: |
+          ENV_B64=$(cat env.b64)
+  
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy GameHouse" \
+            --parameters "commands=[
+              \"echo '$ENV_B64' | base64 -d > /home/ssm-user/infra/.env\",
+              \"sudo chown ssm-user:ssm-user /home/ssm-user/infra/.env\",
+              \"sudo -u ssm-user -H bash /home/ssm-user/infra/scripts/deploy.sh\"
+              ]" \
+            --query "Command.CommandId" \
+            --output text)
+  
+          echo "Command ID: $COMMAND_ID"
+  
+          for i in {1..60}; do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
+              --query "Status" \
+              --output text)
+  
+            echo "Current Status: $STATUS"
+  
+            if [ "$STATUS" = "Success" ]; then
+              echo "Deployment succeeded!"
+              break
+            fi
+  
+            if [ "$STATUS" = "Failed" ] || \
+               [ "$STATUS" = "Cancelled" ] || \
+               [ "$STATUS" = "TimedOut" ]; then
+  
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "${{ secrets.EC2_INSTANCE_ID }}"
+  
+              exit 1
+            fi
+  
+            sleep 5
+          done
+  
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}"
