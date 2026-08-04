@@ -13,6 +13,14 @@ import api from './client';
  * ================================================================== */
 const SYNC_ENDPOINT = '/users/riot/sync';
 
+/* GET /api/users/riot/profile
+ *   res : RiotProfileResponseDTO (연동 전이면 204 No Content)
+ *
+ * 서버가 마지막 연동 때 저장해 둔 값을 그대로 돌려준다. 라이엇 API 를 부르지 않는다.
+ * 마이페이지에 들어올 때마다 호출해도 되는 이유가 그것이다.
+ */
+const STORED_ENDPOINT = '/users/riot/profile';
+
 /* ---------------------------- 조회 ---------------------------- */
 
 /** "Hide on bush#KR1" → { gameName, tagLine } / 형식 오류면 null */
@@ -45,6 +53,17 @@ export async function syncRiotProfile({ gameName, tagLine }) {
     }
     throw err;
   }
+}
+
+/**
+ * 저장된 라이엇 프로필을 불러온다. 연동 전이면 null.
+ *
+ * 204 응답은 axios 에서 data 가 빈 문자열로 오므로 falsy 검사로 걸러낸다.
+ * 실패해도 화면을 막지 않는다 — 값이 없으면 그냥 안 보이면 그만이다.
+ */
+export async function fetchStoredRiotProfile() {
+  const { data } = await api.get(STORED_ENDPOINT);
+  return data ? normalizeProfile(data) : null;
 }
 
 export function riotErrMsg(err) {
