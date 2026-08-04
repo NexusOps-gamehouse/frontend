@@ -2,11 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import Chips, { MultiChips } from '../components/Chips';
-import { GAMES, GAME_MODES, POSITIONS, MEMBER_COUNTS } from '../constants';
+import { GAMES, GAME_MODES, POSITIONS, MEMBER_COUNTS, ANY } from '../constants';
 import { csv } from '../utils';
-
-const ANY_POSITION = '포지션 상관없음';
-const POST_POSITIONS = [ANY_POSITION, ...POSITIONS];
 
 const styles = `
 .pf .pf-narrow { max-width: 680px; margin: 0 auto; padding: 0 24px; }
@@ -123,18 +120,6 @@ export default function PostFormPage() {
     }
   };
 
-  const changePositions = (next) => {
-    if (!next.includes(ANY_POSITION)) {
-      setPositions(next);
-      return;
-    }
-    if (!positions.includes(ANY_POSITION)) {
-      setPositions([ANY_POSITION]);
-      return;
-    }
-    setPositions(next.filter((position) => position !== ANY_POSITION));
-  };
-
   return (
     <div className="page pf">
       <style>{styles}</style>
@@ -170,7 +155,7 @@ export default function PostFormPage() {
             <div className="pf-q">
               찾는 포지션 <span className="opt">(복수 선택 가능)</span>
             </div>
-            <MultiChips options={POST_POSITIONS} values={positions} onChange={changePositions} />
+            <MultiChips options={POSITIONS} values={positions} onChange={setPositions} exclusive={ANY} />
 
 
             <div className="pf-q">
