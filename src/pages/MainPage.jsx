@@ -90,7 +90,7 @@ export default function MainPage() {
       <main>
         <div className="head">
           <h1>
-            듀오 찾기
+            파티 찾기
             <span className="cnt">{posts.length}개의 파티 대기중</span>
           </h1>
           <button className="ui-btn-primary" onClick={writePost}>+ 모집글 작성</button>
