@@ -74,8 +74,17 @@ export function riotErrMsg(err) {
   // (예: "이미 다른 계정과 연동된 Riot 계정입니다.")
   if (status === 400 && serverMsg) return serverMsg;
 
-  if (status === 404) return '그 이름의 소환사를 찾지 못했어요. 이름과 태그를 다시 확인해 주세요.';
-  if (status === 409) return serverMsg || '이미 다른 계정에 연동된 롤 계정이에요.';
+  // 없는 소환사. 백엔드가 NoSuchElementException 메시지를 그대로 실어 보내므로
+  // 그것을 우선 쓴다. 문구를 백엔드 한 곳에서 관리하기 위함이고,
+  // 메시지가 비어 오는 경우를 대비해 기본 문구를 남겨둔다.
+  if (status === 404) return serverMsg || '그 이름의 소환사를 찾지 못했어요. 이름과 태그를 다시 확인해 주세요.';
+
+  // 409 분기는 삭제했다. 백엔드에 중복 연동 검사 자체가 없어
+  // (existsByPuuid / findByPuuid / CONFLICT 어디에도 없음) 실행될 일이 없는 죽은 코드였다.
+
+  // Riot 레이트 리밋. 예전에는 백엔드에서 500 으로 새어 나와 이 분기에 닿지 못했다.
+  // RiotConfig 의 필터가 429 를 그대로 옮겨 담으면서 실제로 동작하게 됐다.
+  // 2분이 지나면 저절로 풀리므로 안내만 하면 되고 알람 대상은 아니다.
   if (status === 429) return '조회 요청이 몰렸어요. 30초 뒤에 다시 시도해 주세요.';
   return '게임 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
 }
