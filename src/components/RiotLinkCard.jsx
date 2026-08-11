@@ -50,6 +50,10 @@ export default function RiotLinkCard() {
   const sync = async () => {
     if (!parsed) { setError('이름#태그 형식으로 입력해 주세요.'); return; }
     setError('');
+    // 이전 시도의 성공 문구를 먼저 지운다. 이게 없으면 갱신에 실패했을 때
+    // "조회 요청이 몰렸어요"(에러)와 "최신 정보로 갱신했어요"(성공)가
+    // 동시에 떠서 성공한 건지 실패한 건지 알 수 없다.
+    setJustSynced(false);
     setLoading(true);
     try {
       const p = await syncRiotProfile(parsed);
