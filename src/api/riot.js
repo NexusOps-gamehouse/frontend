@@ -129,20 +129,14 @@ const build = (src, list) => {
   };
 };
 
-/** 재동기화 최소 간격(ms). 백엔드 UserService.RIOT_SYNC_COOLDOWN 과 같은 값이어야 한다. */
-export const SYNC_COOLDOWN_MS = 2 * 60 * 1000;
-
 /**
- * 쿨다운이 끝나기까지 남은 시간(ms). 없으면 0.
+ * 재동기화 최소 간격(ms). 백엔드 UserService.RIOT_SYNC_COOLDOWN 과 같은 값이어야 한다.
  *
- * 서버가 "몇 초 남았다"가 아니라 갱신 시각을 내려주므로 여기서 계산한다.
- * 그래야 새로고침하거나 다른 기기에서 열어도 같은 값이 나온다.
+ * 서버가 "몇 초 남았다"가 아니라 갱신 시각(riotSyncedAt)을 내려주므로
+ * 남은 시간은 화면에서 계산한다. 그래야 새로고침하거나 다른 기기에서 열어도
+ * 같은 기준으로 잠긴다.
  */
-export function syncCooldownLeft(profile) {
-  if (!profile?.riotSyncedAt) return 0;
-  const elapsed = Date.now() - new Date(profile.riotSyncedAt).getTime();
-  return Math.max(0, SYNC_COOLDOWN_MS - elapsed);
-}
+export const SYNC_COOLDOWN_MS = 2 * 60 * 1000;
 
 /** 라이엇 조회 응답 → 내부 모양 */
 export function normalizeProfile(raw) {

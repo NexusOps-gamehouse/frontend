@@ -9,6 +9,24 @@ export function timeAgo(iso) {
   return `${Math.floor(hour / 24)}일 전`;
 }
 
+/**
+ * timeAgo 의 초 단위 버전. "1초 전" 처럼 방금 일어난 일을 보여줄 때 쓴다.
+ *
+ * timeAgo 는 1분 미만을 전부 '방금 전'으로 뭉갠다. 알림 목록에서는 그게 맞지만,
+ * 버튼을 누른 직후 반응을 보여줘야 하는 자리에서는 초가 보여야 한다.
+ * (라이엇 전적 갱신처럼 "내가 방금 눌렀다"가 확인돼야 하는 곳)
+ */
+export function timeAgoSec(iso, now = Date.now()) {
+  if (!iso) return '';
+  const sec = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 1000));
+  if (sec < 60) return `${sec}초 전`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}분 전`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}시간 전`;
+  return `${Math.floor(hour / 24)}일 전`;
+}
+
 /** "랭크,칼바람" → ["랭크","칼바람"] */
 export const csv = (s) => (s ? s.split(',').filter(Boolean) : []);
 

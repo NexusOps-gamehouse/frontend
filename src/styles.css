@@ -468,6 +468,11 @@ select.inp { padding: 0 8px; }
 .field-row .inp { flex: 1; margin-bottom: 0; }
 .field-row .btn2.sm { height: 38px; flex-shrink: 0; }
 
+/* 버튼 옆에 붙는 보조 문구 (예: "최근 업데이트: 3초 전").
+   .field-row 가 align-items:flex-start 라 그냥 두면 버튼(38px) 위쪽에 붙는다.
+   줄바꿈되면 버튼이 밀려 내려가므로 nowrap 으로 한 줄에 고정한다. */
+.field-row .field-hint { align-self: center; flex-shrink: 0; white-space: nowrap; }
+
 /* 비밀번호 표시/숨김 토글 */
 .inp-wrap { position: relative; }
 .inp-wrap .inp { padding-right: 40px; }
