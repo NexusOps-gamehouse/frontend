@@ -103,7 +103,9 @@ const toMastery = (m, i) => ({
 });
 
 const build = (src, list) => {
-  const tier = src.tier || null;
+  // UserDto 는 riotTier(검증) 와 tier(자기 신고) 를 둘 다 갖고 있어 검증된 쪽을 고른다.
+  // RiotProfileResponseDTO 는 riotTier 가 없고 tier 자체가 라이엇 값이라 그대로 쓰인다.
+  const { tier, rank } = displayTier(src);
   return {
     puuid: src.puuid ?? null,
     gameName: src.gameName ?? '',
@@ -116,7 +118,7 @@ const build = (src, list) => {
     ranked: Boolean(tier),
     tierVerified: isRiotTier(tier),
     tier,
-    rank: src.rank ?? null,
+    rank,
     leaguePoints: src.leaguePoints ?? 0,
     wins: src.wins ?? 0,
     losses: src.losses ?? 0,
@@ -196,12 +198,32 @@ export function tierLabel(tier) {
   return { MASTER: '마스터', GRANDMASTER: '그랜드마스터', CHALLENGER: '챌린저' }[tier] ?? t.ko;
 }
 
+/**
+ * 화면에 보여줄 티어를 고른다. 라이엇으로 검증된 값이 있으면 그쪽이 우선이다.
+ *
+ * UserDto 에는 성격이 다른 두 값이 있다.
+ *   tier      설문에서 사용자가 직접 고른 한글 값 ("다이아몬드"). 자기 신고.
+ *   riotTier  라이엇에서 확인된 영문 enum ("DIAMOND"). 연동 안 했으면 null.
+ *
+ * 듀오 매칭에서 티어는 핵심 정보라 검증된 값이 있으면 그것을 보여준다.
+ * 연동 전이거나 언랭이면 설문 값으로 떨어진다.
+ *
+ * verified 는 "이 값이 라이엇에서 확인된 것인가"다. 화면에서 인증 표시를
+ * 붙이고 싶을 때 쓸 수 있다.
+ */
+export function displayTier(u) {
+  if (!u) return { tier: null, rank: null, verified: false };
+  if (u.riotTier) return { tier: u.riotTier, rank: u.riotRank ?? null, verified: true };
+  return { tier: u.tier ?? null, rank: u.rank ?? null, verified: false };
+}
+
 /** UserDto → "다이아몬드 II" / "골드" / "" */
 export function userTierText(u) {
-  if (!u?.tier) return '';
-  const label = tierLabel(u.tier);
-  if (!isRiotTier(u.tier) || APEX.includes(u.tier) || !u.rank) return label;
-  return `${label} ${u.rank}`;
+  const { tier, rank } = displayTier(u);
+  if (!tier) return '';
+  const label = tierLabel(tier);
+  if (!isRiotTier(tier) || APEX.includes(tier) || !rank) return label;
+  return `${label} ${rank}`;
 }
 
 export function winRate(wins, losses) {
