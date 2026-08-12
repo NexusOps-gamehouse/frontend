@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   syncRiotProfile, fetchStoredRiotProfile,
-  parseRiotId, riotErrMsg, formatRiotId,
+  parseRiotId, riotErrMsg, formatRiotId, syncCooldownLeft,
 } from '../api/riot';
 import RiotProfileCard from './RiotProfileCard';
 import { profileFromUser } from '../api/riot';
@@ -20,6 +20,7 @@ export default function RiotLinkCard() {
   const [error, setError] = useState('');
   const [synced, setSynced] = useState(null);   // 화면에 보여줄 라이엇 프로필
   const [justSynced, setJustSynced] = useState(false); // "갱신했어요" 문구용
+  const [cooldownLeft, setCooldownLeft] = useState(0); // 재조회까지 남은 ms
 
   /**
    * 마운트될 때 서버에 저장된 프로필을 불러온다.
@@ -41,11 +42,39 @@ export default function RiotLinkCard() {
     return () => { alive = false; };
   }, [user?.gameName]);
 
+  /**
+   * 쿨다운 카운트다운.
+   *
+   * 남은 시간을 state 에 저장해두고 줄이는 대신, 매 초 synced.riotSyncedAt 으로
+   * 다시 계산한다. 탭이 백그라운드로 가면 setInterval 이 느려지거나 밀리는데,
+   * 시각 기준으로 재계산하면 그 영향을 받지 않는다.
+   *
+   * 서버도 같은 쿨다운을 걸고 있으므로 이 타이머는 안내용이다.
+   * 개발자 도구로 버튼을 눌러도 서버가 저장된 값을 돌려줄 뿐 라이엇을 부르지 않는다.
+   */
+  useEffect(() => {
+    const tick = () => setCooldownLeft(syncCooldownLeft(synced));
+    tick();
+    if (!synced?.riotSyncedAt) return;
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [synced]);
+
   const parsed = riotId.trim() ? parseRiotId(riotId) : null;
   const formatError = Boolean(riotId.trim()) && parsed === null;
 
   const linked = Boolean(user?.gameName);
   const profile = synced ?? profileFromUser(user);
+
+  // 쿨다운은 '같은 계정 재조회'에만 건다. 다른 Riot ID 를 입력했다면
+  // 갱신이 아니라 연동 대상 변경이므로 기다리게 할 이유가 없다. (서버도 같은 규칙)
+  const sameAccount = Boolean(
+    parsed && synced?.gameName
+    && parsed.gameName.trim().toLowerCase() === synced.gameName.toLowerCase()
+    && parsed.tagLine.trim().toLowerCase() === (synced.tagLine ?? '').toLowerCase(),
+  );
+  const cooling = sameAccount && cooldownLeft > 0;
+  const cooldownSec = Math.ceil(cooldownLeft / 1000);
 
   const sync = async () => {
     if (!parsed) { setError('이름#태그 형식으로 입력해 주세요.'); return; }
@@ -88,8 +117,10 @@ export default function RiotLinkCard() {
                    setRiotId(e.target.value); setError(''); setJustSynced(false);
                  }} />
           <button className="btn2 sm" type="button" onClick={sync}
-                  disabled={!riotId || loading}>
-            {loading ? '불러오는 중…' : linked ? '다시 불러오기' : '연동하기'}
+                  disabled={!riotId || loading || cooling}>
+            {loading ? '불러오는 중…'
+              : cooling ? `${cooldownSec}초 후 가능`
+              : linked ? '다시 불러오기' : '연동하기'}
           </button>
         </div>
 
@@ -97,7 +128,16 @@ export default function RiotLinkCard() {
         {error && <p className="check-msg dup" role="alert">{error}</p>}
         {/* 저장된 값을 불러온 것만으로는 뜨지 않는다. 방금 갱신했을 때만. */}
         {justSynced && <p className="check-msg ok" role="status">최신 정보로 갱신했어요.</p>}
-        {!linked && !error && !formatError && !justSynced && (
+        {/*
+          쿨다운 안내. 버튼이 잠긴 이유를 말해주지 않으면 고장으로 보인다.
+          방금 갱신한 직후에는 위의 '갱신했어요'와 겹치므로 그때는 띄우지 않는다.
+        */}
+        {cooling && !justSynced && !error && (
+          <p className="field-hint" role="status">
+            방금 갱신했어요. {cooldownSec}초 후에 다시 불러올 수 있어요.
+          </p>
+        )}
+        {!linked && !error && !formatError && !justSynced && !cooling && (
           <p className="field-hint">연동하면 티어와 모스트 챔피언이 프로필에 표시됩니다.</p>
         )}
 

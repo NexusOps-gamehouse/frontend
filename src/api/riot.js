@@ -122,8 +122,27 @@ const build = (src, list) => {
     losses: src.losses ?? 0,
 
     masteries: (list ?? []).filter((m) => !m.game || m.game === 'LOL').map(toMastery),
+
+    // 마지막으로 라이엇을 실제 호출한 시각. 쿨다운 남은 시간 계산에 쓴다.
+    // 모집글 참가자(UserDto)로 만든 경우에는 없으므로 null 이 된다.
+    riotSyncedAt: src.riotSyncedAt ?? null,
   };
 };
+
+/** 재동기화 최소 간격(ms). 백엔드 UserService.RIOT_SYNC_COOLDOWN 과 같은 값이어야 한다. */
+export const SYNC_COOLDOWN_MS = 2 * 60 * 1000;
+
+/**
+ * 쿨다운이 끝나기까지 남은 시간(ms). 없으면 0.
+ *
+ * 서버가 "몇 초 남았다"가 아니라 갱신 시각을 내려주므로 여기서 계산한다.
+ * 그래야 새로고침하거나 다른 기기에서 열어도 같은 값이 나온다.
+ */
+export function syncCooldownLeft(profile) {
+  if (!profile?.riotSyncedAt) return 0;
+  const elapsed = Date.now() - new Date(profile.riotSyncedAt).getTime();
+  return Math.max(0, SYNC_COOLDOWN_MS - elapsed);
+}
 
 /** 라이엇 조회 응답 → 내부 모양 */
 export function normalizeProfile(raw) {
