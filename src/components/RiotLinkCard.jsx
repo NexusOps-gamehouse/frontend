@@ -97,11 +97,22 @@ export default function RiotLinkCard() {
       const p = await syncRiotProfile(parsed);
       setSynced(p);
       setRiotId(`${p.gameName}#${p.tagLine}`);
-      // 서버가 저장한 값을 화면에도 반영
+      /*
+       * 서버가 저장한 값을 화면에도 반영한다.
+       *
+       * ⚠️ tier 는 건드리지 않는다. 그건 설문에서 사용자가 직접 고른 값이고
+       *    서버도 연동 시 덮어쓰지 않는다. 예전에는 여기서 tier: p.tier 로
+       *    라이엇 값을 밀어넣었는데, 서버에는 저장되지 않으니 새로고침하면
+       *    설문 값으로 되돌아갔다. 화면에만 존재하는 값이라 "연동 직후엔 챌린저,
+       *    새로고침하면 아이언"처럼 보였다.
+       *
+       *    라이엇 티어는 riotTier / riotRank 로 따로 넣는다. 화면은
+       *    displayTier() 가 이쪽을 우선 쓰므로 새로고침 후에도 값이 같다.
+       */
       updateUser({
         ...user,
         gameName: p.gameName, tagLine: p.tagLine,
-        tier: p.tier, rank: p.rank, leaguePoints: p.leaguePoints,
+        riotTier: p.tier, riotRank: p.rank, leaguePoints: p.leaguePoints,
         profileIconId: p.profileIconId, summonerLevel: p.summonerLevel,
       });
     } catch (err) {
