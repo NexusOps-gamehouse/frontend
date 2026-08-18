@@ -9,32 +9,51 @@ import './MainPage.css';
 
 const STATUS_LABEL = { PENDING: '대기중', APPROVED: '승인됨', CONFIRMED: '확정', REJECTED: '거절됨' };
 
+const PAGE_SIZE = 20;
+
 export default function MainPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [posts, setPosts] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [searchType, setSearchType] = useState('title');
   const [keyword, setKeyword] = useState('');
   const [game, setGame] = useState('');
   const [gameMode, setGameMode] = useState('');
   const [status, setStatus] = useState('');
 
-  const load = useCallback(async (kw = keyword) => {
+  /**
+   * 목록 조회.
+   *
+   * 서버가 전체가 아니라 한 페이지씩 돌려준다. nextPage 가 0 이면 새로 검색한
+   * 것이므로 목록을 갈아끼우고, 그보다 크면 "더 보기"이므로 뒤에 이어 붙인다.
+   */
+  const load = useCallback(async (nextPage = 0, kw = keyword) => {
+    setLoading(true);
     try {
       const { data } = await api.get('/posts', {
-        params: { searchType, keyword: kw, game, gameMode, status },
+        params: { searchType, keyword: kw, game, gameMode, status,
+                  page: nextPage, size: PAGE_SIZE },
       });
-      setPosts(data);
-    } catch { /* 무시 */ }
+      setPosts((prev) => (nextPage === 0 ? data.items : [...prev, ...data.items]));
+      setTotal(data.totalElements);
+      setHasNext(data.hasNext);
+      setPage(data.page);
+    } catch { /* 무시 */ } finally {
+      setLoading(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchType, keyword, game, gameMode, status]);
 
-  useEffect(() => { load(); }, [game, gameMode, status]); // 필터 변경 시 즉시 재조회
+  useEffect(() => { load(0); }, [game, gameMode, status]); // 필터 변경 시 첫 페이지부터 재조회
   // eslint-disable-line react-hooks/exhaustive-deps
 
   const search = (e) => {
     e.preventDefault();
-    load();
+    load(0);
   };
 
   const apply = async (postId) => {
@@ -42,7 +61,11 @@ export default function MainPage() {
     try {
       await api.post(`/posts/${postId}/apply`);
       alert('참가 신청이 완료되었습니다!');
-      load();
+      // 목록을 통째로 다시 부르지 않고 해당 카드만 갱신한다.
+      // (전체 재조회를 하면 "더 보기"로 쌓아둔 페이지가 사라진다)
+      setPosts((prev) => prev.map((p) => (
+        p.id === postId ? { ...p, myApplicationStatus: 'PENDING' } : p
+      )));
     } catch (err) {
       alert(errMsg(err));
     }
@@ -91,7 +114,7 @@ export default function MainPage() {
         <div className="head">
           <h1>
             듀오 찾기
-            <span className="cnt">{posts.length}개의 파티 대기중</span>
+            <span className="cnt">{total}개의 파티 대기중</span>
           </h1>
           <button className="ui-btn-primary" onClick={writePost}>+ 모집글 작성</button>
         </div>
@@ -162,6 +185,15 @@ export default function MainPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {hasNext && (
+          <div className="more-wrap">
+            <button className="ui-btn-more" type="button" disabled={loading}
+                    onClick={() => load(page + 1)}>
+              {loading ? '불러오는 중…' : `더 보기 (${posts.length} / ${total})`}
+            </button>
           </div>
         )}
       </main>

@@ -15,23 +15,61 @@ export default function ChatPage() {
   const { user } = useAuth();
   const [room, setRoom] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [input, setInput] = useState('');
   const [connected, setConnected] = useState(false);
   const clientRef = useRef(null);
   const bottomRef = useRef(null);
+  // 이전 메시지를 앞에 붙일 때는 맨 아래로 스크롤하면 안 된다.
+  // (읽던 위치에서 아래로 튀어버린다)
+  const keepScrollRef = useRef(false);
 
   const isOwner = room && user && room.postAuthorId === user.id;
 
+  /** 방 입장 — 방 정보 + 최근 메시지 */
   const loadRoom = useCallback(async () => {
     try {
       const { data } = await api.get(`/chat/rooms/${roomId}`);
       setRoom(data.room);
       setMessages(data.messages);
+      setHasMore(data.hasMore);
     } catch (err) {
       alert(errMsg(err));
       navigate('/');
     }
   }, [roomId, navigate]);
+
+  /**
+   * 방 정보만 갱신 (확정·강퇴·모집완료 후).
+   *
+   * loadRoom 을 쓰면 messages 가 최근 묶음으로 리셋돼서
+   * "이전 메시지"로 불러온 이력이 사라진다.
+   */
+  const refreshRoom = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/chat/rooms/${roomId}`);
+      setRoom(data.room);
+    } catch { /* 무시 */ }
+  }, [roomId]);
+
+  /** 이전 메시지 — 지금 가진 것 중 가장 오래된 id 를 커서로 쓴다 */
+  const loadOlder = useCallback(async () => {
+    if (!messages.length || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const { data } = await api.get(`/chat/rooms/${roomId}/messages`, {
+        params: { before: messages[0].id },
+      });
+      keepScrollRef.current = true;
+      setMessages((prev) => [...data.messages, ...prev]);
+      setHasMore(data.hasMore);
+    } catch (err) {
+      alert(errMsg(err));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [roomId, messages, loadingMore]);
 
   useEffect(() => { loadRoom(); }, [loadRoom]);
 
@@ -56,6 +94,11 @@ export default function ChatPage() {
   }, [roomId]);
 
   useEffect(() => {
+    // 이전 메시지를 앞에 붙인 직후에는 스크롤을 건드리지 않는다.
+    if (keepScrollRef.current) {
+      keepScrollRef.current = false;
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -71,19 +114,19 @@ export default function ChatPage() {
   };
 
   const confirmMember = async (applicationId) => {
-    try { await api.post(`/applications/${applicationId}/confirm`); loadRoom(); }
+    try { await api.post(`/applications/${applicationId}/confirm`); refreshRoom(); }
     catch (err) { alert(errMsg(err)); }
   };
 
   const kick = async (userId, nickname) => {
     if (!confirm(`${nickname}님을 파티에서 내보낼까요? (신청도 거절 처리됩니다)`)) return;
-    try { await api.delete(`/chat/rooms/${roomId}/members/${userId}`); loadRoom(); }
+    try { await api.delete(`/chat/rooms/${roomId}/members/${userId}`); refreshRoom(); }
     catch (err) { alert(errMsg(err)); }
   };
 
   const closeRecruit = async () => {
     if (!confirm('모집을 완료 처리할까요? 이후 참가 신청을 받지 않습니다.')) return;
-    try { await api.post(`/posts/${room.postId}/close`); loadRoom(); }
+    try { await api.post(`/posts/${room.postId}/close`); refreshRoom(); }
     catch (err) { alert(errMsg(err)); }
   };
 
@@ -135,6 +178,14 @@ export default function ChatPage() {
           {/* 메시지 영역 */}
           <div className="chat-main">
             <div className="chat-messages">
+              {hasMore && (
+                <div className="older-wrap">
+                  <button type="button" className="btn-older"
+                          disabled={loadingMore} onClick={loadOlder}>
+                    {loadingMore ? '불러오는 중…' : '이전 메시지 보기'}
+                  </button>
+                </div>
+              )}
               {messages.map((m) => {
                 const mine = m.senderId === user?.id;
                 return mine ? (
