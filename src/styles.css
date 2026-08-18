@@ -253,6 +253,15 @@ textarea.inp { height: 140px; padding-top: 10px; resize: vertical; }
 .bubble.me { background: var(--primary); color: #fff; }
 .chat-messages { min-height: 300px; max-height: 55vh; overflow-y: auto; padding: 4px 0 16px; }
 
+/* 이전 메시지 불러오기 (커서 페이징) */
+.older-wrap { display: flex; justify-content: center; padding: 4px 0 12px; }
+.btn-older {
+  background: transparent; color: var(--text-muted); border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: 999px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.btn-older:hover:not(:disabled) { color: var(--text-main); border-color: var(--text-muted); }
+.btn-older:disabled { opacity: .6; cursor: default; }
+
 /* 채팅 2단 레이아웃 */
 .chat-layout { display: flex; gap: 16px; align-items: flex-start; }
 .chat-sidebar { flex: 0 0 200px; display: flex; flex-direction: column; gap: 8px; }

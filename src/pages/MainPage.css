@@ -43,6 +43,16 @@
 }
 .mainpage .searchbar .btn-search:hover { background: var(--primary); color: #fff; }
 
+/* 더 보기 (페이징) */
+.mainpage .more-wrap { display: flex; justify-content: center; margin-top: 28px; }
+.mainpage .ui-btn-more {
+  background: var(--surface); color: var(--text-main); border: 1px solid var(--border);
+  padding: 12px 28px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.mainpage .ui-btn-more:hover:not(:disabled) { background: var(--primary); color: #fff; border-color: var(--primary); }
+.mainpage .ui-btn-more:disabled { opacity: .6; cursor: default; }
+
 /* 반응형: 좁으면 사이드바를 위로 */
 @media (max-width: 860px) {
   .mainpage.wrap { grid-template-columns: 1fr; gap: 24px; }
