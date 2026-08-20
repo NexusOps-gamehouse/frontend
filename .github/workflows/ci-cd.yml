@@ -14,25 +14,32 @@ on:
 
 # 같은 브랜치에 커밋이 연달아 올라오면 이전 실행을 취소한다.
 # 단, push(=develop merge=배포)는 중간에 끊기면 안 되므로 PR 실행만 취소한다.
+#
+# 무조건 취소(cancel-in-progress: true)로 두면 배포 중 새 커밋이 들어올 때
+# deploy job(SSM 폴링)이 죽을 수 있다.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# 최소 권한만 부여한다. PR 실행은 Docker Hub 자격증명을 사용하지 않는다.
+# 기본적으로 최소 권한만 부여한다.
+# AWS OIDC가 필요한 deploy job에서만 id-token: write를 추가한다.
 permissions:
   contents: read
 
 env:
   # Docker Hub private repo 1개(nexusops/gamehouse)를 backend/frontend가 공유하고,
   # 앱 구분은 태그 접두어(backend-/frontend-)로 한다.
-  IMAGE_REPO: gamehouse   # Docker Hub repository 이름
-  APP: frontend           # 이 저장소가 담당하는 앱 = 태그 접두어
+  IMAGE_REPO: gamehouse
+  APP: frontend
 
 jobs:
+
   # ---------------------------------------------------------------
   # [PR 게이트 1] Secret scan
+  #
   # 빌드 검증은 image-check의 docker build(npm ci && npm run build)가
   # 이미 수행하므로 여기서는 중복이라 제외했다.
+  #
   # lint/test를 도입하면 이 job에 npm run lint / npm test 를 추가한다.
   # secret scan은 이곳이 유일한 자리이므로 반드시 유지한다.
   # ---------------------------------------------------------------
@@ -40,31 +47,45 @@ jobs:
     name: verify (secret scan)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
     steps:
       - uses: actions/checkout@v4
 
       # SAST: 토큰/비밀번호가 코드에 섞여 들어갔는지 검사한다.
-      # merge 후에는 git 히스토리에 남아 되돌리기 어려우므로 반드시 PR 시점에 돌린다.
-      # 이미지 태그는 :latest 대신 고정 버전을 쓴다(재현성/공급망 안정성).
+      # merge 후에는 git 히스토리에 남아 되돌리기 어려우므로
+      # 반드시 PR 시점에 돌린다.
+      #
+      # 이미지 태그는 :latest 대신 고정 버전을 쓴다.
+      # 재현성과 공급망 안정성을 확보하기 위함이다.
       - name: Secret scan (gitleaks)
         run: |
           docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:v8.18.4 \
             detect --source=/repo --no-git --redact --verbose
 
+
   # ---------------------------------------------------------------
   # [PR 게이트 2] 이미지 빌드 & 기동 검증
-  # Dockerfile이 vite build(정적 산출물) -> serve 서빙 구조이므로,
-  # 빌드가 깨지거나 산출물이 비면 여기서 잡힌다.
+  #
+  # Dockerfile이
+  #
+  # vite build(정적 산출물)
+  #       ↓
+  # serve 서빙
+  #
+  # 구조이므로 빌드가 깨지거나 산출물이 비면 여기서 잡힌다.
+  #
   # verify와 병렬로 실행되어 전체 대기 시간을 늘리지 않는다.
   # ---------------------------------------------------------------
   image-check:
     name: image-check (build & smoke test)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     steps:
       - uses: actions/checkout@v4
 
-      # Dockerfile이 BuildKit 문법을 쓰고, type=gha 캐시를 쓰려면 필요하다.
+      # Dockerfile이 BuildKit 문법을 쓰고,
+      # type=gha 캐시를 사용하기 위해 필요하다.
       - uses: docker/setup-buildx-action@v3
 
       # push 없이 runner의 Docker에만 적재(load)한다.
@@ -79,48 +100,70 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # 실제로 컨테이너를 띄워 serve가 기동하고 SPA가 응답하는지 확인한다.
+      # 실제로 컨테이너를 띄워 serve가 기동하고
+      # SPA가 정상 응답하는지 확인한다.
       #
-      # serve는 정적 서버라 백엔드 의존이 없다(nginx 시절의 upstream resolve 부담 없음).
-      # entrypoint는 env가 없으면 no-op → dist/config.js 기본값(상대경로) 유지 →
-      # serve가 index.html을 서빙하므로 백엔드 없이도 GET / 은 200이 나온다.
-      # serve는 컨테이너 내부에서 5173을 리슨한다(호스트는 8080으로 매핑).
-      # (/api·/ws 실제 라우팅은 배포 후 compose/ALB에서 검증한다.)
+      # serve는 정적 서버이므로 백엔드 의존성이 없다.
+      #
+      # entrypoint는 env가 없으면 no-op
+      # → dist/config.js 기본값(상대경로) 유지
+      # → serve가 index.html을 서빙한다.
+      #
+      # 컨테이너 내부 5173 포트를
+      # GitHub runner의 8080으로 매핑한다.
+      #
+      # HTTP 200뿐만 아니라 <div id="root">까지 확인해서
+      # 실제 SPA build 산출물이 존재하는지 검증한다.
       - name: Smoke test running container
         run: |
           docker run -d --name gh-frontend-ci \
             -p 8080:5173 \
             ${{ env.APP }}:ci
 
-          # 200만 보면 빌드가 깨져 빈 index.html이 나와도 통과한다.
-          # SPA 마운트 지점(<div id="root">)까지 확인해 "실제 빌드 산출물"을 검증한다.
           ok=0
+
           for i in $(seq 1 30); do
+
             body=$(curl -s -w '\n%{http_code}' http://localhost:8080/ || echo -e '\n000')
             code=$(echo "${body}" | tail -n1)
+
             if [ "${code}" = "200" ] && echo "${body}" | grep -q '<div id="root">'; then
               echo "HTTP 200 + SPA root found - serve is serving the built app"
               ok=1
               break
             fi
+
             echo "waiting... (attempt ${i}, last code=${code})"
+
             sleep 2
+
           done
 
           if [ "${ok}" != "1" ]; then
+
             echo "::error::Frontend did not serve a valid SPA (HTTP 200 + #root) within 60s"
+
             docker logs --tail=200 gh-frontend-ci
+
             exit 1
+
           fi
 
       - name: Clean up container
         if: always()
         run: docker rm -f gh-frontend-ci || true
 
+
   # ---------------------------------------------------------------
-  # [배포] develop merge 이후에만 실행
-  # 위 두 게이트를 모두 통과한 커밋만 Docker Hub로 나간다.
-  # image-check가 캐시를 채워두므로 여기서의 build는 대부분 캐시 히트다.
+  # [배포 1] Docker Hub publish
+  #
+  # develop push 이후에만 실행한다.
+  #
+  # verify + image-check를 모두 통과한 커밋만
+  # Docker Hub에 올라간다.
+  #
+  # image-check가 GHA build cache를 채워두므로
+  # 여기서의 build는 대부분 cache hit가 발생한다.
   # ---------------------------------------------------------------
   publish:
     name: publish (push to Docker Hub)
@@ -128,6 +171,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     steps:
       - uses: actions/checkout@v4
 
@@ -138,8 +182,10 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 배포 대상은 x86 서버 기준이므로 단일 arch로 빌드한다.
-      # ARM 서버로 옮기게 되면 platforms에 linux/arm64를 추가한다.
+      # 현재 배포 대상 EC2가 x86 기반이므로 linux/amd64로 빌드한다.
+      #
+      # ARM 기반 서버로 변경할 경우
+      # linux/arm64 추가를 검토한다.
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -152,39 +198,69 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Show pull command
-        run: |
-          echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop"
-          echo "docker run -d -p 5173:5173 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop"
+
+  # ---------------------------------------------------------------
+  # [배포 2] AWS EC2 배포
+  #
+  # Docker Hub publish 성공 이후에만 실행한다.
+  #
+  # GitHub Actions
+  #      ↓
+  # GitHub OIDC
+  #      ↓
+  # AWS IAM Role
+  #      ↓
+  # Systems Manager Run Command
+  #      ↓
+  # EC2 deploy.sh
+  #
+  # 구조로 배포한다.
+  # ---------------------------------------------------------------
   deploy:
     name: deploy
     needs: publish
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-  
+
+    # AWS 인증이 필요한 이 job에서만
+    # GitHub OIDC token 발급 권한을 허용한다.
     permissions:
       id-token: write
       contents: read
-    
-       
+
     steps:
       - uses: actions/checkout@v4
-  
+
+      # -----------------------------------------------------------
+      # GitHub OIDC → AWS IAM Role AssumeRole
+      # -----------------------------------------------------------
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
-  
+
+      # -----------------------------------------------------------
+      # GitHub ENV_FILE Secret을 Base64로 인코딩한다.
+      #
+      # 이후 SSM 명령으로 EC2에 전달하여
+      # /home/ssm-user/infra/.env 파일을 갱신한다.
+      # -----------------------------------------------------------
       - name: Encode ENV_FILE
         run: |
           printf "%s" "${{ secrets.ENV_FILE }}" | base64 -w0 > env.b64
-  
+
+      # -----------------------------------------------------------
+      # Systems Manager를 통한 배포
+      #
+      # EC2 SSH 포트를 외부에 개방하지 않고
+      # AWS Systems Manager Run Command를 이용한다.
+      # -----------------------------------------------------------
       - name: Deploy via SSM
         run: |
           ENV_B64=$(cat env.b64)
-  
+
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
@@ -193,40 +269,63 @@ jobs:
               \"echo '$ENV_B64' | base64 -d > /home/ssm-user/infra/.env\",
               \"sudo chown ssm-user:ssm-user /home/ssm-user/infra/.env\",
               \"sudo -u ssm-user -H bash /home/ssm-user/infra/scripts/deploy.sh\"
-              ]" \
+            ]" \
             --query "Command.CommandId" \
             --output text)
-  
+
           echo "Command ID: $COMMAND_ID"
-  
+
+          # -------------------------------------------------------
+          # SSM Run Command 상태 polling
+          #
+          # 최대:
+          #   60회 × 5초 = 약 5분
+          #
+          # Success이면 즉시 성공 종료.
+          # 명시적 실패 상태이면 즉시 실패 종료.
+          #
+          # 60회 동안 완료되지 않을 경우
+          # GitHub Actions 자체를 실패 처리한다.
+          # -------------------------------------------------------
           for i in {1..60}; do
+
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" \
               --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
               --query "Status" \
               --output text)
-  
+
             echo "Current Status: $STATUS"
-  
-            if [ "$STATUS" = "Success" ]; then
-              echo "Deployment succeeded!"
-              break
-            fi
-  
-            if [ "$STATUS" = "Failed" ] || \
-               [ "$STATUS" = "Cancelled" ] || \
-               [ "$STATUS" = "TimedOut" ]; then
-  
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "${{ secrets.EC2_INSTANCE_ID }}"
-  
-              exit 1
-            fi
-  
+
+            case "$STATUS" in
+
+              Success)
+                echo "Deployment succeeded!"
+                exit 0
+                ;;
+
+              Failed|Cancelled|TimedOut)
+                echo "::error::Deployment failed."
+
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "${{ secrets.EC2_INSTANCE_ID }}"
+
+                exit 1
+                ;;
+
+            esac
+
             sleep 5
+
           done
-  
+
+          echo "::error::Deployment timed out."
+
+          # Timeout 발생 시 마지막 SSM 실행 정보를 출력해서
+          # GitHub Actions 로그에서 원인을 확인할 수 있도록 한다.
           aws ssm get-command-invocation \
-           --command-id "$COMMAND_ID" \
-           --instance-id "${{ secrets.EC2_INSTANCE_ID }}"
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}" || true
+
+          exit 1
