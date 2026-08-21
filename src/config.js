@@ -7,7 +7,8 @@
 //
 // 값은 항상 config.js(window.__ENV__)로 들어오므로 import.meta.env 는 읽지 않는다.
 // (도커 빌드에선 .env 가 .dockerignore 로 빠져 어차피 undefined 라 무의미)
-// dev 의 /api·/ws 프록시 목적지는 vite.config.js 가 .env 의 VITE_BACKEND_ORIGIN 으로 처리.
+// dev 의 /api·/ws 프록시 목적지는 vite.config.js 가 처리한다.
+// 백엔드가 MSA 로 나뉜 뒤로는 경로별로 목적지가 다르다(VITE_USER/POST/CHAT_ORIGIN).
 
 const env = (typeof window !== 'undefined' && window.__ENV__) || {};
 

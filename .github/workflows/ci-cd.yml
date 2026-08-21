@@ -216,10 +216,30 @@ jobs:
   #
   # 구조로 배포한다.
   # ---------------------------------------------------------------
+  # ---------------------------------------------------------------
+  # ⛔ 현재 비활성 — if: false
+  #
+  # [왜 껐나]
+  # 백엔드가 MSA 로 나뉘어 서비스 4개(user/post/chat/riot)가 됐다.
+  # 프론트는 /api/* 를 상대경로로 부르고, 그 요청을 서비스별로 갈라주는 것은
+  # 개발에선 vite 프록시, 운영에선 Ingress 다. 그런데 운영 쪽 라우팅이 아직 없다.
+  #
+  # 이 상태로 배포하면 프론트는 정상적으로 뜨지만 모든 API 요청이 갈 곳을
+  # 잃는다. 백엔드도 아직 컨테이너 1개 전제라 함께 맞춰져야 한다.
+  #
+  # [되살리는 조건] — 4단계 배포 준비
+  #   1. 백엔드 4개 배포 (compose 또는 k8s)
+  #   2. Ingress/nginx 경로 라우팅 — vite.config.js 의 규칙과 동일하게
+  #        /api/auth · /api/users · /api/friends · /api/notifications · /uploads → user
+  #        /api/posts · /api/applications · /api/my                             → post
+  #        /api/chat · /ws                                                      → chat
+  #   위 둘이 끝나면 아래 if 를 원래대로 되돌린다.
+  #     if: github.event_name == 'push'
+  # ---------------------------------------------------------------
   deploy:
-    name: deploy
+    name: deploy (비활성 — 4단계 준비 후 활성화)
     needs: publish
-    if: github.event_name == 'push'
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
