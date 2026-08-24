@@ -7,6 +7,37 @@ export const PLAY_TIMES = ['아침', '낮', '저녁', '새벽'];
 export const PLAY_DAYS = ['월', '화', '수', '목', '금', '토', '일', ANY];
 export const MEMBER_COUNTS = [2, 3, 4, 5];
 
+export const PLAY_STYLES = ['빡겜', '즐겜'];
+
+/** 마이크 선호 3단계. match 서비스의 MatchSearchRequest.micLevel(REQUIRED|PREFERRED|ANY)과 짝을 맞춘다. */
+export const MIC_LEVELS = [
+  { label: '필수', code: 'REQUIRED' },
+  { label: '있으면 좋음', code: 'PREFERRED' },
+  { label: '상관없음', code: 'ANY' },
+];
+
+/**
+ * 스마트 매칭(match/new) 검색 폼이 게임에 따라 다르게 보여줄 옵션들.
+ * 포지션/역할·티어 서열·게임모드는 게임마다 어휘가 달라서(예: LOL 포지션 vs
+ * 발로란트 역할, LOL 티어 vs 발로란트 티어) post/new와 같은 구조로 게임 선택 →
+ * 조건부 하위 질문 흐름을 만든다. 티어 목록은 match 백엔드의
+ * LolMatchingStrategy/ValorantMatchingStrategy 서열표와 맞춰뒀다.
+ */
+export const MATCH_GAME_CONFIG = {
+  리그오브레전드: {
+    positionLabel: '포지션',
+    positions: ['탑', '정글', '미드', '원딜', '서폿'],
+    tiers: ['아이언', '브론즈', '실버', '골드', '플래티넘', '에메랄드', '다이아몬드', '마스터 이상'],
+    gameModes: ['일반', '랭크', '칼바람'],
+  },
+  발로란트: {
+    positionLabel: '역할',
+    positions: ['듀얼리스트', '이니시에이터', '컨트롤러', '센티널'],
+    tiers: ['아이언', '브론즈', '실버', '골드', '플래티넘', '다이아몬드', '초월자', '불멸', '레디언트'],
+    gameModes: ['일반', '경쟁전', '데스매치', '기타'],
+  },
+};
+
 /**
  * 1회 플레이 선호 분량.
  *
@@ -100,17 +131,18 @@ export const gameCodeOf = (label) =>
  * "마이크는 있는데 말은 별로 안 하고 싶다"가 가장 흔한 상태인데 boolean 은 그걸
  * 표현하지 못해, 사람들이 '필수'와 '무관' 사이에서 아무거나 골랐다.
  * 필수 = 하드 필터(제외), 있으면 좋음 = 소프트 점수(가산점), 상관없음 = 조건 없음.
+ *
+ * 스마트 매칭이 먼저 만든 MIC_LEVELS 와 값·의미가 같아 그대로 재사용한다. 목록을
+ * 두 벌 두면 한쪽만 고쳐지는 날이 오고, 그때 모집글의 '필수'와 매칭의 '필수'가
+ * 서로 다른 값이 되어 필터가 조용히 어긋난다. 이름만 이 파일의 용어로 둔다.
  */
-export const VOICE_LEVELS = [
-  { code: 'REQUIRED', label: '필수' },
-  { code: 'PREFERRED', label: '있으면 좋음' },
-  { code: 'ANY', label: '상관없음' },
-];
+export const VOICE_LEVELS = MIC_LEVELS;
 
 export const voiceLabel = (code) =>
   VOICE_LEVELS.find((v) => v.code === code)?.label ?? '상관없음';
 
-export const PLAY_STYLE_OPTIONS = ['빡겜', '즐겜', ANY];
+/** 모집글용 — 스마트 매칭과 같은 목록에 '상관없음'만 더한다. */
+export const PLAY_STYLE_OPTIONS = [...PLAY_STYLES, ANY];
 
 /**
  * 게임별 조건 선택지.

@@ -18,6 +18,9 @@ import MyPage from './pages/MyPage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import ChatListPage from './pages/ChatListPage';
 import FriendsPage from './pages/FriendsPage';
+import HousesPage from './pages/HousesPage';
+import HouseCreatePage from './pages/HouseCreatePage';
+import HouseDetailPage from './pages/HouseDetailPage';
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -45,6 +48,9 @@ export default function App() {
         <Route path="/chat" element={<Private><ChatListPage /></Private>} />
         <Route path="/chat/:roomId" element={<Private><ChatPage /></Private>} />
         <Route path="/friends" element={<Private><FriendsPage /></Private>} />
+        <Route path="/houses" element={<HousesPage />} />
+        <Route path="/houses/new" element={<Private><HouseCreatePage /></Private>} />
+        <Route path="/houses/:houseId" element={<HouseDetailPage />} />
         <Route path="/mypage" element={<Private><MyPage /></Private>} />
         <Route path="/mypage/edit" element={<Private><ProfileEditPage /></Private>} />
         <Route path="*" element={<Navigate to="/" replace />} />
