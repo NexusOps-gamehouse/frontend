@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Chips, { MultiChips } from '../components/Chips';
-import { GAMES, GAME_MODES, POSITIONS, TIERS, PLAY_TIMES } from '../constants';
+import { ANY, GAMES, GAME_MODES, POSITIONS, TIERS, PLAY_TIMES, PLAY_DAYS,
+         PLAY_DURATIONS, AGE_MIN, AGE_MAX } from '../constants';
 import { csv } from '../utils';
 import Avatar from '../components/Avatar';
 import './ProfileEditPage.css';
@@ -12,8 +13,8 @@ export default function ProfileEditPage() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [nickname, setNickname] = useState(user?.nickname || '');
-  const [gender, setGender] = useState(user?.gender || '비공개');
-  const [ageRange, setAgeRange] = useState(user?.ageRange || '비공개');
+  // [FR-01] 성별은 민감정보라 더 이상 보관하지 않는다. 나이대는 숫자 나이로 바뀌었다.
+  const [age, setAge] = useState(user?.age ?? '');
   const [game, setGame] = useState(user?.game || '');
   const [playStyle, setPlayStyle] = useState(user?.playStyle || '');
   const [position, setPosition] = useState(user?.position || '');
@@ -21,6 +22,8 @@ export default function ProfileEditPage() {
   const [tier, setTier] = useState(user?.tier || '');
   const [playTimes, setPlayTimes] = useState(csv(user?.playTimes));
   const [gameModes, setGameModes] = useState(csv(user?.gameModes));
+  const [playDays, setPlayDays] = useState(csv(user?.playDays));
+  const [playDuration, setPlayDuration] = useState(user?.playDuration || '');
   
   // 하단 입력란에서 사용되는 상태값이 누락되어 있어 추가했습니다.
   const [riotNickname, setRiotNickname] = useState(user?.riotNickname || '');
@@ -33,8 +36,11 @@ export default function ProfileEditPage() {
     setLoading(true);
     try {
       const { data } = await api.put('/users/me', {
-        nickname, gender, ageRange, game, playStyle, position, mic, tier,
+        nickname, game, playStyle, position, mic, tier,
+        age: age === '' ? null : Number(age),
         playTimes: playTimes.join(','),
+        playDays: playDays.join(','),
+        playDuration,
         gameModes: gameModes.join(','),
         riotNickname, // 저장 페이로드에도 추가
       });
@@ -76,16 +82,11 @@ export default function ProfileEditPage() {
           <label className="profile-edit-field">닉네임
             <input className="inp" value={nickname} onChange={(e) => setNickname(e.target.value)} />
           </label>
-          <div className="profile-edit-grid">
-            <div className="profile-edit-choice">
-              <p>성별</p>
-              <Chips options={['남', '여', '비공개']} value={gender} onChange={setGender} />
-            </div>
-            <div className="profile-edit-choice">
-              <p>나이대</p>
-              <Chips options={['10대', '20대', '30대 이상', '비공개']} value={ageRange} onChange={setAgeRange} />
-            </div>
-          </div>
+          <label className="profile-edit-field">나이
+            <input className="inp age-inp" type="number" inputMode="numeric"
+                   min={AGE_MIN} max={AGE_MAX} placeholder="예: 24"
+                   value={age} onChange={(e) => setAge(e.target.value)} />
+          </label>
         </section>
 
         {/* 02. 게임 스타일 섹션 */}
@@ -121,6 +122,16 @@ export default function ProfileEditPage() {
           <div className="profile-edit-choice">
             <p>주로 플레이하는 시간대 <em>복수 선택</em></p>
             <MultiChips options={PLAY_TIMES} values={playTimes} onChange={setPlayTimes} />
+          </div>
+
+          <div className="profile-edit-choice">
+            <p>주로 플레이하는 요일 <em>복수 선택</em></p>
+            <MultiChips options={PLAY_DAYS} values={playDays} onChange={setPlayDays} exclusive={ANY} />
+          </div>
+
+          <div className="profile-edit-choice">
+            <p>한 번 플레이할 때 선호하는 분량</p>
+            <Chips options={PLAY_DURATIONS} value={playDuration} onChange={setPlayDuration} />
           </div>
           
           <div className="profile-edit-grid">

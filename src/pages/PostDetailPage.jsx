@@ -6,6 +6,7 @@ import Avatar from '../components/Avatar';
 import FriendButton from '../components/FriendButton';
 import TierBadge from '../components/TierBadge';
 import { timeAgo, csv, profileTags, profileMeta } from '../utils';
+import { gameLabel, voiceLabel, GAME_REQUIREMENT_FIELDS } from '../constants';
 import RiotProfileCard from '../components/RiotProfileCard';
 import { profileFromUser } from '../api/riot';
 
@@ -133,19 +134,23 @@ export default function PostDetailPage() {
         {/* 모집 조건 */}
         <div className="dp-card">
           <div className="dp-section" style={{ marginTop: 0, fontSize: 15 }}>모집 조건</div>
-          <div className="ui-tags" style={{ marginBottom: csv(post.positions).length > 0 ? 12 : 0 }}>
-            {post.game && <span className="ui-game-badge">{post.game}</span>}
+          <div className="ui-tags" style={{ marginBottom: csv(post.roles).length > 0 ? 12 : 0 }}>
+            {post.game && <span className="ui-game-badge">{gameLabel(post.game)}</span>}
             {post.gameMode && <span className="ui-tag2">{post.gameMode}</span>}
+            {post.tier && <span className="ui-tag2">{post.tier}</span>}
+            {post.playStyle && <span className="ui-tag2">{post.playStyle}</span>}
             {post.playTime && <span className="ui-tag2">🕐 {post.playTime}</span>}
-            <span className={`ui-tag2${post.micRequired ? ' is-highlight' : ''}`}>
-              {post.micRequired ? '🎙 마이크 필수' : '마이크 무관'}
+            <span className={`ui-tag2${post.voiceChat === 'REQUIRED' ? ' is-highlight' : ''}`}>
+              🎙 음성채팅 {voiceLabel(post.voiceChat)}
             </span>
             <span className="ui-tag2">인원 {post.currentMembers}/{post.targetMembers}</span>
           </div>
-          {csv(post.positions).length > 0 && (
+          {csv(post.roles).length > 0 && (
             <div className="ui-tags" style={{ alignItems: 'center' }}>
-              <span className="ui-time" style={{ fontWeight: 600 }}>찾는 포지션:</span>
-              {csv(post.positions).map((p) => <span key={p} className="ui-tag2 is-highlight">{p}</span>)}
+              <span className="ui-time" style={{ fontWeight: 600 }}>
+                찾는 {GAME_REQUIREMENT_FIELDS[post.game]?.roleLabel ?? '포지션'}:
+              </span>
+              {csv(post.roles).map((r) => <span key={r} className="ui-tag2 is-highlight">{r}</span>)}
             </div>
           )}
         </div>
