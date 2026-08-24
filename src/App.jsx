@@ -6,6 +6,7 @@ import SignupPage from './pages/SignupPage';
 import IDFinderPage from './pages/IDFinderPage';
 import PasswordFinderPage from './pages/PasswordFinderPage';
 import SurveyPage from './pages/SurveyPage';
+import PlayStyleSurveyPage from './pages/PlayStyleSurveyPage';
 import ConfirmPage from './pages/ConfirmPage';
 import MainPage from './pages/MainPage';
 import PostFormPage from './pages/PostFormPage';
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/find-id" element={<IDFinderPage />} />
         <Route path="/find-password" element={<PasswordFinderPage />} />
         <Route path="/signup/survey" element={<SurveyPage />} />
+        <Route path="/signup/playstyle" element={<PlayStyleSurveyPage />} />
         <Route path="/signup/confirm" element={<ConfirmPage />} />
         <Route path="/post/new" element={<Private><PostFormPage /></Private>} />
         <Route path="/post/:id" element={<PostDetailPage />} />

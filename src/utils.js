@@ -35,7 +35,8 @@ export function profileTags(u) {
   const tags = [];
   if (u.playStyle) tags.push(`#${u.playStyle === '빡겜' ? '빡겜러' : '즐겜러'}`);
   tags.push(u.mic ? '#마이크O' : '#마이크X');
-  if (u.ageRange && u.ageRange !== '비공개') tags.push(`#${u.ageRange}`);
+  if (u.age) tags.push(`#${u.age}세`);
+  if (u.playDuration) tags.push(`#${u.playDuration}`);
   return tags;
 }
 

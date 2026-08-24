@@ -572,3 +572,93 @@ select.inp { padding: 0 8px; }
   .survey { max-width: 420px; }
   .survey-grid { grid-template-columns: 1fr; column-gap: 0; }
 }
+
+/* ===== 나이 입력 ===== */
+/* 숫자 입력이라 칸이 넓을 필요가 없다. 넓으면 사용자가 무엇을 더 써야 하나 망설인다. */
+.age-inp { width: 110px; }
+.age-inp::-webkit-outer-spin-button,
+.age-inp::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.age-inp { -moz-appearance: textfield; }
+
+/* ===== 플레이 성향 설문 (1~5점 리커트) ===== */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.ps-survey { max-width: 720px; margin: 0 auto; }
+
+.ps-area {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 14px;
+}
+.ps-area-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+
+.ps-q { padding: 14px 0; border-top: 1px solid var(--border); }
+.ps-q:first-of-type { border-top: none; padding-top: 10px; }
+
+.ps-q-text {
+  font-size: 14.5px; line-height: 1.5; margin-bottom: 12px;
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+}
+.ps-q-no {
+  flex: 0 0 22px; height: 22px; border-radius: 50%;
+  background: rgba(148, 163, 184, .18); color: var(--text-muted);
+  font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.ps-q-tag {
+  font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  background: rgba(148, 163, 184, .15); color: var(--text-muted);
+}
+
+/* 양 끝 라벨 — 1점과 5점이 무슨 뜻인지 눈금 옆에 붙어 있어야 한다 */
+.likert { display: flex; align-items: center; gap: 12px; }
+.likert-end {
+  flex: 1 1 0; min-width: 0; font-size: 12px; color: var(--text-muted); line-height: 1.35;
+}
+.likert-end.high { text-align: right; }
+
+.likert-dots { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+
+.likert-dot { cursor: pointer; display: inline-flex; }
+.likert-dot input {
+  position: absolute; opacity: 0; width: 0; height: 0;
+}
+/* 양 끝이 크고 가운데가 작다 — 어느 쪽으로 기울었는지가 크기로 먼저 읽힌다 */
+.likert-mark {
+  display: block; border-radius: 50%;
+  border: 2px solid var(--border); background: transparent;
+  transition: background .12s ease, border-color .12s ease, transform .12s ease;
+}
+.likert-dot.s1 .likert-mark, .likert-dot.s5 .likert-mark { width: 34px; height: 34px; }
+.likert-dot.s2 .likert-mark, .likert-dot.s4 .likert-mark { width: 28px; height: 28px; }
+.likert-dot.s3 .likert-mark { width: 22px; height: 22px; }
+
+.likert-dot:hover .likert-mark { border-color: var(--primary); }
+.likert-dot input:focus-visible + .likert-mark { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* 1~2번(왼쪽 끝)과 4~5번(오른쪽 끝)의 색을 다르게 둔다.
+   같은 색이면 고른 뒤에도 어느 쪽에 답했는지 다시 세어봐야 한다. */
+.likert-dot.on .likert-mark { transform: scale(1.04); }
+.likert-dot.s1.on .likert-mark, .likert-dot.s2.on .likert-mark {
+  background: var(--primary); border-color: var(--primary);
+}
+.likert-dot.s4.on .likert-mark, .likert-dot.s5.on .likert-mark {
+  background: var(--gold); border-color: var(--gold);
+}
+.likert-dot.s3.on .likert-mark {
+  background: var(--text-muted); border-color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .likert-mark { transition: none; }
+  .likert-dot.on .likert-mark { transform: none; }
+}
+
+/* 좁은 화면 — 라벨을 눈금 위아래로 내린다 */
+@media (max-width: 720px) {
+  .likert { flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .likert-end { flex: 1 1 45%; font-size: 11px; }
+  .likert-dots { order: 3; width: 100%; justify-content: space-between; margin-top: 6px; }
+}

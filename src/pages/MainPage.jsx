@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { GAMES, GAME_MODES } from '../constants';
+import { ANY, POST_GAMES, GAME_REQUIREMENT_FIELDS, gameLabel } from '../constants';
 import { timeAgo } from '../utils';
 import TierBadge from '../components/TierBadge';
 import SmartMatchPanel from '../components/SmartMatchPanel';
@@ -75,6 +75,23 @@ export default function MainPage() {
   useEffect(() => { load(0); }, [game, gameMode, status]); // 필터 변경 시 첫 페이지부터 재조회
   // eslint-disable-line react-hooks/exhaustive-deps
 
+  /**
+   * 모드 목록은 고른 게임을 따라간다.
+   *
+   * 게임을 안 골랐을 때 두 게임의 모드를 다 보여주는 이유: 필터를 아예 감추면
+   * "모드로 거를 수 있다"는 걸 모르고 지나간다. 겹치는 이름은 한 번만 낸다.
+   */
+  const modeOptions = game
+    ? (GAME_REQUIREMENT_FIELDS[game]?.modes ?? []).filter((m) => m !== ANY)
+    : [...new Set(Object.values(GAME_REQUIREMENT_FIELDS).flatMap((f) => f.modes))]
+        .filter((m) => m !== ANY);
+
+  /** 게임을 바꾸면 모드 필터를 푼다 — 그 게임에 없는 모드가 걸려 결과가 0건이 된다. */
+  const changeGameFilter = (next) => {
+    setGame(next);
+    setGameMode('');
+  };
+
   const search = (e) => {
     e.preventDefault();
     load(0);
@@ -114,9 +131,11 @@ export default function MainPage() {
 
         {/* 상단 가로 필터바 */}
         <div className="filterbar">
-          <FilterGroup label="GAME" options={GAMES} value={game} onChange={setGame} />
+          <FilterGroup label="GAME"
+                       options={POST_GAMES.map((g) => ({ label: g.label, value: g.code }))}
+                       value={game} onChange={changeGameFilter} />
           <div className="divider" />
-          <FilterGroup label="MODE" options={GAME_MODES} value={gameMode} onChange={setGameMode} />
+          <FilterGroup label="MODE" options={modeOptions} value={gameMode} onChange={setGameMode} />
           <div className="divider" />
           <FilterGroup
             label="STATUS"
@@ -143,12 +162,12 @@ export default function MainPage() {
           <div className="ui-grid">
             {posts.map((post) => {
               const recruiting = post.status === 'RECRUITING';
-              const isValo = post.game && post.game.includes('발로란트');
+              const isValo = post.game === 'VALORANT';
               return (
                 <div key={post.id} className={`ui-post-card${recruiting ? '' : ' is-closed'}`}>
                   <div className="ui-card-header">
                     <span className={`ui-game-badge${isValo ? ' is-valo' : ''}`}>
-                      {post.game || '기타'}
+                      {gameLabel(post.game) || '기타'}
                     </span>
                     <span className={`ui-status ${recruiting ? 'is-open' : 'is-done'}`}>
                       {recruiting ? '모집중' : '모집완료'}
