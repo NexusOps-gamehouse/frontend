@@ -1,49 +1,128 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getHouse, requestHouseJoin } from '../api/houses';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  approveJoinRequest,
+  cancelJoinRequest,
+  getHouse,
+  inviteFriends,
+  listJoinRequests,
+  rejectJoinRequest,
+  requestHouseJoin,
+  updateMemberRole,
+} from '../api/houses';
+import HouseInviteModal from '../components/HouseInviteModal';
 import { useAuth } from '../context/AuthContext';
+import { useFriends } from '../context/FriendContext';
 import './Houses.css';
 
 const TYPE_LABEL = { SOCIAL: '친목형', COMPETITIVE: '경쟁형' };
+const ROLE_LABEL = { OWNER: '방장', MANAGER: '부방장', MEMBER: '일반 멤버' };
 
 export default function HouseDetailPage() {
   const { houseId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { friends, loading: friendsLoading } = useFriends();
   const [house, setHouse] = useState(null);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [requestsLoading, setRequestsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState(() => location.state?.houseCreationNotice || '');
   const [accessDenied, setAccessDenied] = useState(false);
-  const [joining, setJoining] = useState(false);
+  const [working, setWorking] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await getHouse(houseId, user);
+      setHouse(data);
+      if (data.myStatus === 'OWNER' && data.visibility === 'PUBLIC') {
+        setRequestsLoading(true);
+        try {
+          setRequests(await listJoinRequests(houseId, user));
+        } finally {
+          setRequestsLoading(false);
+        }
+      } else {
+        setRequests([]);
+      }
+    } catch (err) {
+      setAccessDenied(err.code === 'PRIVATE_HOUSE');
+      setError(err.message || 'House를 불러오지 못했습니다.');
+      setHouse(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [houseId, user]);
+
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    let alive = true;
-    getHouse(houseId, user)
-      .then((data) => { if (alive) setHouse(data); })
-      .catch((err) => {
-        if (!alive) return;
-        setAccessDenied(err.code === 'PRIVATE_HOUSE');
-        setError(err.message || 'House를 불러오지 못했습니다.');
-      })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, [houseId, user]);
+    if (!location.state?.houseCreationNotice) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
+
+  const run = async (key, task, successMessage) => {
+    setWorking(key);
+    setError('');
+    setNotice('');
+    try {
+      const updated = await task();
+      if (updated?.members) setHouse(updated);
+      if (successMessage) setNotice(successMessage);
+      return updated;
+    } catch (err) {
+      setError(err.message || '요청을 처리하지 못했습니다.');
+      throw err;
+    } finally {
+      setWorking('');
+    }
+  };
 
   const requestJoin = async () => {
     if (!user) {
       navigate('/login', { state: { from: `/houses/${houseId}` } });
       return;
     }
-    setJoining(true);
-    setError('');
     try {
-      const updated = await requestHouseJoin(houseId, user);
-      setHouse(updated);
-    } catch (err) {
-      setError(err.message || '가입을 신청하지 못했습니다.');
-    } finally {
-      setJoining(false);
-    }
+      await run('join', () => requestHouseJoin(houseId, user), '가입 신청을 보냈습니다.');
+    } catch { /* 화면 오류로 안내 */ }
+  };
+
+  const cancelRequest = async () => {
+    try {
+      await run('cancel', () => cancelJoinRequest(houseId, user), '가입 신청을 취소했습니다.');
+    } catch { /* 화면 오류로 안내 */ }
+  };
+
+  const decideRequest = async (requestId, decision) => {
+    const task = decision === 'approve'
+      ? () => approveJoinRequest(houseId, requestId, user)
+      : () => rejectJoinRequest(houseId, requestId, user);
+    try {
+      await run(`${decision}-${requestId}`, task,
+        decision === 'approve' ? '가입을 승인했습니다.' : '가입 신청을 거절했습니다.');
+      setRequests((prev) => prev.filter((request) => request.id !== requestId));
+    } catch { /* 화면 오류로 안내 */ }
+  };
+
+  const changeRole = async (member) => {
+    const nextRole = member.role === 'MANAGER' ? 'MEMBER' : 'MANAGER';
+    try {
+      await run(`role-${member.id}`,
+        () => updateMemberRole(houseId, member.id, nextRole, user),
+        nextRole === 'MANAGER' ? '부방장으로 지정했습니다.' : '부방장 지정을 해제했습니다.');
+    } catch { /* 화면 오류로 안내 */ }
+  };
+
+  const invite = async (selectedFriends) => {
+    const result = await run('invite', () => inviteFriends(houseId, selectedFriends, user));
+    if (result?.house) setHouse(result.house);
+    setNotice(`${result.invitedCount}명에게 House 초대를 보냈습니다.`);
   };
 
   if (loading) return <div className="page houses-page"><div className="ui-empty"><p>House를 불러오는 중…</p></div></div>;
@@ -59,7 +138,8 @@ export default function HouseDetailPage() {
   );
 
   const isPrivate = house.visibility === 'PRIVATE';
-  const isMember = house.myStatus === 'OWNER' || house.myStatus === 'MEMBER';
+  const isOwner = house.myStatus === 'OWNER';
+  const isMember = ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myStatus);
   const isFull = house.members.length >= house.maxMembers;
 
   return (
@@ -71,6 +151,7 @@ export default function HouseDetailPage() {
             <span className="ui-tag house-game">🎯 {house.game}</span>
             <span className={`ui-tag house-type ${house.type.toLowerCase()}`}>{TYPE_LABEL[house.type]}</span>
             <span className="ui-tag">{isPrivate ? '🔒 비공개' : '🌐 공개'}</span>
+            {isMember && <span className={`role-badge ${house.myStatus.toLowerCase()}`}>{ROLE_LABEL[house.myStatus]}</span>}
           </div>
           <h1>{house.name}</h1>
           <p>{house.description}</p>
@@ -85,20 +166,20 @@ export default function HouseDetailPage() {
           {isPrivate ? (
             <>
               <div className="house-lock" aria-hidden="true">🔒</div>
-              <p>비공개 House입니다.<br />방장의 초대로만 가입할 수 있어요.</p>
-              <button className="ui-btn-secondary" type="button" disabled>초대 전용</button>
+              <p>비공개 House는 초대로만 가입할 수 있습니다.<br />현재 역할: {ROLE_LABEL[house.myStatus]}</p>
+              {isOwner && <button className="ui-btn-primary" type="button" onClick={() => setInviteOpen(true)}>친구 초대</button>}
             </>
           ) : house.myStatus === 'PENDING' ? (
             <>
               <p>가입 신청을 보냈습니다.<br />방장의 승인을 기다려주세요.</p>
-              <button className="ui-btn-secondary" type="button" disabled>가입 신청 대기중</button>
+              <button className="ui-btn-secondary" type="button" disabled={working === 'cancel'} onClick={cancelRequest}>
+                {working === 'cancel' ? '취소 중…' : '가입 신청 취소'}
+              </button>
             </>
           ) : isMember ? (
             <>
-              <p>{house.myStatus === 'OWNER' ? '이 House의 방장입니다.' : '이미 이 House의 멤버입니다.'}</p>
-              <button className="ui-btn-secondary" type="button" disabled>
-                {house.myStatus === 'OWNER' ? '방장' : '가입 완료'}
-              </button>
+              <p>{isOwner ? '이 House의 방장입니다.' : `이 House의 ${ROLE_LABEL[house.myStatus]}입니다.`}</p>
+              <button className="ui-btn-secondary" type="button" disabled>{ROLE_LABEL[house.myStatus]}</button>
             </>
           ) : isFull ? (
             <>
@@ -108,31 +189,74 @@ export default function HouseDetailPage() {
           ) : (
             <>
               <p>공개 House는 누구나 가입을 신청할 수 있습니다.</p>
-              <button className="ui-btn-primary" type="button" disabled={joining} onClick={requestJoin}>
-                {joining ? '신청 중…' : user ? '가입 신청하기' : '로그인하고 가입 신청'}
+              <button className="ui-btn-primary" type="button" disabled={working === 'join'} onClick={requestJoin}>
+                {working === 'join' ? '신청 중…' : user ? '가입 신청하기' : '로그인하고 가입 신청'}
               </button>
             </>
           )}
         </aside>
       </section>
 
-      {error && <div className="house-alert error detail-error">{error}</div>}
+      {error && <div className="house-alert error detail-error" role="alert">{error}</div>}
+      {notice && <div className="house-alert success detail-error" role="status">{notice}</div>}
+
+      {isOwner && !isPrivate && (
+        <section className="house-management-section">
+          <div className="house-section-head">
+            <h2>가입 신청</h2><span>{requests.length}건</span>
+          </div>
+          {requestsLoading && <div className="ui-empty"><p>가입 신청을 불러오는 중…</p></div>}
+          {!requestsLoading && requests.length === 0 && <div className="ui-empty"><p>대기 중인 가입 신청이 없습니다.</p></div>}
+          {!requestsLoading && requests.length > 0 && (
+            <div className="house-request-list">
+              {requests.map((request) => (
+                <div className="house-request-row" key={request.id}>
+                  <div className="ui-author">
+                    <div className="ui-author-av">{request.nickname?.[0] || '?'}</div>
+                    <div className="ui-author-info"><strong>{request.nickname}</strong><small>가입 승인 대기중</small></div>
+                  </div>
+                  <div className="house-row-actions">
+                    <button className="ui-btn-primary ui-btn-sm" type="button"
+                            disabled={working === `approve-${request.id}` || isFull}
+                            onClick={() => decideRequest(request.id, 'approve')}>승인</button>
+                    <button className="ui-btn-secondary ui-btn-sm" type="button"
+                            disabled={working === `reject-${request.id}`}
+                            onClick={() => decideRequest(request.id, 'reject')}>거절</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="house-members-section">
         <div className="house-section-head">
-          <h2>House 멤버</h2>
-          <span>{house.members.length}명</span>
+          <h2>House 멤버</h2><span>{house.members.length}명</span>
+          {isOwner && isPrivate && (
+            <button className="ui-btn-secondary ui-btn-sm house-section-action" type="button"
+                    onClick={() => setInviteOpen(true)}>+ 친구 초대</button>
+          )}
         </div>
         <div className="house-members-list">
           {house.members.map((member) => (
             <div className="house-member" key={member.id}>
               <div className="ui-author-av">{member.nickname?.[0] || '?'}</div>
-              <span>{member.nickname}</span>
-              {member.role === 'OWNER' && <span className="owner-badge">방장</span>}
+              <span className="house-member-name">{member.nickname}</span>
+              <span className={`role-badge ${member.role.toLowerCase()}`}>{ROLE_LABEL[member.role]}</span>
+              {isOwner && member.role !== 'OWNER' && (
+                <button className="house-role-btn" type="button" disabled={working === `role-${member.id}`}
+                        onClick={() => changeRole(member)}>
+                  {member.role === 'MANAGER' ? '부방장 해제' : '부방장 지정'}
+                </button>
+              )}
             </div>
           ))}
         </div>
       </section>
+
+      <HouseInviteModal open={inviteOpen} house={house} friends={friends}
+                        friendsLoading={friendsLoading} onClose={() => setInviteOpen(false)} onInvite={invite} />
     </div>
   );
 }

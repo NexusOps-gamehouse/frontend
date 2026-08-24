@@ -105,6 +105,23 @@
   border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5;
 }
 .house-alert.error { color: var(--danger); background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.24); }
+.house-alert.success { color: var(--online); background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.24); }
+.house-prefill-invites {
+  margin: 0 0 24px; padding: 16px; background: rgba(59,130,246,.07);
+  border: 1px solid rgba(59,130,246,.2); border-radius: var(--radius-md);
+}
+.house-prefill-invites > strong { display: block; margin-bottom: 10px; font-size: 13px; }
+.house-prefill-invites > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.house-prefill-invites > div span {
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 6px 5px 9px; border-radius: 99px;
+  background: var(--surface); border: 1px solid var(--border); font-size: 12px; font-weight: 700;
+}
+.house-prefill-invites > div button {
+  width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--surface-hover);
+  color: var(--text-muted); font-size: 15px; line-height: 1; cursor: pointer;
+}
+.house-prefill-invites > div button:hover { color: var(--danger); }
+.house-prefill-invites > small { display: block; margin-top: 10px; color: var(--text-muted); line-height: 1.5; }
 .house-form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 32px; }
 .house-form-actions .ui-btn-primary, .house-form-actions .ui-btn-secondary {
   display: inline-flex; align-items: center; justify-content: center; min-width: 130px; border: 0;
@@ -136,17 +153,60 @@
 .house-private-error { max-width: 620px; margin: 50px auto 0; }
 .house-private-error h1 { margin: 12px 0 8px; font-size: 22px; }
 .detail-error { margin-top: 16px; }
-.house-members-section {
+.house-members-section, .house-management-section {
   margin-top: 22px; padding: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
 }
 .house-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
 .house-section-head h2 { font-size: 18px; }
 .house-section-head > span { color: var(--text-muted); font-size: 13px; }
+.house-section-action { margin-left: auto; }
 .house-members-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .house-member {
   display: flex; align-items: center; gap: 10px; min-width: 0; padding: 12px;
   background: var(--surface-hover); border-radius: var(--radius-sm); font-size: 13px; font-weight: 700;
 }
+.house-member-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.role-badge {
+  display: inline-flex; align-items: center; padding: 3px 7px; border-radius: 99px;
+  color: var(--text-muted); background: rgba(148,163,184,.14); font-size: 10px; font-weight: 800; white-space: nowrap;
+}
+.role-badge.owner { color: #9a6200; background: rgba(245,158,11,.18); }
+.role-badge.manager { color: #6d28d9; background: rgba(139,92,246,.14); }
+[data-theme='dark'] .role-badge.owner { color: #fbbf24; }
+[data-theme='dark'] .role-badge.manager { color: #c4b5fd; }
+.house-role-btn {
+  margin-left: auto; padding: 5px 8px; background: transparent; color: var(--text-muted);
+  border: 1px solid var(--border); border-radius: 6px; font: inherit; font-size: 10px; cursor: pointer; white-space: nowrap;
+}
+.house-role-btn:hover:not(:disabled) { color: var(--primary); border-color: var(--primary); }
+.house-role-btn:disabled { cursor: wait; opacity: .6; }
+.house-request-list, .house-invitation-list { display: flex; flex-direction: column; gap: 10px; }
+.house-request-row, .house-invitation-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  padding: 16px; background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.house-request-row small { color: var(--text-muted); font-size: 11px; }
+.house-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.house-row-actions .ui-btn-primary, .house-row-actions .ui-btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; border: 0;
+}
+.house-row-actions .ui-btn-secondary { border: 1px solid var(--border); }
+.house-invitation-card { background: var(--surface); padding: 22px; }
+.house-invitation-card h2 { margin: 12px 0 6px; font-size: 19px; }
+.house-invitation-card p { color: var(--text-muted); font-size: 13px; }
+.house-invitation-card small { display: block; margin-top: 9px; color: var(--text-muted); }
+.suggestion-preview > p { margin-top: 10px; color: var(--text-muted); line-height: 1.6; }
+.suggestion-preview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 28px; }
+.suggestion-preview-grid section {
+  display: flex; flex-direction: column; align-items: stretch; gap: 12px;
+  padding: 20px; background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.suggestion-preview-grid h2 { font-size: 16px; }
+.suggestion-preview-grid p { flex: 1; color: var(--text-muted); font-size: 13px; line-height: 1.55; }
+.suggestion-preview-grid .ui-btn-primary, .suggestion-preview-grid .ui-btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; width: 100%; border: 0;
+}
+.suggestion-preview-grid .ui-btn-secondary { border: 1px solid var(--border); }
 
 @media (max-width: 800px) {
   .house-detail-hero { grid-template-columns: 1fr; }
@@ -156,13 +216,20 @@
 @media (max-width: 640px) {
   .houses-page { padding-left: 18px; padding-right: 18px; }
   .house-page-head { align-items: stretch; flex-direction: column; gap: 22px; }
+  .house-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .house-tabs::-webkit-scrollbar { display: none; }
+  .house-tabs button { flex-shrink: 0; }
   .house-create-link { width: 100%; }
-  .house-grid, .house-choice-grid, .house-select-grid, .house-members-list { grid-template-columns: 1fr; }
+  .house-grid, .house-choice-grid, .house-select-grid, .house-members-list,
+  .suggestion-preview-grid { grid-template-columns: 1fr; }
   .house-card { min-height: 230px; }
   .house-card-foot { align-items: flex-end; }
   .house-form-panel { padding: 24px 18px; }
   .house-form-actions { flex-direction: column-reverse; }
   .house-form-actions .ui-btn-primary, .house-form-actions .ui-btn-secondary { width: 100%; }
   .house-detail-hero { padding: 24px 18px; }
-  .house-members-section { padding: 22px 18px; }
+  .house-members-section, .house-management-section { padding: 22px 18px; }
+  .house-request-row, .house-invitation-card { align-items: stretch; flex-direction: column; }
+  .house-row-actions { width: 100%; }
+  .house-row-actions > button { flex: 1; }
 }
