@@ -83,25 +83,30 @@ export default function NavBar() {
       <img src={logo} alt="GAME HOUSE" />
     </Link>
 
-    {user && (
-      <div className="gnb-menu">
-        <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
-          모집글
-        </NavLink>
-        <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'active' : '')}>
-          내 파티
-        </NavLink>
-        <NavLink to="/chat" end className={({ isActive }) => (isActive ? 'active' : '')}>
-          채팅
-        </NavLink>
-        <NavLink to="/friends" className={({ isActive }) => (isActive ? 'active' : '')}>
-          친구
-          {receivedCount > 0 && (
-            <span className="nav-badge">{receivedCount > 99 ? '99+' : receivedCount}</span>
-          )}
-        </NavLink>
-      </div>
-    )}
+    <div className="gnb-menu">
+      {user && (
+        <>
+          <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
+            모집글
+          </NavLink>
+          <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'active' : '')}>
+            내 파티
+          </NavLink>
+          <NavLink to="/chat" end className={({ isActive }) => (isActive ? 'active' : '')}>
+            채팅
+          </NavLink>
+          <NavLink to="/friends" className={({ isActive }) => (isActive ? 'active' : '')}>
+            친구
+            {receivedCount > 0 && (
+              <span className="nav-badge">{receivedCount > 99 ? '99+' : receivedCount}</span>
+            )}
+          </NavLink>
+        </>
+      )}
+      <NavLink to="/houses" className={({ isActive }) => (isActive ? 'active' : '')}>
+        House
+      </NavLink>
+    </div>
   </div>
              
           <div className="gnb-r">
