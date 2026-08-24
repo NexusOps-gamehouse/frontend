@@ -62,11 +62,32 @@ export default function MainPage() {
         params: { searchType, keyword: kw, game, gameMode, status,
                   page: nextPage, size: PAGE_SIZE },
       });
-      setPosts((prev) => (nextPage === 0 ? data.items : [...prev, ...data.items]));
-      setTotal(data.totalElements);
-      setHasNext(data.hasNext);
-      setPage(data.page);
-    } catch { /* 무시 */ } finally {
+      const items = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data?.content)
+            ? data.content
+            : [];
+
+      setPosts((prev) => {
+        const previous = Array.isArray(prev) ? prev : [];
+        return nextPage === 0 ? items : [...previous, ...items];
+      });
+      setTotal((prev) => {
+        if (typeof data?.totalElements === 'number') return data.totalElements;
+        if (nextPage === 0) return items.length;
+        return Math.max(Number.isFinite(prev) ? prev : 0, nextPage * PAGE_SIZE + items.length);
+      });
+      setHasNext(typeof data?.hasNext === 'boolean' ? data.hasNext : false);
+      setPage(typeof data?.page === 'number' ? data.page : nextPage);
+    } catch {
+      // 이전 상태가 비정상이어도 렌더링에서 posts.length를 안전하게 사용할 수 있게 한다.
+      setPosts((prev) => (Array.isArray(prev) ? prev : []));
+      setTotal((prev) => (Number.isFinite(prev) ? prev : 0));
+      setHasNext(false);
+      setPage((prev) => (Number.isFinite(prev) ? prev : 0));
+    } finally {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
