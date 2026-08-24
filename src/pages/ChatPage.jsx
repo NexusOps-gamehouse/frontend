@@ -125,6 +125,8 @@ export default function ChatPage() {
   };
 
   const closeRecruit = async () => {
+    // TODO(house-suggestion): 이 동작은 신규 모집만 닫는다. 실제 game/party 종료 이벤트가
+    // participant 목록과 고유 suggestionId를 제공하면 HouseCreateSuggestionModal을 연결한다.
     if (!confirm('모집을 완료 처리할까요? 이후 참가 신청을 받지 않습니다.')) return;
     try { await api.post(`/posts/${room.postId}/close`); refreshRoom(); }
     catch (err) { alert(errMsg(err)); }

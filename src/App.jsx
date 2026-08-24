@@ -21,6 +21,7 @@ import FriendsPage from './pages/FriendsPage';
 import HousesPage from './pages/HousesPage';
 import HouseCreatePage from './pages/HouseCreatePage';
 import HouseDetailPage from './pages/HouseDetailPage';
+import HouseSuggestionPreviewPage from './pages/HouseSuggestionPreviewPage';
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -51,6 +52,9 @@ export default function App() {
         <Route path="/houses" element={<HousesPage />} />
         <Route path="/houses/new" element={<Private><HouseCreatePage /></Private>} />
         <Route path="/houses/:houseId" element={<HouseDetailPage />} />
+        {import.meta.env.DEV && (
+          <Route path="/houses/suggestions/preview" element={<HouseSuggestionPreviewPage />} />
+        )}
         <Route path="/mypage" element={<Private><MyPage /></Private>} />
         <Route path="/mypage/edit" element={<Private><ProfileEditPage /></Private>} />
         <Route path="*" element={<Navigate to="/" replace />} />

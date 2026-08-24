@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createHouse } from '../api/houses';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { createHouse, inviteFriends } from '../api/houses';
 import { useAuth } from '../context/AuthContext';
 import { GAMES } from '../constants';
 import './Houses.css';
@@ -41,33 +41,65 @@ function ChoiceGroup({ label, name, value, options, onChange }) {
 
 export default function HouseCreatePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  const recommendedFriends = useMemo(() => {
+    const candidates = Array.isArray(location.state?.invitedFriends) ? location.state.invitedFriends : [];
+    return candidates.filter((friend) => friend?.id).map((friend) => ({
+      id: String(friend.id), nickname: friend.nickname || friend.name || '친구',
+    }));
+  }, [location.state]);
+  const [invitedFriends, setInvitedFriends] = useState(recommendedFriends);
+  useEffect(() => { setInvitedFriends(recommendedFriends); }, [recommendedFriends]);
   const [form, setForm] = useState({
     name: '', description: '', game: GAMES[0], maxMembers: 20,
-    type: 'SOCIAL', visibility: 'PUBLIC',
+    type: 'SOCIAL', visibility: invitedFriends.length > 0 ? 'PRIVATE' : 'PUBLIC',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [createdHouseId, setCreatedHouseId] = useState(null);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const submit = async (event) => {
     event.preventDefault();
+    if (createdHouseId) return;
     setError('');
     if (!form.name.trim() || !form.description.trim()) {
       setError('House 이름과 소개를 모두 입력해주세요.');
       return;
     }
+    if (invitedFriends.length > 0 && form.visibility !== 'PRIVATE') {
+      setError('선택한 친구를 초대하려면 비공개 House로 만들어주세요.');
+      return;
+    }
 
     setLoading(true);
+    let house;
     try {
-      const house = await createHouse(form, user);
-      navigate(`/houses/${house.id}`, { replace: true });
+      house = await createHouse(form, user);
+      setCreatedHouseId(house.id);
     } catch (err) {
       setError(err.message || 'House를 만들지 못했습니다.');
-    } finally {
       setLoading(false);
+      return;
     }
+
+    if (invitedFriends.length > 0) {
+      try {
+        await inviteFriends(house.id, invitedFriends, user);
+      } catch {
+        navigate(`/houses/${house.id}`, {
+          replace: true,
+          state: {
+            houseCreationNotice: 'House는 생성되었지만 일부 친구 초대를 보내지 못했습니다.',
+          },
+        });
+        return;
+      }
+    }
+
+    navigate(`/houses/${house.id}`, { replace: true });
   };
 
   return (
@@ -119,6 +151,20 @@ export default function HouseCreatePage() {
           <ChoiceGroup label="공개 설정" name="visibility" value={form.visibility}
                        options={OPTIONS.visibility} onChange={(value) => update('visibility', value)} />
 
+          {invitedFriends.length > 0 && (
+            <div className="house-prefill-invites">
+              <strong>House 생성 후 초대할 친구</strong>
+              <div>{invitedFriends.map((friend) => (
+                <span key={friend.id}>
+                  {friend.nickname}
+                  <button type="button" onClick={() => setInvitedFriends((prev) => prev.filter((item) => item.id !== friend.id))}
+                          aria-label={`${friend.nickname} 초대 예정에서 제외`}>×</button>
+                </span>
+              ))}</div>
+              <small>친구 목록에서 전달된 정보입니다. 비공개 House 생성과 함께 초대가 전송됩니다.</small>
+            </div>
+          )}
+
           {form.visibility === 'PRIVATE' && (
             <div className="house-alert">🔒 비공개 House는 가입 신청을 받지 않으며 방장의 초대로만 가입할 수 있습니다.</div>
           )}
@@ -126,8 +172,8 @@ export default function HouseCreatePage() {
 
           <div className="house-form-actions">
             <button className="ui-btn-secondary" type="button" onClick={() => navigate(-1)}>취소</button>
-            <button className="ui-btn-primary" type="submit" disabled={loading}>
-              {loading ? '만드는 중…' : 'House 만들기'}
+            <button className="ui-btn-primary" type="submit" disabled={loading || Boolean(createdHouseId)}>
+              {createdHouseId ? '친구 초대 처리 중…' : loading ? '만드는 중…' : 'House 만들기'}
             </button>
           </div>
         </form>
