@@ -5,11 +5,35 @@ import { useAuth } from '../context/AuthContext';
 import { GAMES, GAME_MODES } from '../constants';
 import { timeAgo } from '../utils';
 import TierBadge from '../components/TierBadge';
+import SmartMatchPanel from '../components/SmartMatchPanel';
 import './MainPage.css';
 
 const STATUS_LABEL = { PENDING: '대기중', APPROVED: '승인됨', CONFIRMED: '확정', REJECTED: '거절됨' };
 
 const PAGE_SIZE = 20;
+
+// 상단 가로 필터바용 칩 그룹. 기존 좌측 세로 필터(FilterGroup)를 가로 배치로 바꾼 버전 —
+// 선택 로직(전체=리셋, 단일 선택)은 동일하다.
+function FilterGroup({ label, options, value, onChange, allLabel = '전체' }) {
+  return (
+    <div className="fgroup">
+      <span className="flabel">{label}</span>
+      <button type="button" className={`fchip ${value === '' ? 'on' : ''}`}
+              onClick={() => onChange('')}>{allLabel}</button>
+      {options.map((o) => {
+        const val = o.value ?? o;
+        const label2 = o.label ?? o;
+        return (
+          <button key={val} type="button"
+                  className={`fchip ${value === val ? 'on' : ''}`}
+                  onClick={() => onChange(val)}>
+            {label2}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function MainPage() {
   const navigate = useNavigate();
@@ -76,40 +100,9 @@ export default function MainPage() {
     navigate('/post/new');
   };
 
-  // 좌측 사이드바 필터 버튼 그룹
-  const FilterGroup = ({ title, options, value, onChange, allLabel = '전체' }) => (
-    <div className="filter-group">
-      <div className="filter-title">{title}</div>
-      <button type="button" className={`fchip ${value === '' ? 'on' : ''}`}
-              onClick={() => onChange('')}>{allLabel}</button>
-      {options.map((o) => {
-        const val = o.value ?? o;
-        const label = o.label ?? o;
-        return (
-          <button key={val} type="button"
-                  className={`fchip ${value === val ? 'on' : ''}`}
-                  onClick={() => onChange(val)}>
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-
   return (
     <div className="page mainpage wrap">
-      {/* 좌측 필터 */}
-      <aside className="side">
-        <FilterGroup title="GAME" options={GAMES} value={game} onChange={setGame} />
-        <FilterGroup title="MODE" options={GAME_MODES} value={gameMode} onChange={setGameMode} />
-        <FilterGroup
-          title="STATUS"
-          options={[{ label: '모집중', value: 'RECRUITING' }, { label: '모집완료', value: 'CLOSED' }]}
-          value={status} onChange={setStatus} allLabel="전체 보기"
-        />
-      </aside>
-
-      {/* 메인 콘텐츠 */}
+      {/* 중앙 콘텐츠 */}
       <main>
         <div className="head">
           <h1>
@@ -117,6 +110,19 @@ export default function MainPage() {
             <span className="cnt">{total}개의 파티 대기중</span>
           </h1>
           <button className="ui-btn-primary" onClick={writePost}>+ 모집글 작성</button>
+        </div>
+
+        {/* 상단 가로 필터바 */}
+        <div className="filterbar">
+          <FilterGroup label="GAME" options={GAMES} value={game} onChange={setGame} />
+          <div className="divider" />
+          <FilterGroup label="MODE" options={GAME_MODES} value={gameMode} onChange={setGameMode} />
+          <div className="divider" />
+          <FilterGroup
+            label="STATUS"
+            options={[{ label: '모집중', value: 'RECRUITING' }, { label: '모집완료', value: 'CLOSED' }]}
+            value={status} onChange={setStatus} allLabel="전체 보기"
+          />
         </div>
 
         {/* 검색바 */}
@@ -197,6 +203,9 @@ export default function MainPage() {
           </div>
         )}
       </main>
+
+      {/* 우측: 스마트 매칭 */}
+      <SmartMatchPanel />
     </div>
   );
 }

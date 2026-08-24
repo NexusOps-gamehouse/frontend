@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
   const userOrigin = env.VITE_USER_ORIGIN || 'http://localhost:8081';
   const postOrigin = env.VITE_POST_ORIGIN || 'http://localhost:8082';
   const chatOrigin = env.VITE_CHAT_ORIGIN || 'http://localhost:8083';
+  const matchOrigin = env.VITE_MATCH_ORIGIN || 'http://localhost:8085';
 
   // riot(:8084) 은 여기에 없다. 클러스터 내부 전용이라 브라우저가 직접 부르지
   // 않는다. 라이엇 연동은 /api/users/riot/* 로 user 를 거쳐 간다.
@@ -52,6 +53,9 @@ export default defineConfig(({ mode }) => {
           target: chatOrigin,
           ws: true,                       // WebSocket 업그레이드 (SockJS/STOMP)
         },
+
+        // ── match :8085 ─────────────────────────────────────────────
+        '/api/match': matchOrigin,        // 방 찾기 결과 추천 (POST /search), 노출/클릭/지원 로그
       },
     },
   };
