@@ -4,13 +4,16 @@ import {
   mockCancelJoinRequest,
   mockCreateHouse,
   mockCreateHouseNotice,
+  mockCreateHouseSchedule,
   mockDeleteHouseNotice,
+  mockDeleteHouseSchedule,
   mockGetHouse,
   mockGetHouseSuggestionState,
   mockInviteFriends,
   mockListJoinRequests,
   mockListHouses,
   mockListHouseNotices,
+  mockListHouseSchedules,
   mockListMyInvitations,
   mockRejectInvitation,
   mockRejectJoinRequest,
@@ -20,6 +23,8 @@ import {
   mockDismissHouseSuggestion,
   mockUpdateMemberRole,
   mockUpdateHouseNotice,
+  mockUpdateHouseSchedule,
+  mockUpdateScheduleAttendance,
 } from '../mocks/houseStorage';
 
 /**
@@ -59,6 +64,24 @@ export const updateHouseNotice = (houseId, noticeId, payload, user) => (
 // 실제 API 연결 시 DELETE /houses/:houseId/notices/:noticeId 로 교체한다.
 export const deleteHouseNotice = (houseId, noticeId, user) => (
   mockDeleteHouseNotice(houseId, noticeId, user)
+);
+// 실제 API 연결 시 GET /houses/:houseId/schedules 로 교체한다.
+export const listHouseSchedules = (houseId, user) => mockListHouseSchedules(houseId, user);
+// 실제 API 연결 시 POST /houses/:houseId/schedules 로 교체한다.
+export const createHouseSchedule = (houseId, payload, user) => (
+  mockCreateHouseSchedule(houseId, payload, user)
+);
+// 실제 API 연결 시 PUT /houses/:houseId/schedules/:scheduleId 로 교체한다.
+export const updateHouseSchedule = (houseId, scheduleId, payload, user) => (
+  mockUpdateHouseSchedule(houseId, scheduleId, payload, user)
+);
+// 실제 API 연결 시 DELETE /houses/:houseId/schedules/:scheduleId 로 교체한다.
+export const deleteHouseSchedule = (houseId, scheduleId, user) => (
+  mockDeleteHouseSchedule(houseId, scheduleId, user)
+);
+// 실제 API 연결 시 PUT /houses/:houseId/schedules/:scheduleId/attendance 로 교체한다.
+export const updateScheduleAttendance = (houseId, scheduleId, status, user) => (
+  mockUpdateScheduleAttendance(houseId, scheduleId, status, user)
 );
 export const inviteFriends = (houseId, friends, user) => mockInviteFriends(houseId, friends, user);
 export const listMyInvitations = (user) => mockListMyInvitations(user);

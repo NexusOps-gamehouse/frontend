@@ -19,6 +19,7 @@ const INITIAL_HOUSES = [
     joinRequests: [],
     invitations: [],
     notices: [],
+    schedules: [],
     createdAt: '2026-08-18T10:00:00.000Z',
   },
   {
@@ -37,6 +38,7 @@ const INITIAL_HOUSES = [
     joinRequests: [],
     invitations: [],
     notices: [],
+    schedules: [],
     createdAt: '2026-08-20T12:30:00.000Z',
   },
   {
@@ -52,6 +54,7 @@ const INITIAL_HOUSES = [
     joinRequests: [],
     invitations: [],
     notices: [],
+    schedules: [],
     createdAt: '2026-08-22T15:00:00.000Z',
   },
 ];
@@ -62,6 +65,8 @@ const MEMBER_ROLES = new Set(['OWNER', 'MANAGER', 'MEMBER']);
 // 기존 v1 데이터에 요청 id, 초대 목록, 역할이 없어도 읽을 때 안전하게 보정한다.
 const normalizeHouse = (house) => {
   const ownerId = String(house.owner?.id ?? '');
+  const houseMemberIds = new Set((Array.isArray(house.members) ? house.members : [])
+    .map((member) => String(member.id)));
   return {
     ...house,
     owner: { ...house.owner, id: ownerId },
@@ -85,6 +90,24 @@ const normalizeHouse = (house) => {
       userId: String(invitation.userId),
     })),
     notices: Array.isArray(house.notices) ? house.notices : [],
+    schedules: (Array.isArray(house.schedules) ? house.schedules : []).map((schedule) => {
+      const seenUserIds = new Set();
+      const attendance = (Array.isArray(schedule.attendance) ? schedule.attendance : [])
+        .filter((entry) => ['JOINED', 'DECLINED'].includes(entry.status))
+        .map((entry) => ({ ...entry, userId: String(entry.userId) }))
+        .filter((entry) => {
+          if (!entry.userId || !houseMemberIds.has(entry.userId) || seenUserIds.has(entry.userId)) return false;
+          seenUserIds.add(entry.userId);
+          return true;
+        });
+      const joinedCount = attendance.filter((entry) => entry.status === 'JOINED').length;
+      return {
+        ...schedule,
+        id: String(schedule.id),
+        maxParticipants: Math.max(1, joinedCount, Math.floor(Number(schedule.maxParticipants)) || 1),
+        attendance,
+      };
+    }),
   };
 };
 
@@ -135,6 +158,8 @@ function withViewerState(house, user) {
   const result = { ...clone(house), myStatus: status };
   // 공지는 멤버 전용 API를 통해서만 제공해 공개 House 외부 사용자에게 노출되지 않게 한다.
   delete result.notices;
+  // 일정도 멤버 전용 API에서 권한을 확인한 뒤 별도로 제공한다.
+  delete result.schedules;
   if (status !== 'OWNER') {
     delete result.joinRequests;
     delete result.invitations;
@@ -186,6 +211,63 @@ function noticeInput(payload) {
   return { title, content };
 }
 
+function requireScheduleMember(house, user) {
+  const role = currentState(house, user);
+  if (!MEMBER_ROLES.has(role)) {
+    throw new Error('House 멤버만 일정을 이용할 수 있습니다.');
+  }
+  return role;
+}
+
+function requireScheduleManager(house, user) {
+  const role = currentState(house, user);
+  if (!['OWNER', 'MANAGER'].includes(role)) {
+    throw new Error('방장 또는 부방장만 일정을 관리할 수 있습니다.');
+  }
+  return role;
+}
+
+function scheduleInput(payload) {
+  const title = String(payload?.title ?? '').trim();
+  const game = String(payload?.game ?? '').trim();
+  const gameMode = String(payload?.gameMode ?? '').trim();
+  const description = String(payload?.description ?? '').trim();
+  const startDate = new Date(payload?.startAt);
+  const maxParticipants = Number(payload?.maxParticipants);
+  if (!title) throw new Error('일정 제목을 입력해주세요.');
+  if (!game) throw new Error('게임을 입력해주세요.');
+  if (!gameMode) throw new Error('게임 모드를 입력해주세요.');
+  if (Number.isNaN(startDate.getTime())) throw new Error('올바른 시작 일시를 입력해주세요.');
+  if (!Number.isInteger(maxParticipants) || maxParticipants < 1) {
+    throw new Error('최대 참여 인원은 1명 이상이어야 합니다.');
+  }
+  if (title.length > 50) throw new Error('일정 제목은 50자 이하로 입력해주세요.');
+  if (game.length > 30) throw new Error('게임은 30자 이하로 입력해주세요.');
+  if (gameMode.length > 30) throw new Error('게임 모드는 30자 이하로 입력해주세요.');
+  if (description.length > 500) throw new Error('일정 설명은 500자 이하로 입력해주세요.');
+  return { title, game, gameMode, startAt: startDate.toISOString(), description, maxParticipants };
+}
+
+function requireSchedule(house, scheduleId) {
+  const schedule = house.schedules.find((item) => String(item.id) === String(scheduleId));
+  if (!schedule) throw new Error('일정을 찾을 수 없습니다.');
+  return schedule;
+}
+
+function scheduleForViewer(schedule, user) {
+  const viewerId = userKey(user);
+  const result = clone(schedule);
+  result.participants = result.attendance
+    .filter((entry) => entry.status === 'JOINED')
+    .map(({ userId, nickname }) => ({ id: userId, nickname }));
+  result.declinedMembers = result.attendance
+    .filter((entry) => entry.status === 'DECLINED')
+    .map(({ userId, nickname }) => ({ id: userId, nickname }));
+  result.myAttendance = result.attendance.find((entry) => entry.userId === viewerId)?.status || 'NONE';
+  delete result.attendance;
+  return result;
+}
+
 function ensureCapacity(house) {
   if (house.members.length >= house.maxMembers) throw new Error('House 정원이 가득 찼습니다.');
 }
@@ -228,6 +310,7 @@ export async function mockCreateHouse(payload, user) {
     joinRequests: [],
     invitations: [],
     notices: [],
+    schedules: [],
     createdAt: new Date().toISOString(),
   };
   writeHouses([house, ...houses]);
@@ -323,6 +406,9 @@ export async function mockRemoveHouseMember(houseId, memberId, user) {
   house.members.splice(memberIndex, 1);
   house.invitations = house.invitations.filter((invitation) => invitation.userId !== targetId);
   house.joinRequests = house.joinRequests.filter((request) => request.userId !== targetId);
+  house.schedules.forEach((schedule) => {
+    schedule.attendance = schedule.attendance.filter((entry) => entry.userId !== targetId);
+  });
   writeHouses(houses);
   return withViewerState(house, user);
 }
@@ -381,6 +467,88 @@ export async function mockDeleteHouseNotice(houseId, noticeId, user) {
   if (before === house.notices.length) throw new Error('공지를 찾을 수 없습니다.');
   writeHouses(houses);
   return { noticeId: String(noticeId) };
+}
+
+export async function mockListHouseSchedules(houseId, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireScheduleMember(house, user);
+  return house.schedules.map((schedule) => scheduleForViewer(schedule, user));
+}
+
+export async function mockCreateHouseSchedule(houseId, payload, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  const role = requireScheduleManager(house, user);
+  const values = scheduleInput(payload);
+  const creatorId = userKey(user);
+  const schedule = {
+    id: `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...values,
+    creator: {
+      id: creatorId,
+      nickname: user.nickname || user.name || 'House 멤버',
+      role,
+    },
+    attendance: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+  };
+  house.schedules.push(schedule);
+  writeHouses(houses);
+  return scheduleForViewer(schedule, user);
+}
+
+export async function mockUpdateHouseSchedule(houseId, scheduleId, payload, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireScheduleManager(house, user);
+  const schedule = requireSchedule(house, scheduleId);
+  const values = scheduleInput(payload);
+  const joinedCount = schedule.attendance.filter((entry) => entry.status === 'JOINED').length;
+  if (values.maxParticipants < joinedCount) {
+    throw new Error(`현재 참여 인원(${joinedCount}명)보다 최대 인원을 줄일 수 없습니다.`);
+  }
+  Object.assign(schedule, values, { updatedAt: new Date().toISOString() });
+  writeHouses(houses);
+  return scheduleForViewer(schedule, user);
+}
+
+export async function mockDeleteHouseSchedule(houseId, scheduleId, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireScheduleManager(house, user);
+  const before = house.schedules.length;
+  house.schedules = house.schedules.filter((item) => String(item.id) !== String(scheduleId));
+  if (before === house.schedules.length) throw new Error('일정을 찾을 수 없습니다.');
+  writeHouses(houses);
+  return { scheduleId: String(scheduleId) };
+}
+
+export async function mockUpdateScheduleAttendance(houseId, scheduleId, status, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireScheduleMember(house, user);
+  if (!['JOINED', 'DECLINED', 'NONE'].includes(status)) throw new Error('올바르지 않은 참여 상태입니다.');
+  const schedule = requireSchedule(house, scheduleId);
+  const id = userKey(user);
+  const current = schedule.attendance.find((entry) => entry.userId === id)?.status || 'NONE';
+  const nextStatus = status === current ? 'NONE' : status;
+  const joinedCount = schedule.attendance.filter((entry) => entry.status === 'JOINED').length;
+  if (nextStatus === 'JOINED' && current !== 'JOINED' && joinedCount >= schedule.maxParticipants) {
+    throw new Error('일정의 최대 참여 인원이 모두 찼습니다.');
+  }
+  schedule.attendance = schedule.attendance.filter((entry) => entry.userId !== id);
+  if (nextStatus !== 'NONE') {
+    const member = house.members.find((item) => item.id === id);
+    schedule.attendance.push({
+      userId: id,
+      nickname: member?.nickname || user.nickname || user.name || 'House 멤버',
+      status: nextStatus,
+    });
+  }
+  writeHouses(houses);
+  return scheduleForViewer(schedule, user);
 }
 
 export async function mockInviteFriends(houseId, friends, user) {
