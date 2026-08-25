@@ -79,20 +79,22 @@ export async function mockSubscribeHouseMessages(houseId, user, callback) {
   await requireHouseMember(houseId, user);
   if (typeof window === 'undefined') return () => {};
 
-  const refresh = async () => {
+  const refresh = async (houseChanged = false) => {
     try {
-      callback(await mockListHouseMessages(houseId, user), null);
+      callback(await mockListHouseMessages(houseId, user), null, { houseChanged });
     } catch (error) {
-      callback(null, error);
+      callback(null, error, { houseChanged });
     }
   };
   const onStorage = (event) => {
-    if ([MESSAGE_STORAGE_KEY, HOUSE_STORAGE_KEY].includes(event.key)) refresh();
+    if ([MESSAGE_STORAGE_KEY, HOUSE_STORAGE_KEY].includes(event.key)) {
+      refresh(event.key === HOUSE_STORAGE_KEY);
+    }
   };
   const onMessageChange = (event) => {
     if (!event.detail?.houseId || event.detail.houseId === houseId) refresh();
   };
-  const onHouseChange = () => refresh();
+  const onHouseChange = () => refresh(true);
 
   window.addEventListener('storage', onStorage);
   window.addEventListener(MESSAGE_CHANGE_EVENT, onMessageChange);

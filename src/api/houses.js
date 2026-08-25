@@ -24,6 +24,7 @@ import {
   mockUpdateMemberRole,
   mockUpdateHouseNotice,
   mockUpdateHouseSchedule,
+  mockUpdateHouse,
   mockUpdateScheduleAttendance,
 } from '../mocks/houseStorage';
 import {
@@ -40,6 +41,8 @@ import {
 export const listHouses = (user) => mockListHouses(user);
 export const getHouse = (houseId, user) => mockGetHouse(houseId, user);
 export const createHouse = (payload, user) => mockCreateHouse(payload, user);
+// 실제 API 연결 시 PUT /houses/:houseId 로 교체한다.
+export const updateHouse = (houseId, payload, user) => mockUpdateHouse(houseId, payload, user);
 export const requestHouseJoin = (houseId, user) => mockRequestHouseJoin(houseId, user);
 export const cancelJoinRequest = (houseId, user) => mockCancelJoinRequest(houseId, user);
 export const listJoinRequests = (houseId, user) => mockListJoinRequests(houseId, user);

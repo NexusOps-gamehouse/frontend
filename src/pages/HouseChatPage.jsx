@@ -72,7 +72,7 @@ export default function HouseChatPage() {
   useEffect(() => {
     let closed = false;
     let unsubscribe = () => {};
-    subscribeHouseMessages(houseId, user, (nextMessages, subscriptionError) => {
+    subscribeHouseMessages(houseId, user, (nextMessages, subscriptionError, metadata) => {
       if (closed) return;
       if (subscriptionError) {
         if (isAccessError(subscriptionError)) denyAccess(subscriptionError.message);
@@ -80,6 +80,13 @@ export default function HouseChatPage() {
         return;
       }
       setMessages(nextMessages || []);
+      if (metadata?.houseChanged) {
+        getHouse(houseId, user).then((updatedHouse) => {
+          if (!closed) setHouse(updatedHouse);
+        }).catch((err) => {
+          if (!closed && isAccessError(err)) denyAccess(err.message);
+        });
+      }
     }).then((cleanup) => {
       if (closed) cleanup();
       else unsubscribe = cleanup;

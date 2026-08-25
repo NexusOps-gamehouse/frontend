@@ -127,6 +127,9 @@
   display: inline-flex; align-items: center; justify-content: center; min-width: 130px; border: 0;
 }
 .house-form-actions .ui-btn-secondary { border: 1px solid var(--border); }
+.house-settings-retry-actions { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.house-settings-retry-actions .ui-btn-primary,
+.house-settings-retry-actions .ui-btn-secondary { display: inline-flex; align-items: center; justify-content: center; }
 
 .house-back { display: inline-block; margin: 4px 0 20px; color: var(--text-muted); font-size: 13px; font-weight: 700; text-decoration: none; }
 .house-back:hover { color: var(--primary); }
@@ -314,6 +317,7 @@
   .house-form-panel { padding: 24px 18px; }
   .house-form-actions { flex-direction: column-reverse; }
   .house-form-actions .ui-btn-primary, .house-form-actions .ui-btn-secondary { width: 100%; }
+  .house-settings-retry-actions { flex-direction: column; }
   .house-detail-hero { padding: 24px 18px; }
   .house-members-section, .house-management-section, .house-notices-section,
   .house-schedules-section { padding: 22px 18px; }

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import NavBar from './components/NavBar';
 import LoginPage from './pages/LoginPage';
@@ -22,11 +22,15 @@ import HousesPage from './pages/HousesPage';
 import HouseCreatePage from './pages/HouseCreatePage';
 import HouseDetailPage from './pages/HouseDetailPage';
 import HouseChatPage from './pages/HouseChatPage';
+import HouseSettingsPage from './pages/HouseSettingsPage';
 import HouseSuggestionPreviewPage from './pages/HouseSuggestionPreviewPage';
 
 function Private({ children }) {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
+  const location = useLocation();
+  return user ? children : (
+    <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />
+  );
 }
 
 export default function App() {
@@ -54,6 +58,7 @@ export default function App() {
         <Route path="/houses/new" element={<Private><HouseCreatePage /></Private>} />
         <Route path="/houses/:houseId" element={<HouseDetailPage />} />
         <Route path="/houses/:houseId/chat" element={<Private><HouseChatPage /></Private>} />
+        <Route path="/houses/:houseId/settings" element={<Private><HouseSettingsPage /></Private>} />
         {import.meta.env.DEV && (
           <Route path="/houses/suggestions/preview" element={<HouseSuggestionPreviewPage />} />
         )}

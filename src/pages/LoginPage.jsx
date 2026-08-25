@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/Gamehouse-Logo.png';
@@ -9,6 +9,7 @@ import './LoginPage.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -29,7 +30,10 @@ export default function LoginPage() {
       });
 
       login(data.token, data.user);
-      navigate('/', { replace: true });
+      const requestedPath = location.state?.from;
+      const returnPath = typeof requestedPath === 'string'
+        && requestedPath.startsWith('/') && !requestedPath.startsWith('//') ? requestedPath : '/';
+      navigate(returnPath, { replace: true });
     } catch (requestError) {
       setError(errMsg(requestError));
     } finally {
