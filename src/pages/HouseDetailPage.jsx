@@ -287,7 +287,10 @@ export default function HouseDetailPage() {
             <>
               <div className="house-lock" aria-hidden="true">🔒</div>
               <p>비공개 House는 초대로만 가입할 수 있습니다.<br />현재 역할: {ROLE_LABEL[house.myStatus]}</p>
-              {isOwner && <button className="ui-btn-primary" type="button" onClick={() => setInviteOpen(true)}>친구 초대</button>}
+              <div className="house-join-actions">
+                <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
+                {isOwner && <button className="ui-btn-secondary" type="button" onClick={() => setInviteOpen(true)}>친구 초대</button>}
+              </div>
             </>
           ) : house.myStatus === 'PENDING' ? (
             <>
@@ -299,7 +302,7 @@ export default function HouseDetailPage() {
           ) : isMember ? (
             <>
               <p>{isOwner ? '이 House의 방장입니다.' : `이 House의 ${ROLE_LABEL[house.myStatus]}입니다.`}</p>
-              <button className="ui-btn-secondary" type="button" disabled>{ROLE_LABEL[house.myStatus]}</button>
+              <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
             </>
           ) : isFull ? (
             <>

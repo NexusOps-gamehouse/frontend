@@ -21,6 +21,7 @@ import FriendsPage from './pages/FriendsPage';
 import HousesPage from './pages/HousesPage';
 import HouseCreatePage from './pages/HouseCreatePage';
 import HouseDetailPage from './pages/HouseDetailPage';
+import HouseChatPage from './pages/HouseChatPage';
 import HouseSuggestionPreviewPage from './pages/HouseSuggestionPreviewPage';
 
 function Private({ children }) {
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/houses" element={<HousesPage />} />
         <Route path="/houses/new" element={<Private><HouseCreatePage /></Private>} />
         <Route path="/houses/:houseId" element={<HouseDetailPage />} />
+        <Route path="/houses/:houseId/chat" element={<Private><HouseChatPage /></Private>} />
         {import.meta.env.DEV && (
           <Route path="/houses/suggestions/preview" element={<HouseSuggestionPreviewPage />} />
         )}

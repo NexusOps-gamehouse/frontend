@@ -26,6 +26,11 @@ import {
   mockUpdateHouseSchedule,
   mockUpdateScheduleAttendance,
 } from '../mocks/houseStorage';
+import {
+  mockListHouseMessages,
+  mockSendHouseMessage,
+  mockSubscribeHouseMessages,
+} from '../mocks/houseChatStorage';
 
 /**
  * House 화면이 의존하는 API 계약입니다.
@@ -82,6 +87,16 @@ export const deleteHouseSchedule = (houseId, scheduleId, user) => (
 // 실제 API 연결 시 PUT /houses/:houseId/schedules/:scheduleId/attendance 로 교체한다.
 export const updateScheduleAttendance = (houseId, scheduleId, status, user) => (
   mockUpdateScheduleAttendance(houseId, scheduleId, status, user)
+);
+// 실제 API 연결 시 GET /houses/:houseId/messages 로 교체한다.
+export const listHouseMessages = (houseId, user) => mockListHouseMessages(houseId, user);
+// 실제 API 연결 시 POST /houses/:houseId/messages 또는 STOMP SEND로 교체한다.
+export const sendHouseMessage = (houseId, content, user) => (
+  mockSendHouseMessage(houseId, content, user)
+);
+// 실제 연결 시 STOMP SUBSCRIBE /topic/houses/:houseId 로 교체한다.
+export const subscribeHouseMessages = (houseId, user, callback) => (
+  mockSubscribeHouseMessages(houseId, user, callback)
 );
 export const inviteFriends = (houseId, friends, user) => mockInviteFriends(houseId, friends, user);
 export const listMyInvitations = (user) => mockListMyInvitations(user);
