@@ -17,6 +17,7 @@ import {
 } from '../api/houses';
 import HouseInviteModal from '../components/HouseInviteModal';
 import HouseNoticeFormModal from '../components/HouseNoticeFormModal';
+import HouseSchedulesSection from '../components/HouseSchedulesSection';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useFriends } from '../context/FriendContext';
@@ -398,6 +399,8 @@ export default function HouseDetailPage() {
           )}
         </section>
       )}
+
+      {isMember && <HouseSchedulesSection house={house} user={user} onSuccess={setNotice} />}
 
       <section className="house-members-section">
         <div className="house-section-head">
