@@ -1,3 +1,5 @@
+import { GAMES } from '../constants.js';
+
 const STORAGE_KEY = 'gamehouse.houses.v1';
 const SUGGESTION_STORAGE_KEY = 'gamehouse.houseSuggestions.v1';
 const HOUSE_CHANGE_EVENT = 'gamehouse:houses-changed';
@@ -252,6 +254,28 @@ function scheduleInput(payload) {
   return { title, game, gameMode, startAt: startDate.toISOString(), description, maxParticipants };
 }
 
+function houseSettingsInput(payload) {
+  const name = String(payload?.name ?? '').trim();
+  const description = String(payload?.description ?? '').trim();
+  const game = String(payload?.game ?? '').trim();
+  const type = String(payload?.type ?? '');
+  const visibility = String(payload?.visibility ?? '');
+  const maxMembers = Number(payload?.maxMembers);
+  if (name.length < 2 || name.length > 30) {
+    throw new Error('House 이름은 2자 이상 30자 이하로 입력해주세요.');
+  }
+  if (description.length < 10 || description.length > 300) {
+    throw new Error('House 소개는 10자 이상 300자 이하로 입력해주세요.');
+  }
+  if (!GAMES.includes(game)) throw new Error('올바른 게임을 선택해주세요.');
+  if (!['SOCIAL', 'COMPETITIVE'].includes(type)) throw new Error('올바른 House 유형을 선택해주세요.');
+  if (!['PUBLIC', 'PRIVATE'].includes(visibility)) throw new Error('올바른 공개 설정을 선택해주세요.');
+  if (!Number.isInteger(maxMembers) || maxMembers < 2 || maxMembers > 100) {
+    throw new Error('최대 인원은 2명 이상 100명 이하의 정수로 입력해주세요.');
+  }
+  return { name, description, game, type, visibility, maxMembers };
+}
+
 function requireSchedule(house, scheduleId) {
   const schedule = house.schedules.find((item) => String(item.id) === String(scheduleId));
   if (!schedule) throw new Error('일정을 찾을 수 없습니다.');
@@ -318,6 +342,22 @@ export async function mockCreateHouse(payload, user) {
     createdAt: new Date().toISOString(),
   };
   writeHouses([house, ...houses]);
+  return withViewerState(house, user);
+}
+
+export async function mockUpdateHouse(houseId, payload, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireOwner(house, user);
+  const values = houseSettingsInput(payload);
+  if (values.maxMembers < house.members.length) {
+    throw new Error(`현재 멤버 수(${house.members.length}명)보다 최대 인원을 줄일 수 없습니다.`);
+  }
+  if (house.visibility === 'PUBLIC' && values.visibility === 'PRIVATE' && house.joinRequests.length > 0) {
+    throw new Error('대기 중인 가입 신청을 먼저 승인하거나 거절해주세요.');
+  }
+  Object.assign(house, values);
+  writeHouses(houses);
   return withViewerState(house, user);
 }
 

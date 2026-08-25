@@ -51,7 +51,9 @@ export default function HouseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState(() => location.state?.houseCreationNotice || '');
+  const [notice, setNotice] = useState(() => (
+    location.state?.houseCreationNotice || location.state?.houseSettingsNotice || ''
+  ));
   const [accessDenied, setAccessDenied] = useState(false);
   const [working, setWorking] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -113,7 +115,7 @@ export default function HouseDetailPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (!location.state?.houseCreationNotice) return;
+    if (!location.state?.houseCreationNotice && !location.state?.houseSettingsNotice) return;
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
 
@@ -290,6 +292,7 @@ export default function HouseDetailPage() {
               <div className="house-join-actions">
                 <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
                 {isOwner && <button className="ui-btn-secondary" type="button" onClick={() => setInviteOpen(true)}>친구 초대</button>}
+                {isOwner && <Link className="ui-btn-secondary" to={`/houses/${houseId}/settings`}>House 설정</Link>}
               </div>
             </>
           ) : house.myStatus === 'PENDING' ? (
@@ -302,7 +305,10 @@ export default function HouseDetailPage() {
           ) : isMember ? (
             <>
               <p>{isOwner ? '이 House의 방장입니다.' : `이 House의 ${ROLE_LABEL[house.myStatus]}입니다.`}</p>
-              <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
+              <div className="house-join-actions">
+                <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
+                {isOwner && <Link className="ui-btn-secondary" to={`/houses/${houseId}/settings`}>House 설정</Link>}
+              </div>
             </>
           ) : isFull ? (
             <>
