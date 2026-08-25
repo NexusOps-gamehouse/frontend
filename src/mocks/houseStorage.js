@@ -277,6 +277,23 @@ export async function mockUpdateMemberRole(houseId, memberId, role, user) {
   return withViewerState(house, user);
 }
 
+export async function mockRemoveHouseMember(houseId, memberId, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireOwner(house, user);
+
+  const targetId = String(memberId);
+  if (String(house.owner.id) === targetId) throw new Error('방장은 강퇴할 수 없습니다.');
+  const memberIndex = house.members.findIndex((member) => member.id === targetId);
+  if (memberIndex < 0) throw new Error('House 멤버를 찾을 수 없습니다.');
+
+  house.members.splice(memberIndex, 1);
+  house.invitations = house.invitations.filter((invitation) => invitation.userId !== targetId);
+  house.joinRequests = house.joinRequests.filter((request) => request.userId !== targetId);
+  writeHouses(houses);
+  return withViewerState(house, user);
+}
+
 export async function mockInviteFriends(houseId, friends, user) {
   requireUser(user);
   const houses = readHouses();
