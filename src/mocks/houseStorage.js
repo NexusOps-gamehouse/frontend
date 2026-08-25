@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'gamehouse.houses.v1';
 const SUGGESTION_STORAGE_KEY = 'gamehouse.houseSuggestions.v1';
+const HOUSE_CHANGE_EVENT = 'gamehouse:houses-changed';
 
 const INITIAL_HOUSES = [
   {
@@ -124,6 +125,9 @@ function readHouses() {
 
 function writeHouses(houses) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(houses));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(HOUSE_CHANGE_EVENT));
+  }
 }
 
 function readSuggestionStates() {

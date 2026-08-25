@@ -149,6 +149,7 @@
 }
 .house-join-card .ui-btn-secondary { border: 1px solid var(--border); }
 .house-join-card button:disabled { cursor: default; opacity: .7; }
+.house-join-actions { display: flex; flex-direction: column; gap: 8px; }
 .house-lock { margin-top: 18px; font-size: 28px; }
 .house-private-error { max-width: 620px; margin: 50px auto 0; }
 .house-private-error h1 { margin: 12px 0 8px; font-size: 22px; }
