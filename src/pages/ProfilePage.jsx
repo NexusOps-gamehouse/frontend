@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import Avatar from '../components/Avatar';
+import FriendButton from '../components/FriendButton';
+import TierBadge from '../components/TierBadge';
 import { csv, profileTags, profileMeta } from '../utils';
 
 export default function ProfilePage() {
@@ -33,7 +35,10 @@ export default function ProfilePage() {
                 <span className={`dot ${profile.online ? '' : 'off'}`} />
                 <span className="meta"> {profile.online ? '온라인' : '오프라인'}</span>
               </div>
-              <div className="meta">{profileMeta(profile)}</div>
+              <div className="meta" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span>{profileMeta(profile)}</span>
+                <TierBadge user={profile} height={20} />
+              </div>
             </div>
           </div>
           <div className="row">
@@ -45,7 +50,10 @@ export default function ProfilePage() {
             {profile.riotNickname && <div>롤 닉네임: {profile.riotNickname}</div>}
           </div>
         </div>
-        <button className="btn2" style={{ marginTop: 8 }} onClick={() => navigate(-1)}>뒤로</button>
+        <div className="flex" style={{ marginTop: 12, gap: 8, alignItems: 'stretch' }}>
+          <FriendButton userId={profile.id} block />
+          <button className="btn2" style={{ flex: 1, height: 44 }} onClick={() => navigate(-1)}>뒤로</button>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,281 @@
+import { useEffect, useState } from 'react';
+import api from './client';
+
+/* ==================================================================
+ * POST /api/users/riot/sync
+ *   body: { gameName, tagLine }
+ *   res : RiotProfileResponseDTO
+ *
+ * ⚠️ 조회가 아니라 "저장"이다. Authentication을 받아 해당 유저 레코드를
+ *    갱신하므로 토큰이 필요하다. 회원가입 중에는 쓸 수 없고,
+ *    로그인 후 마이페이지에서 연동한다. (RiotLinkCard)
+ * baseURL이 '/api'라 앞의 /api는 빼고 쓴다.
+ * ================================================================== */
+const SYNC_ENDPOINT = '/users/riot/sync';
+
+/* GET /api/users/riot/profile
+ *   res : RiotProfileResponseDTO (연동 전이면 204 No Content)
+ *
+ * 서버가 마지막 연동 때 저장해 둔 값을 그대로 돌려준다. 라이엇 API 를 부르지 않는다.
+ * 마이페이지에 들어올 때마다 호출해도 되는 이유가 그것이다.
+ */
+const STORED_ENDPOINT = '/users/riot/profile';
+
+/* ---------------------------- 조회 ---------------------------- */
+
+/** "Hide on bush#KR1" → { gameName, tagLine } / 형식 오류면 null */
+export function parseRiotId(input) {
+  const raw = (input ?? '').trim();
+  if (!raw) return null;
+
+  const idx = raw.lastIndexOf('#');
+  if (idx === -1) return { gameName: raw, tagLine: 'KR1' };  // 태그 생략 시 기본값
+  const gameName = raw.slice(0, idx).trim();
+  const tagLine = raw.slice(idx + 1).trim();
+  if (!gameName || !tagLine) return null;
+  return { gameName, tagLine };
+}
+
+export const formatRiotId = (gameName, tagLine) =>
+  gameName ? `${gameName}#${tagLine ?? ''}`.replace(/#$/, '') : '';
+
+/** 로그인 상태에서만 호출 가능. 서버가 조회 후 유저 레코드에 저장까지 한다. */
+export async function syncRiotProfile({ gameName, tagLine }) {
+  try {
+    const { data } = await api.post(SYNC_ENDPOINT, { gameName, tagLine });
+    return normalizeProfile(data);
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      // 화면 문구는 뭉뚱그려져 있으니 개발 중엔 실제 응답을 남긴다
+      console.error('[riot] 조회 실패',
+        { url: SYNC_ENDPOINT, sent: { gameName, tagLine },
+          status: err?.response?.status, body: err?.response?.data });
+    }
+    throw err;
+  }
+}
+
+/**
+ * 저장된 라이엇 프로필을 불러온다. 연동 전이면 null.
+ *
+ * 204 응답은 axios 에서 data 가 빈 문자열로 오므로 falsy 검사로 걸러낸다.
+ * 실패해도 화면을 막지 않는다 — 값이 없으면 그냥 안 보이면 그만이다.
+ */
+export async function fetchStoredRiotProfile() {
+  const { data } = await api.get(STORED_ENDPOINT);
+  return data ? normalizeProfile(data) : null;
+}
+
+export function riotErrMsg(err) {
+  const status = err?.response?.status;
+  const serverMsg = err?.response?.data?.message;
+
+  // 백엔드가 IllegalArgumentException을 400 + {message}로 내려준다.
+  // (예: "이미 다른 계정과 연동된 Riot 계정입니다.")
+  if (status === 400 && serverMsg) return serverMsg;
+
+  // 없는 소환사. 백엔드가 NoSuchElementException 메시지를 그대로 실어 보내므로
+  // 그것을 우선 쓴다. 문구를 백엔드 한 곳에서 관리하기 위함이고,
+  // 메시지가 비어 오는 경우를 대비해 기본 문구를 남겨둔다.
+  if (status === 404) return serverMsg || '그 이름의 소환사를 찾지 못했어요. 이름과 태그를 다시 확인해 주세요.';
+
+  // 409 분기는 삭제했다. 백엔드에 중복 연동 검사 자체가 없어
+  // (existsByPuuid / findByPuuid / CONFLICT 어디에도 없음) 실행될 일이 없는 죽은 코드였다.
+
+  // Riot 레이트 리밋. 예전에는 백엔드에서 500 으로 새어 나와 이 분기에 닿지 못했다.
+  // RiotConfig 의 필터가 429 를 그대로 옮겨 담으면서 실제로 동작하게 됐다.
+  // 2분이 지나면 저절로 풀리므로 안내만 하면 되고 알람 대상은 아니다.
+  if (status === 429) return '조회 요청이 몰렸어요. 30초 뒤에 다시 시도해 주세요.';
+  return '게임 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
+}
+
+/* ------------------------- 응답 정규화 -------------------------
+ * 필드명은 백엔드 "코드" 기준으로 고정한다. (문서와 다름)
+ *   RiotProfileResponseDTO.championMasteries[].championMasteryLevel / championMasteryPoints
+ * 모집글 참가자는 DB에서 오므로 masteryLevel / masteryPoints 로 온다. 둘 다 받는다.
+ * -------------------------------------------------------------- */
+
+const toMastery = (m, i) => ({
+  ranking: m.ranking ?? i + 1,
+  championId: Number(m.championId),
+  level: Number(m.championMasteryLevel ?? m.masteryLevel ?? 0),
+  points: Number(m.championMasteryPoints ?? m.masteryPoints ?? 0),
+});
+
+const build = (src, list) => {
+  // UserDto 는 riotTier(검증) 와 tier(자기 신고) 를 둘 다 갖고 있어 검증된 쪽을 고른다.
+  // RiotProfileResponseDTO 는 riotTier 가 없고 tier 자체가 라이엇 값이라 그대로 쓰인다.
+  const { tier, rank } = displayTier(src);
+  return {
+    puuid: src.puuid ?? null,
+    gameName: src.gameName ?? '',
+    tagLine: src.tagLine ?? '',
+    profileIconId: src.profileIconId ?? null,
+    summonerLevel: src.summonerLevel ?? null,
+
+    // 언랭이면 tier가 null. 백엔드가 int 원시타입이면 lp/승/패는 0으로 오므로
+    // ranked 플래그로만 판단하고 숫자는 믿지 않는다.
+    ranked: Boolean(tier),
+    tierVerified: isRiotTier(tier),
+    tier,
+    rank,
+    leaguePoints: src.leaguePoints ?? 0,
+    wins: src.wins ?? 0,
+    losses: src.losses ?? 0,
+
+    masteries: (list ?? []).filter((m) => !m.game || m.game === 'LOL').map(toMastery),
+
+    // 마지막으로 라이엇을 실제 호출한 시각. 쿨다운 남은 시간 계산에 쓴다.
+    // 모집글 참가자(UserDto)로 만든 경우에는 없으므로 null 이 된다.
+    riotSyncedAt: src.riotSyncedAt ?? null,
+  };
+};
+
+/**
+ * 재동기화 최소 간격(ms). 백엔드 UserService.RIOT_SYNC_COOLDOWN 과 같은 값이어야 한다.
+ *
+ * 서버가 "몇 초 남았다"가 아니라 갱신 시각(riotSyncedAt)을 내려주므로
+ * 남은 시간은 화면에서 계산한다. 그래야 새로고침하거나 다른 기기에서 열어도
+ * 같은 기준으로 잠긴다.
+ */
+export const SYNC_COOLDOWN_MS = 2 * 60 * 1000;
+
+/** 라이엇 조회 응답 → 내부 모양 */
+export function normalizeProfile(raw) {
+  if (!raw) return null;
+  if (import.meta.env.DEV && !Array.isArray(raw.championMasteries)) {
+    console.warn('[riot] championMasteries 없음. 백엔드 응답 필드명 확인:', raw);
+  }
+  return build(raw, raw.championMasteries);
+}
+
+/** UserDto(모집글 참가자) → 내부 모양 */
+export function profileFromUser(user) {
+  if (!user?.gameName) return null;
+  return build(user, user.championMasteries ?? user.masteries);
+}
+
+/* ---------------------------- 티어 ---------------------------- */
+
+const TIER_TABLE = [
+  { key: 'IRON',        ko: '아이언' },
+  { key: 'BRONZE',      ko: '브론즈' },
+  { key: 'SILVER',      ko: '실버' },
+  { key: 'GOLD',        ko: '골드' },
+  { key: 'PLATINUM',    ko: '플래티넘' },
+  { key: 'EMERALD',     ko: '에메랄드' },
+  { key: 'DIAMOND',     ko: '다이아몬드' },
+  { key: 'MASTER',      ko: '마스터 이상' },
+  { key: 'GRANDMASTER', ko: '마스터 이상' },
+  { key: 'CHALLENGER',  ko: '마스터 이상' },
+];
+
+const APEX = ['MASTER', 'GRANDMASTER', 'CHALLENGER'];
+
+const isRiotTier = (tier) => TIER_TABLE.some((t) => t.key === tier);
+
+/** 라이엇 enum → constants.js의 TIERS 값. 마스터 이상은 하나로 묶인다. */
+export function riotTierToSurveyTier(tier) {
+  return TIER_TABLE.find((t) => t.key === tier)?.ko ?? '언랭';
+}
+
+/** "다이아몬드 II" / "챌린저" / "언랭". 설문에서 직접 고른 값은 그대로 돌려준다. */
+export function tierText(p) {
+  if (!p?.ranked) return '언랭';
+  if (!p.tierVerified) return p.tier;
+  const ko = TIER_TABLE.find((t) => t.key === p.tier)?.ko ?? p.tier;
+  if (APEX.includes(p.tier)) {
+    return { MASTER: '마스터', GRANDMASTER: '그랜드마스터', CHALLENGER: '챌린저' }[p.tier];
+  }
+  return `${ko} ${p.rank ?? ''}`.trim();
+}
+
+/** 화면 표시용 티어명. 설문 한글값이면 그대로, 라이엇 enum이면 한글로 바꾼다. */
+export function tierLabel(tier) {
+  if (!tier) return '';
+  const t = TIER_TABLE.find((x) => x.key === tier);
+  if (!t) return tier;                                    // 설문에서 직접 고른 값
+  return { MASTER: '마스터', GRANDMASTER: '그랜드마스터', CHALLENGER: '챌린저' }[tier] ?? t.ko;
+}
+
+/**
+ * 화면에 보여줄 티어를 고른다. 라이엇으로 검증된 값이 있으면 그쪽이 우선이다.
+ *
+ * UserDto 에는 성격이 다른 두 값이 있다.
+ *   tier      설문에서 사용자가 직접 고른 한글 값 ("다이아몬드"). 자기 신고.
+ *   riotTier  라이엇에서 확인된 영문 enum ("DIAMOND"). 연동 안 했으면 null.
+ *
+ * 듀오 매칭에서 티어는 핵심 정보라 검증된 값이 있으면 그것을 보여준다.
+ * 연동 전이거나 언랭이면 설문 값으로 떨어진다.
+ *
+ * verified 는 "이 값이 라이엇에서 확인된 것인가"다. 화면에서 인증 표시를
+ * 붙이고 싶을 때 쓸 수 있다.
+ */
+export function displayTier(u) {
+  if (!u) return { tier: null, rank: null, verified: false };
+  if (u.riotTier) return { tier: u.riotTier, rank: u.riotRank ?? null, verified: true };
+  return { tier: u.tier ?? null, rank: u.rank ?? null, verified: false };
+}
+
+/** UserDto → "다이아몬드 II" / "골드" / "" */
+export function userTierText(u) {
+  const { tier, rank } = displayTier(u);
+  if (!tier) return '';
+  const label = tierLabel(tier);
+  if (!isRiotTier(tier) || APEX.includes(tier) || !rank) return label;
+  return `${label} ${rank}`;
+}
+
+export function winRate(wins, losses) {
+  const total = (wins ?? 0) + (losses ?? 0);
+  if (!total) return null;
+  return Math.round((wins / total) * 100);
+}
+
+/* ------------------------- Data Dragon -------------------------
+ * 백엔드가 championId만 주므로 이름·이미지는 프론트에서 매핑한다.
+ * -------------------------------------------------------------- */
+
+const DDRAGON = 'https://ddragon.leagueoflegends.com';
+const FALLBACK_VERSION = '15.1.1';
+
+let versionPromise;
+let championPromise;
+
+function loadVersion() {
+  if (!versionPromise) {
+    versionPromise = fetch(`${DDRAGON}/api/versions.json`)
+      .then((r) => r.json()).then((v) => v[0]).catch(() => FALLBACK_VERSION);
+  }
+  return versionPromise;
+}
+
+function loadChampions() {
+  if (!championPromise) {
+    championPromise = loadVersion()
+      .then((v) => fetch(`${DDRAGON}/cdn/${v}/data/ko_KR/champion.json`))
+      .then((r) => r.json())
+      .then((json) => {
+        const map = {};
+        Object.values(json.data).forEach((c) => { map[Number(c.key)] = { key: c.id, name: c.name }; });
+        return map;
+      })
+      .catch(() => ({}));
+  }
+  return championPromise;
+}
+
+/** 버전·챔피언 맵을 한 번만 받아온다 (모듈 캐시라 재호출 없음) */
+export function useDdragon() {
+  const [state, setState] = useState({ version: FALLBACK_VERSION, champions: {} });
+  useEffect(() => {
+    let alive = true;
+    Promise.all([loadVersion(), loadChampions()])
+      .then(([version, champions]) => { if (alive) setState({ version, champions }); });
+    return () => { alive = false; };
+  }, []);
+  return state;
+}
+
+export const profileIconUrl = (version, id) => `${DDRAGON}/cdn/${version}/img/profileicon/${id}.png`;
+export const championIconUrl = (version, key) => `${DDRAGON}/cdn/${version}/img/champion/${key}.png`;

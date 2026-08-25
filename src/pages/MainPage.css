@@ -1,0 +1,92 @@
+/* 메인 전용: 2단 레이아웃(본문 · 스마트 매칭), 상단 가로 필터바, 3열 카드 그리드 */
+.mainpage.wrap {
+  max-width: 1200px; margin: 0 auto; padding: 40px 24px 100px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 24px; align-items: start;
+}
+
+/* 우측 사이드 패널(스마트 매칭) */
+.mainpage > aside {
+  position: sticky; top: 96px; align-self: start;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 18px;
+}
+
+/* 콘텐츠 헤더 */
+.mainpage .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 16px; }
+.mainpage .head h1 { font-size: 24px; font-weight: 800; letter-spacing: -.4px; }
+.mainpage .head .cnt { font-size: 14px; color: var(--primary); font-weight: 600; margin-left: 10px; }
+
+/* 상단 가로 필터바 */
+.mainpage .filterbar {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 14px 16px; margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+}
+.mainpage .filterbar .fgroup { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mainpage .filterbar .flabel {
+  font-size: 11px; font-weight: 800; color: var(--text-muted); letter-spacing: .03em; margin-right: 2px;
+}
+.mainpage .filterbar .divider { width: 1px; height: 22px; background: var(--border); }
+.mainpage .fchip {
+  padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border); background: transparent;
+  color: var(--text-muted); font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: all .2s;
+}
+.mainpage .fchip:hover { border-color: var(--primary); color: var(--text-main); }
+.mainpage .fchip.on { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700; }
+
+/* 검색바 */
+.mainpage .searchbar {
+  display: flex; gap: 10px; margin-bottom: 18px; background: var(--surface);
+  padding: 6px; border-radius: var(--radius-md); border: 1px solid var(--border);
+}
+.mainpage .searchbar select, .mainpage .searchbar input {
+  background: transparent; border: none; color: var(--text-main);
+  font-size: 14px; padding: 0 14px; outline: none; font-family: inherit;
+}
+.mainpage .searchbar select { border-right: 1px solid var(--border); cursor: pointer; }
+.mainpage .searchbar input { flex: 1; min-width: 0; }
+.mainpage .searchbar input::placeholder { color: var(--text-muted); }
+.mainpage .searchbar .btn-search {
+  background: var(--border); color: var(--text-main); border: none; cursor: pointer;
+  padding: 0 18px; height: 36px; border-radius: var(--radius-sm); font-weight: 600; font-family: inherit;
+}
+.mainpage .searchbar .btn-search:hover { background: var(--primary); color: #fff; }
+
+/* 3열 카드 그리드 — 밀도를 높여 화면당 노출 수를 늘린다 (기존 auto-fill 2~3열 → 고정 3열) */
+.mainpage .ui-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.mainpage .ui-post-card { padding: 13px 14px; gap: 8px; border-radius: var(--radius-md); }
+.mainpage .ui-post-card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,51,153,.08); }
+.mainpage .ui-game-badge { font-size: 10.5px; padding: 2px 8px; }
+.mainpage .ui-status { font-size: 10.5px; }
+.mainpage .ui-card-title {
+  font-size: 13.5px; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mainpage .ui-tags { gap: 6px; }
+.mainpage .ui-tag2 { font-size: 10.5px; padding: 2px 7px; }
+.mainpage .ui-card-footer { padding-top: 10px; margin-top: 2px; }
+.mainpage .ui-author { gap: 6px; }
+.mainpage .ui-author-av { width: 22px; height: 22px; font-size: 10px; }
+.mainpage .ui-author-name { font-size: 11.5px; gap: 4px; }
+.mainpage .ui-time { font-size: 10.5px; }
+.mainpage .ui-btn-join { font-size: 11px; padding: 5px 10px; }
+
+/* 더 보기 (페이징) */
+.mainpage .more-wrap { display: flex; justify-content: center; margin-top: 22px; }
+.mainpage .ui-btn-more {
+  background: var(--surface); color: var(--text-main); border: 1px solid var(--border);
+  padding: 11px 26px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.mainpage .ui-btn-more:hover:not(:disabled) { background: var(--primary); color: #fff; border-color: var(--primary); }
+.mainpage .ui-btn-more:disabled { opacity: .6; cursor: default; }
+
+/* 반응형: 좁으면 사이드 패널을 위/아래로 */
+@media (max-width: 1080px) {
+  .mainpage.wrap { grid-template-columns: 1fr; gap: 24px; }
+  .mainpage > aside { position: static; }
+  .mainpage .ui-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 620px) {
+  .mainpage .ui-grid { grid-template-columns: 1fr; }
+}
