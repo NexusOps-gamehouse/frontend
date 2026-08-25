@@ -18,6 +18,7 @@ const INITIAL_HOUSES = [
     ],
     joinRequests: [],
     invitations: [],
+    notices: [],
     createdAt: '2026-08-18T10:00:00.000Z',
   },
   {
@@ -35,6 +36,7 @@ const INITIAL_HOUSES = [
     ],
     joinRequests: [],
     invitations: [],
+    notices: [],
     createdAt: '2026-08-20T12:30:00.000Z',
   },
   {
@@ -49,6 +51,7 @@ const INITIAL_HOUSES = [
     members: [{ id: 'mock-owner-3', nickname: '새벽감성', role: 'OWNER' }],
     joinRequests: [],
     invitations: [],
+    notices: [],
     createdAt: '2026-08-22T15:00:00.000Z',
   },
 ];
@@ -81,6 +84,7 @@ const normalizeHouse = (house) => {
       id: invitation.id || `invite-${house.id}-${invitation.userId}`,
       userId: String(invitation.userId),
     })),
+    notices: Array.isArray(house.notices) ? house.notices : [],
   };
 };
 
@@ -129,6 +133,8 @@ function currentState(house, user) {
 function withViewerState(house, user) {
   const status = currentState(house, user);
   const result = { ...clone(house), myStatus: status };
+  // 공지는 멤버 전용 API를 통해서만 제공해 공개 House 외부 사용자에게 노출되지 않게 한다.
+  delete result.notices;
   if (status !== 'OWNER') {
     delete result.joinRequests;
     delete result.invitations;
@@ -152,6 +158,32 @@ function requireOwner(house, user) {
   if (currentState(house, user) !== 'OWNER') {
     throw new Error('방장만 이 작업을 수행할 수 있습니다.');
   }
+}
+
+function requireMember(house, user) {
+  const role = currentState(house, user);
+  if (!MEMBER_ROLES.has(role)) {
+    throw new Error('House 멤버만 공지를 볼 수 있습니다.');
+  }
+  return role;
+}
+
+function requireNoticeManager(house, user) {
+  const role = currentState(house, user);
+  if (!['OWNER', 'MANAGER'].includes(role)) {
+    throw new Error('방장 또는 부방장만 공지를 관리할 수 있습니다.');
+  }
+  return role;
+}
+
+function noticeInput(payload) {
+  const title = String(payload?.title ?? '').trim();
+  const content = String(payload?.content ?? '').trim();
+  if (!title) throw new Error('공지 제목을 입력해주세요.');
+  if (!content) throw new Error('공지 내용을 입력해주세요.');
+  if (title.length > 50) throw new Error('공지 제목은 50자 이하로 입력해주세요.');
+  if (content.length > 1000) throw new Error('공지 내용은 1000자 이하로 입력해주세요.');
+  return { title, content };
 }
 
 function ensureCapacity(house) {
@@ -195,6 +227,7 @@ export async function mockCreateHouse(payload, user) {
     members: [{ ...owner, role: 'OWNER' }],
     joinRequests: [],
     invitations: [],
+    notices: [],
     createdAt: new Date().toISOString(),
   };
   writeHouses([house, ...houses]);
@@ -292,6 +325,62 @@ export async function mockRemoveHouseMember(houseId, memberId, user) {
   house.joinRequests = house.joinRequests.filter((request) => request.userId !== targetId);
   writeHouses(houses);
   return withViewerState(house, user);
+}
+
+export async function mockListHouseNotices(houseId, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireMember(house, user);
+  return clone(house.notices).sort((a, b) => (
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  ));
+}
+
+export async function mockCreateHouseNotice(houseId, payload, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  const role = requireNoticeManager(house, user);
+  const values = noticeInput(payload);
+  const authorId = userKey(user);
+  const notice = {
+    id: `notice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...values,
+    author: {
+      id: authorId,
+      nickname: user.nickname || user.name || 'House 멤버',
+      role,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+  };
+  house.notices.push(notice);
+  writeHouses(houses);
+  return clone(notice);
+}
+
+export async function mockUpdateHouseNotice(houseId, noticeId, payload, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireNoticeManager(house, user);
+  const notice = house.notices.find((item) => String(item.id) === String(noticeId));
+  if (!notice) throw new Error('공지를 찾을 수 없습니다.');
+  const values = noticeInput(payload);
+  notice.title = values.title;
+  notice.content = values.content;
+  notice.updatedAt = new Date().toISOString();
+  writeHouses(houses);
+  return clone(notice);
+}
+
+export async function mockDeleteHouseNotice(houseId, noticeId, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireNoticeManager(house, user);
+  const before = house.notices.length;
+  house.notices = house.notices.filter((item) => String(item.id) !== String(noticeId));
+  if (before === house.notices.length) throw new Error('공지를 찾을 수 없습니다.');
+  writeHouses(houses);
+  return { noticeId: String(noticeId) };
 }
 
 export async function mockInviteFriends(houseId, friends, user) {

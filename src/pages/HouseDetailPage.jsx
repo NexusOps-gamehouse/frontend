@@ -3,15 +3,20 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   approveJoinRequest,
   cancelJoinRequest,
+  createHouseNotice,
+  deleteHouseNotice,
   getHouse,
   inviteFriends,
   listJoinRequests,
+  listHouseNotices,
   removeHouseMember,
   rejectJoinRequest,
   requestHouseJoin,
+  updateHouseNotice,
   updateMemberRole,
 } from '../api/houses';
 import HouseInviteModal from '../components/HouseInviteModal';
+import HouseNoticeFormModal from '../components/HouseNoticeFormModal';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useFriends } from '../context/FriendContext';
@@ -19,6 +24,20 @@ import './Houses.css';
 
 const TYPE_LABEL = { SOCIAL: '친목형', COMPETITIVE: '경쟁형' };
 const ROLE_LABEL = { OWNER: '방장', MANAGER: '부방장', MEMBER: '일반 멤버' };
+const MEMBER_ROLES = ['OWNER', 'MANAGER', 'MEMBER'];
+const NOTICE_MANAGER_ROLES = ['OWNER', 'MANAGER'];
+const NOTICE_DATE_FORMAT = new Intl.DateTimeFormat('ko-KR', {
+  year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+});
+
+const newestFirst = (items) => [...items].sort((a, b) => (
+  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+));
+
+const formatNoticeDate = (value) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '작성일 정보 없음' : NOTICE_DATE_FORMAT.format(date);
+};
 
 export default function HouseDetailPage() {
   const { houseId } = useParams();
@@ -38,6 +57,26 @@ export default function HouseDetailPage() {
   const [memberToRemove, setMemberToRemove] = useState(null);
   const [removingMember, setRemovingMember] = useState(false);
   const [removeError, setRemoveError] = useState('');
+  const [notices, setNotices] = useState([]);
+  const [noticesLoading, setNoticesLoading] = useState(false);
+  const [noticesError, setNoticesError] = useState('');
+  const [noticeEditor, setNoticeEditor] = useState(null);
+  const [noticeToDelete, setNoticeToDelete] = useState(null);
+  const [deletingNotice, setDeletingNotice] = useState(false);
+  const [deleteNoticeError, setDeleteNoticeError] = useState('');
+
+  const loadNotices = useCallback(async () => {
+    setNoticesLoading(true);
+    setNoticesError('');
+    try {
+      setNotices(newestFirst(await listHouseNotices(houseId, user)));
+    } catch (err) {
+      setNotices([]);
+      setNoticesError(err.message || '공지를 불러오지 못했습니다.');
+    } finally {
+      setNoticesLoading(false);
+    }
+  }, [houseId, user]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,6 +84,12 @@ export default function HouseDetailPage() {
     try {
       const data = await getHouse(houseId, user);
       setHouse(data);
+      if (MEMBER_ROLES.includes(data.myStatus)) {
+        await loadNotices();
+      } else {
+        setNotices([]);
+        setNoticesError('');
+      }
       if (data.myStatus === 'OWNER' && data.visibility === 'PUBLIC') {
         setRequestsLoading(true);
         try {
@@ -62,7 +107,7 @@ export default function HouseDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [houseId, user]);
+  }, [houseId, loadNotices, user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -154,6 +199,44 @@ export default function HouseDetailPage() {
     }
   };
 
+  const saveNotice = async (values) => {
+    const saved = noticeEditor?.notice
+      ? await updateHouseNotice(houseId, noticeEditor.notice.id, values, user)
+      : await createHouseNotice(houseId, values, user);
+    setNotices((prev) => newestFirst(noticeEditor?.notice
+      ? prev.map((item) => (item.id === saved.id ? saved : item))
+      : [saved, ...prev]));
+    setNoticeEditor(null);
+    setNotice(noticeEditor?.notice ? '공지를 수정했습니다.' : '공지를 등록했습니다.');
+  };
+
+  const openDeleteNotice = (houseNotice) => {
+    setNoticeToDelete(houseNotice);
+    setDeleteNoticeError('');
+  };
+
+  const closeDeleteNotice = () => {
+    if (deletingNotice) return;
+    setNoticeToDelete(null);
+    setDeleteNoticeError('');
+  };
+
+  const confirmDeleteNotice = async () => {
+    if (!noticeToDelete || deletingNotice) return;
+    setDeletingNotice(true);
+    setDeleteNoticeError('');
+    try {
+      await deleteHouseNotice(houseId, noticeToDelete.id, user);
+      setNotices((prev) => prev.filter((item) => item.id !== noticeToDelete.id));
+      setNoticeToDelete(null);
+      setNotice('공지를 삭제했습니다.');
+    } catch (err) {
+      setDeleteNoticeError(err.message || '공지를 삭제하지 못했습니다.');
+    } finally {
+      setDeletingNotice(false);
+    }
+  };
+
   const invite = async (selectedFriends) => {
     const result = await run('invite', () => inviteFriends(houseId, selectedFriends, user));
     if (result?.house) setHouse(result.house);
@@ -174,7 +257,8 @@ export default function HouseDetailPage() {
 
   const isPrivate = house.visibility === 'PRIVATE';
   const isOwner = house.myStatus === 'OWNER';
-  const isMember = ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myStatus);
+  const isMember = MEMBER_ROLES.includes(house.myStatus);
+  const canManageNotices = NOTICE_MANAGER_ROLES.includes(house.myStatus);
   const isFull = house.members.length >= house.maxMembers;
 
   return (
@@ -265,6 +349,56 @@ export default function HouseDetailPage() {
         </section>
       )}
 
+      {isMember && (
+        <section className="house-notices-section">
+          <div className="house-section-head">
+            <h2>House 공지</h2><span>{notices.length}건</span>
+            {canManageNotices && (
+              <button className="ui-btn-primary ui-btn-sm house-section-action" type="button"
+                      onClick={() => setNoticeEditor({ notice: null })}>+ 공지 작성</button>
+            )}
+          </div>
+          {noticesLoading && <div className="ui-empty"><p>공지를 불러오는 중…</p></div>}
+          {!noticesLoading && noticesError && (
+            <div className="house-notice-error" role="alert">
+              <p>{noticesError}</p>
+              <button className="ui-btn-secondary ui-btn-sm" type="button" onClick={loadNotices}>다시 시도</button>
+            </div>
+          )}
+          {!noticesLoading && !noticesError && notices.length === 0 && (
+            <div className="ui-empty"><p>등록된 공지가 없습니다.</p></div>
+          )}
+          {!noticesLoading && !noticesError && notices.length > 0 && (
+            <div className="house-notice-list">
+              {notices.map((houseNotice) => (
+                <article className="house-notice-card" key={houseNotice.id}>
+                  <div className="house-notice-head">
+                    <div>
+                      <h3>{houseNotice.title}</h3>
+                      <div className="house-notice-meta">
+                        <span>{houseNotice.author?.nickname || 'House 멤버'}</span>
+                        <span>{ROLE_LABEL[houseNotice.author?.role] || '일반 멤버'}</span>
+                        <time dateTime={houseNotice.createdAt}>{formatNoticeDate(houseNotice.createdAt)}</time>
+                        {houseNotice.updatedAt && <span className="house-notice-edited">수정됨</span>}
+                      </div>
+                    </div>
+                    {canManageNotices && (
+                      <div className="house-notice-actions">
+                        <button className="house-role-btn" type="button"
+                                onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
+                        <button className="house-remove-btn" type="button"
+                                onClick={() => openDeleteNotice(houseNotice)}>삭제</button>
+                      </div>
+                    )}
+                  </div>
+                  <p>{houseNotice.content}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="house-members-section">
         <div className="house-section-head">
           <h2>House 멤버</h2><span>{house.members.length}명</span>
@@ -297,6 +431,24 @@ export default function HouseDetailPage() {
 
       <HouseInviteModal open={inviteOpen} house={house} friends={friends}
                         friendsLoading={friendsLoading} onClose={() => setInviteOpen(false)} onInvite={invite} />
+      <HouseNoticeFormModal open={Boolean(noticeEditor)} notice={noticeEditor?.notice}
+                            onClose={() => setNoticeEditor(null)} onSubmit={saveNotice} />
+      <Modal open={Boolean(noticeToDelete)} title="공지 삭제" size="sm"
+             onClose={closeDeleteNotice} footer={<>
+        <button className="ui-btn-secondary" type="button" disabled={deletingNotice}
+                onClick={closeDeleteNotice}>취소</button>
+        <button className="house-danger-btn" type="button" disabled={deletingNotice}
+                onClick={confirmDeleteNotice}>
+          {deletingNotice ? '삭제 중…' : '삭제'}
+        </button>
+      </>}>
+        <div className="house-danger-copy">
+          <div aria-hidden="true">⚠️</div>
+          <p><strong>{noticeToDelete?.title}</strong> 공지를 삭제할까요?</p>
+          <small>삭제한 공지는 다시 복구할 수 없습니다.</small>
+        </div>
+        {deleteNoticeError && <div className="house-alert error" role="alert">{deleteNoticeError}</div>}
+      </Modal>
       <Modal open={Boolean(memberToRemove)} title="House 멤버 강퇴" size="sm"
              onClose={closeRemoveMember} footer={<>
         <button className="ui-btn-secondary" type="button" disabled={removingMember}

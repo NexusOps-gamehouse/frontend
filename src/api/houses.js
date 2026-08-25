@@ -3,11 +3,14 @@ import {
   mockApproveJoinRequest,
   mockCancelJoinRequest,
   mockCreateHouse,
+  mockCreateHouseNotice,
+  mockDeleteHouseNotice,
   mockGetHouse,
   mockGetHouseSuggestionState,
   mockInviteFriends,
   mockListJoinRequests,
   mockListHouses,
+  mockListHouseNotices,
   mockListMyInvitations,
   mockRejectInvitation,
   mockRejectJoinRequest,
@@ -16,6 +19,7 @@ import {
   mockRequestHouseJoin,
   mockDismissHouseSuggestion,
   mockUpdateMemberRole,
+  mockUpdateHouseNotice,
 } from '../mocks/houseStorage';
 
 /**
@@ -41,6 +45,20 @@ export const updateMemberRole = (houseId, memberId, role, user) => (
 // 실제 API 연결 시 DELETE /houses/:houseId/members/:memberId 로 교체한다.
 export const removeHouseMember = (houseId, memberId, user) => (
   mockRemoveHouseMember(houseId, memberId, user)
+);
+// 실제 API 연결 시 GET /houses/:houseId/notices 로 교체한다.
+export const listHouseNotices = (houseId, user) => mockListHouseNotices(houseId, user);
+// 실제 API 연결 시 POST /houses/:houseId/notices 로 교체한다.
+export const createHouseNotice = (houseId, payload, user) => (
+  mockCreateHouseNotice(houseId, payload, user)
+);
+// 실제 API 연결 시 PUT /houses/:houseId/notices/:noticeId 로 교체한다.
+export const updateHouseNotice = (houseId, noticeId, payload, user) => (
+  mockUpdateHouseNotice(houseId, noticeId, payload, user)
+);
+// 실제 API 연결 시 DELETE /houses/:houseId/notices/:noticeId 로 교체한다.
+export const deleteHouseNotice = (houseId, noticeId, user) => (
+  mockDeleteHouseNotice(houseId, noticeId, user)
 );
 export const inviteFriends = (houseId, friends, user) => mockInviteFriends(houseId, friends, user);
 export const listMyInvitations = (user) => mockListMyInvitations(user);
