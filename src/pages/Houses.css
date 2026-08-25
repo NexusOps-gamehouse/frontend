@@ -162,7 +162,7 @@
 .house-section-action { margin-left: auto; }
 .house-members-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .house-member {
-  display: flex; align-items: center; gap: 10px; min-width: 0; padding: 12px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-width: 0; padding: 12px;
   background: var(--surface-hover); border-radius: var(--radius-sm); font-size: 13px; font-weight: 700;
 }
 .house-member-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -175,11 +175,28 @@
 [data-theme='dark'] .role-badge.owner { color: #fbbf24; }
 [data-theme='dark'] .role-badge.manager { color: #c4b5fd; }
 .house-role-btn {
-  margin-left: auto; padding: 5px 8px; background: transparent; color: var(--text-muted);
+  padding: 5px 8px; background: transparent; color: var(--text-muted);
   border: 1px solid var(--border); border-radius: 6px; font: inherit; font-size: 10px; cursor: pointer; white-space: nowrap;
 }
 .house-role-btn:hover:not(:disabled) { color: var(--primary); border-color: var(--primary); }
 .house-role-btn:disabled { cursor: wait; opacity: .6; }
+.house-member-actions { display: flex; flex-basis: 100%; justify-content: flex-end; gap: 6px; margin-left: 46px; }
+.house-remove-btn {
+  padding: 5px 8px; background: transparent; color: var(--danger); border: 1px solid var(--danger);
+  border-radius: 6px; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer;
+}
+.house-remove-btn:hover { color: #fff; background: var(--danger); border-color: var(--danger); }
+.house-danger-btn {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 100px; height: 38px;
+  padding: 0 16px; border: 1px solid var(--danger); border-radius: var(--radius-sm);
+  background: var(--danger); color: #fff; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+.house-danger-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.house-danger-btn:disabled { cursor: not-allowed; opacity: .6; }
+.house-danger-copy { text-align: center; }
+.house-danger-copy > div { margin-bottom: 12px; font-size: 34px; }
+.house-danger-copy p { color: var(--text-main); font-size: 15px; line-height: 1.6; }
+.house-danger-copy small { display: block; margin-top: 8px; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
 .house-request-list, .house-invitation-list { display: flex; flex-direction: column; gap: 10px; }
 .house-request-row, .house-invitation-card {
   display: flex; align-items: center; justify-content: space-between; gap: 18px;
@@ -232,4 +249,5 @@
   .house-request-row, .house-invitation-card { align-items: stretch; flex-direction: column; }
   .house-row-actions { width: 100%; }
   .house-row-actions > button { flex: 1; }
+  .house-danger-btn { width: 100%; }
 }

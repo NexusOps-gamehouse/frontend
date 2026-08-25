@@ -11,6 +11,7 @@ import {
   mockListMyInvitations,
   mockRejectInvitation,
   mockRejectJoinRequest,
+  mockRemoveHouseMember,
   mockResetHouseSuggestion,
   mockRequestHouseJoin,
   mockDismissHouseSuggestion,
@@ -36,6 +37,10 @@ export const rejectJoinRequest = (houseId, requestId, user) => (
 );
 export const updateMemberRole = (houseId, memberId, role, user) => (
   mockUpdateMemberRole(houseId, memberId, role, user)
+);
+// 실제 API 연결 시 DELETE /houses/:houseId/members/:memberId 로 교체한다.
+export const removeHouseMember = (houseId, memberId, user) => (
+  mockRemoveHouseMember(houseId, memberId, user)
 );
 export const inviteFriends = (houseId, friends, user) => mockInviteFriends(houseId, friends, user);
 export const listMyInvitations = (user) => mockListMyInvitations(user);

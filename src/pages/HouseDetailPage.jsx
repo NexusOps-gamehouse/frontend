@@ -6,11 +6,13 @@ import {
   getHouse,
   inviteFriends,
   listJoinRequests,
+  removeHouseMember,
   rejectJoinRequest,
   requestHouseJoin,
   updateMemberRole,
 } from '../api/houses';
 import HouseInviteModal from '../components/HouseInviteModal';
+import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useFriends } from '../context/FriendContext';
 import './Houses.css';
@@ -33,6 +35,9 @@ export default function HouseDetailPage() {
   const [accessDenied, setAccessDenied] = useState(false);
   const [working, setWorking] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState(null);
+  const [removingMember, setRemovingMember] = useState(false);
+  const [removeError, setRemoveError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -117,6 +122,36 @@ export default function HouseDetailPage() {
         () => updateMemberRole(houseId, member.id, nextRole, user),
         nextRole === 'MANAGER' ? '부방장으로 지정했습니다.' : '부방장 지정을 해제했습니다.');
     } catch { /* 화면 오류로 안내 */ }
+  };
+
+  const openRemoveMember = (member) => {
+    setMemberToRemove(member);
+    setRemoveError('');
+  };
+
+  const closeRemoveMember = () => {
+    if (removingMember) return;
+    setMemberToRemove(null);
+    setRemoveError('');
+  };
+
+  const confirmRemoveMember = async () => {
+    if (!memberToRemove || removingMember) return;
+    setRemovingMember(true);
+    setRemoveError('');
+    setError('');
+    setNotice('');
+    try {
+      const updated = await removeHouseMember(houseId, memberToRemove.id, user);
+      const nickname = memberToRemove.nickname;
+      setHouse(updated);
+      setMemberToRemove(null);
+      setNotice(`${nickname}님을 House에서 강퇴했습니다.`);
+    } catch (err) {
+      setRemoveError(err.message || '멤버를 강퇴하지 못했습니다.');
+    } finally {
+      setRemovingMember(false);
+    }
   };
 
   const invite = async (selectedFriends) => {
@@ -245,10 +280,15 @@ export default function HouseDetailPage() {
               <span className="house-member-name">{member.nickname}</span>
               <span className={`role-badge ${member.role.toLowerCase()}`}>{ROLE_LABEL[member.role]}</span>
               {isOwner && member.role !== 'OWNER' && (
-                <button className="house-role-btn" type="button" disabled={working === `role-${member.id}`}
-                        onClick={() => changeRole(member)}>
-                  {member.role === 'MANAGER' ? '부방장 해제' : '부방장 지정'}
-                </button>
+                <div className="house-member-actions">
+                  <button className="house-role-btn" type="button" disabled={working === `role-${member.id}`}
+                          onClick={() => changeRole(member)}>
+                    {member.role === 'MANAGER' ? '부방장 해제' : '부방장 지정'}
+                  </button>
+                  <button className="house-remove-btn" type="button" onClick={() => openRemoveMember(member)}>
+                    강퇴
+                  </button>
+                </div>
               )}
             </div>
           ))}
@@ -257,6 +297,22 @@ export default function HouseDetailPage() {
 
       <HouseInviteModal open={inviteOpen} house={house} friends={friends}
                         friendsLoading={friendsLoading} onClose={() => setInviteOpen(false)} onInvite={invite} />
+      <Modal open={Boolean(memberToRemove)} title="House 멤버 강퇴" size="sm"
+             onClose={closeRemoveMember} footer={<>
+        <button className="ui-btn-secondary" type="button" disabled={removingMember}
+                onClick={closeRemoveMember}>취소</button>
+        <button className="house-danger-btn" type="button" disabled={removingMember}
+                onClick={confirmRemoveMember}>
+          {removingMember ? '강퇴 중…' : '강퇴'}
+        </button>
+      </>}>
+        <div className="house-danger-copy">
+          <div aria-hidden="true">⚠️</div>
+          <p><strong>{memberToRemove?.nickname}</strong>님을 House에서 강퇴할까요?</p>
+          <small>강퇴된 멤버는 비공개 House 상세에 더 이상 접근할 수 없습니다.</small>
+        </div>
+        {removeError && <div className="house-alert error" role="alert">{removeError}</div>}
+      </Modal>
     </div>
   );
 }
