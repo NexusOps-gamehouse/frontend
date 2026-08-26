@@ -1,4 +1,5 @@
 import { GAMES } from '../constants.js';
+import { calculateHouseGrowth, normalizeHouseXp } from '../utils/houseGrowth.js';
 
 const STORAGE_KEY = 'gamehouse.houses.v1';
 const SUGGESTION_STORAGE_KEY = 'gamehouse.houseSuggestions.v1';
@@ -23,6 +24,7 @@ const INITIAL_HOUSES = [
     invitations: [],
     notices: [],
     schedules: [],
+    xp: 0,
     createdAt: '2026-08-18T10:00:00.000Z',
   },
   {
@@ -42,6 +44,7 @@ const INITIAL_HOUSES = [
     invitations: [],
     notices: [],
     schedules: [],
+    xp: 0,
     createdAt: '2026-08-20T12:30:00.000Z',
   },
   {
@@ -58,6 +61,7 @@ const INITIAL_HOUSES = [
     invitations: [],
     notices: [],
     schedules: [],
+    xp: 0,
     createdAt: '2026-08-22T15:00:00.000Z',
   },
 ];
@@ -75,6 +79,7 @@ const normalizeHouse = (house) => {
     owner: { ...house.owner, id: ownerId },
     game: house.game || '기타',
     maxMembers: Number(house.maxMembers) || 20,
+    xp: normalizeHouseXp(house.xp),
     members: (Array.isArray(house.members) ? house.members : []).map((member) => ({
       ...member,
       id: String(member.id),
@@ -161,7 +166,7 @@ function currentState(house, user) {
 
 function withViewerState(house, user) {
   const status = currentState(house, user);
-  const result = { ...clone(house), myStatus: status };
+  const result = { ...clone(house), ...calculateHouseGrowth(house.xp), myStatus: status };
   // 공지는 멤버 전용 API를 통해서만 제공해 공개 House 외부 사용자에게 노출되지 않게 한다.
   delete result.notices;
   // 일정도 멤버 전용 API에서 권한을 확인한 뒤 별도로 제공한다.
@@ -339,6 +344,7 @@ export async function mockCreateHouse(payload, user) {
     invitations: [],
     notices: [],
     schedules: [],
+    xp: 0,
     createdAt: new Date().toISOString(),
   };
   writeHouses([house, ...houses]);
@@ -357,6 +363,20 @@ export async function mockUpdateHouse(houseId, payload, user) {
     throw new Error('대기 중인 가입 신청을 먼저 승인하거나 거절해주세요.');
   }
   Object.assign(house, values);
+  writeHouses(houses);
+  return withViewerState(house, user);
+}
+
+export async function mockAddHouseXp(houseId, amount, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireOwner(house, user);
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    throw new Error('적립할 XP는 양의 정수여야 합니다.');
+  }
+  const nextXp = normalizeHouseXp(house.xp) + amount;
+  if (!Number.isSafeInteger(nextXp)) throw new Error('적립 가능한 XP 범위를 초과했습니다.');
+  house.xp = nextXp;
   writeHouses(houses);
   return withViewerState(house, user);
 }

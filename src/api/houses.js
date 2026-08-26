@@ -1,4 +1,5 @@
 import {
+  mockAddHouseXp,
   mockAcceptInvitation,
   mockApproveJoinRequest,
   mockCancelJoinRequest,
@@ -43,6 +44,9 @@ export const getHouse = (houseId, user) => mockGetHouse(houseId, user);
 export const createHouse = (payload, user) => mockCreateHouse(payload, user);
 // 실제 API 연결 시 PUT /houses/:houseId 로 교체한다.
 export const updateHouse = (houseId, payload, user) => mockUpdateHouse(houseId, payload, user);
+// TODO(house-xp): 실제 서비스에서는 클라이언트가 XP 값을 결정하지 않는다.
+// 서버가 게임·일정·퀘스트 활동을 검증해 POST /houses/:houseId/xp 로 지급한다.
+export const addHouseXp = (houseId, amount, user) => mockAddHouseXp(houseId, amount, user);
 export const requestHouseJoin = (houseId, user) => mockRequestHouseJoin(houseId, user);
 export const cancelJoinRequest = (houseId, user) => mockCancelJoinRequest(houseId, user);
 export const listJoinRequests = (houseId, user) => mockListJoinRequests(houseId, user);
