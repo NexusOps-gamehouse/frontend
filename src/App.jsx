@@ -27,6 +27,7 @@ import ProfilePage from './pages/ProfilePage';
 
 import ChatPage from './pages/ChatPage';
 import ChatListPage from './pages/ChatListPage';
+import ChatPreviewPage from './pages/ChatPreviewPage';
 
 import FriendsPage from './pages/FriendsPage';
 
@@ -167,6 +168,19 @@ export default function App() {
             <Private>
               <ChatListPage />
             </Private>
+          }
+        />
+
+        <Route
+          path="/chat/preview"
+          element={
+            import.meta.env.DEV ? (
+              <Private>
+                <ChatPreviewPage />
+              </Private>
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
 

@@ -3,11 +3,17 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
 
-import { useAuth } from '../context/AuthContext';
+import {
+  useNavigate,
+} from 'react-router-dom';
 
-import HouseCoinWallet from '../components/HouseCoinWallet';
+import {
+  useAuth,
+} from '../context/AuthContext';
+
+import HouseCoinWallet
+  from '../components/HouseCoinWallet';
 
 import {
   getCustomizationState,
@@ -25,6 +31,11 @@ import {
 } from '../mocks/customizationShopCatalog';
 
 import './CustomizationShopPage.css';
+import './ChatThemeFinal.css';
+
+/* =========================
+   Category
+========================= */
 
 const CATEGORY_ORDER = [
   CUSTOMIZATION_CATEGORY.FRAME,
@@ -33,10 +44,303 @@ const CATEGORY_ORDER = [
   CUSTOMIZATION_CATEGORY.CHAT_THEME,
 ];
 
-export default function CustomizationShopPage() {
-  const navigate = useNavigate();
+/* =========================
+   Price Helpers
+========================= */
 
-  const { user } = useAuth();
+const getPriceLabel = (
+  item,
+) => {
+  const price =
+    getCustomizationItemPrice(
+      item,
+    );
+
+  return price === 0
+    ? '무료'
+    : `${price} HC`;
+};
+
+/* =========================
+   Purchase Error Helper
+========================= */
+
+const getPurchaseFailureMessage = (
+  requestError,
+  free,
+) => {
+  const message =
+    String(
+      requestError?.message ??
+        '',
+    ).trim();
+
+  /*
+   * Mock / 실제 API에서
+   * 잔액 부족 관련 문구가 달라질 수 있으므로
+   * 대표적인 표현을 함께 검사한다.
+   */
+  if (
+    !free &&
+    /부족|잔액|insufficient|balance/i.test(
+      message,
+    )
+  ) {
+    return '코인이 부족합니다.';
+  }
+
+  if (message) {
+    return message;
+  }
+
+  return free
+    ? '무료 아이템을 획득하지 못했습니다.'
+    : '아이템을 구매하지 못했습니다.';
+};
+
+/* =========================
+   Modal Style
+========================= */
+
+const modalStyle = {
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 10000,
+
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    padding: 20,
+
+    background:
+      'rgba(15, 23, 42, 0.5)',
+  },
+
+  modal: {
+    width: '100%',
+    maxWidth: 390,
+
+    padding:
+      '26px 24px 22px',
+
+    border:
+      '1px solid rgba(148, 163, 184, 0.3)',
+
+    borderRadius: 18,
+
+    background:
+      '#ffffff',
+
+    boxShadow:
+      '0 24px 70px rgba(15, 23, 42, 0.28)',
+
+    textAlign:
+      'center',
+  },
+
+  icon: {
+    display:
+      'flex',
+
+    alignItems:
+      'center',
+
+    justifyContent:
+      'center',
+
+    width: 52,
+    height: 52,
+
+    margin:
+      '0 auto 14px',
+
+    borderRadius:
+      '50%',
+
+    fontSize: 24,
+    fontWeight: 900,
+  },
+
+  successIcon: {
+    background:
+      '#ecfdf5',
+
+    color:
+      '#059669',
+  },
+
+  failureIcon: {
+    background:
+      '#fef2f2',
+
+    color:
+      '#dc2626',
+  },
+
+  infoIcon: {
+    background:
+      '#eff6ff',
+
+    color:
+      '#2563eb',
+  },
+
+  eyebrow: {
+    display:
+      'block',
+
+    marginBottom:
+      8,
+
+    color:
+      '#64748b',
+
+    fontSize:
+      11,
+
+    fontWeight:
+      800,
+
+    letterSpacing:
+      '0.08em',
+  },
+
+  title: {
+    margin: 0,
+
+    color:
+      '#0f172a',
+
+    fontSize:
+      20,
+
+    fontWeight:
+      800,
+  },
+
+  itemName: {
+    margin:
+      '14px 0 0',
+
+    color:
+      '#334155',
+
+    fontSize:
+      14,
+
+    fontWeight:
+      700,
+  },
+
+  description: {
+    margin:
+      '8px 0 0',
+
+    color:
+      '#64748b',
+
+    fontSize:
+      13,
+
+    lineHeight:
+      1.6,
+  },
+
+  actions: {
+    display:
+      'grid',
+
+    gridTemplateColumns:
+      '1fr 1fr',
+
+    gap:
+      10,
+
+    marginTop:
+      24,
+  },
+
+  singleAction: {
+    display:
+      'grid',
+
+    gridTemplateColumns:
+      '1fr',
+
+    marginTop:
+      24,
+  },
+
+  secondaryButton: {
+    minHeight:
+      42,
+
+    border:
+      '1px solid #cbd5e1',
+
+    borderRadius:
+      10,
+
+    background:
+      '#ffffff',
+
+    color:
+      '#334155',
+
+    fontSize:
+      14,
+
+    fontWeight:
+      700,
+
+    cursor:
+      'pointer',
+  },
+
+  primaryButton: {
+    minHeight:
+      42,
+
+    border:
+      0,
+
+    borderRadius:
+      10,
+
+    background:
+      '#2563eb',
+
+    color:
+      '#ffffff',
+
+    fontSize:
+      14,
+
+    fontWeight:
+      800,
+
+    cursor:
+      'pointer',
+  },
+};
+
+/* =========================
+   Page
+========================= */
+
+export default function CustomizationShopPage() {
+  const navigate =
+    useNavigate();
+
+  const {
+    user,
+  } = useAuth();
+
+  /* =========================
+     Category / Selection
+  ========================= */
 
   const [
     activeCategory,
@@ -55,9 +359,10 @@ export default function CustomizationShopPage() {
     setIsPreviewExpanded,
   ] = useState(false);
 
-  /*
-   * 구매 / 소유 상태
-   */
+  /* =========================
+     Ownership
+  ========================= */
+
   const [
     ownedItemIds,
     setOwnedItemIds,
@@ -68,105 +373,238 @@ export default function CustomizationShopPage() {
     setLoadingOwnership,
   ] = useState(true);
 
+  /* =========================
+     Purchase
+  ========================= */
+
   const [
     purchasingItemId,
     setPurchasingItemId,
   ] = useState(null);
 
   /*
-   * HouseCoinWallet 강제 갱신용
+   * 구매 전 확인 팝업
+   */
+  const [
+    purchaseConfirmItem,
+    setPurchaseConfirmItem,
+  ] = useState(null);
+
+  /*
+   * 구매 / 획득 결과 팝업
+   *
+   * {
+   *   type:
+   *     'success'
+   *     | 'failure'
+   *     | 'info',
+   *   title,
+   *   message,
+   *   itemName
+   * }
+   */
+  const [
+    purchaseResult,
+    setPurchaseResult,
+  ] = useState(null);
+
+  /*
+   * HouseCoinWallet
+   * 강제 갱신용
    */
   const [
     walletRefreshKey,
     setWalletRefreshKey,
   ] = useState(0);
 
+  /* =========================
+     General Error
+  ========================= */
+
   const [
     error,
     setError,
   ] = useState('');
 
-  const [
-    successMessage,
-    setSuccessMessage,
-  ] = useState('');
+  /* =========================
+     Visible Items
+  ========================= */
 
-  /*
-   * 현재 카테고리 아이템
-   */
-  const visibleItems = useMemo(
-    () =>
-      customizationItems.filter(
-        (item) =>
-          item.category ===
-          activeCategory,
-      ),
-    [activeCategory],
+  const visibleItems =
+    useMemo(
+      () =>
+        customizationItems.filter(
+          (item) =>
+            item.category ===
+            activeCategory,
+        ),
+      [
+        activeCategory,
+      ],
+    );
+
+  /* =========================
+     Selected Item
+  ========================= */
+
+  const selectedItem =
+    useMemo(
+      () =>
+        customizationItems.find(
+          (item) =>
+            item.id ===
+            selectedItemId,
+        ) ?? null,
+      [
+        selectedItemId,
+      ],
+    );
+
+  /* =========================
+     Load Ownership
+  ========================= */
+
+  useEffect(
+    () => {
+      let alive = true;
+
+      const loadOwnership =
+        async () => {
+          if (!user) {
+            if (alive) {
+              setOwnedItemIds(
+                [],
+              );
+
+              setLoadingOwnership(
+                false,
+              );
+            }
+
+            return;
+          }
+
+          setLoadingOwnership(
+            true,
+          );
+
+          setError('');
+
+          try {
+            const state =
+              await getCustomizationState(
+                user,
+              );
+
+            if (!alive) {
+              return;
+            }
+
+            setOwnedItemIds(
+              state.ownedItemIds ??
+                [],
+            );
+          } catch (
+            requestError
+          ) {
+            if (!alive) {
+              return;
+            }
+
+            setError(
+              requestError.message ||
+                '보유 아이템 정보를 불러오지 못했습니다.',
+            );
+          } finally {
+            if (alive) {
+              setLoadingOwnership(
+                false,
+              );
+            }
+          }
+        };
+
+      loadOwnership();
+
+      return () => {
+        alive = false;
+      };
+    },
+    [
+      user,
+    ],
   );
 
-  /*
-   * 현재 선택 아이템
-   */
-  const selectedItem = useMemo(
-    () =>
-      customizationItems.find(
-        (item) =>
-          item.id ===
-          selectedItemId,
-      ) ?? null,
-    [selectedItemId],
-  );
+  /* =========================
+     ESC Modal Close
+  ========================= */
 
-  /*
-   * 저장된 보유 아이템 불러오기
-   */
-  useEffect(() => {
-    let alive = true;
+  useEffect(
+    () => {
+      if (
+        !purchaseConfirmItem &&
+        !purchaseResult
+      ) {
+        return undefined;
+      }
 
-    const loadOwnership =
-      async () => {
-        if (!user) {
+      const handleKeyDown = (
+        event,
+      ) => {
+        if (
+          event.key !==
+          'Escape'
+        ) {
           return;
         }
 
-        setLoadingOwnership(true);
-        setError('');
-
-        try {
-          const state =
-            await getCustomizationState(
-              user,
-            );
-
-          if (!alive) {
-            return;
-          }
-
-          setOwnedItemIds(
-            state.ownedItemIds ?? [],
-          );
-        } catch (requestError) {
-          if (!alive) {
-            return;
-          }
-
-          setError(
-            requestError.message ||
-              '보유 아이템 정보를 불러오지 못했습니다.',
-          );
-        } finally {
-          if (alive) {
-            setLoadingOwnership(false);
-          }
+        /*
+         * 실제 구매 처리 중에는
+         * 팝업 상태를 임의로 변경하지 않는다.
+         */
+        if (
+          purchasingItemId
+        ) {
+          return;
         }
+
+        if (
+          purchaseResult
+        ) {
+          setPurchaseResult(
+            null,
+          );
+
+          return;
+        }
+
+        setPurchaseConfirmItem(
+          null,
+        );
       };
 
-    loadOwnership();
+      window.addEventListener(
+        'keydown',
+        handleKeyDown,
+      );
 
-    return () => {
-      alive = false;
-    };
-  }, [user]);
+      return () => {
+        window.removeEventListener(
+          'keydown',
+          handleKeyDown,
+        );
+      };
+    },
+    [
+      purchaseConfirmItem,
+      purchaseResult,
+      purchasingItemId,
+    ],
+  );
+
+  /* =========================
+     Select Category
+  ========================= */
 
   const selectCategory = (
     category,
@@ -183,9 +621,20 @@ export default function CustomizationShopPage() {
       false,
     );
 
+    setPurchaseConfirmItem(
+      null,
+    );
+
+    setPurchaseResult(
+      null,
+    );
+
     setError('');
-    setSuccessMessage('');
   };
+
+  /* =========================
+     Select Item
+  ========================= */
 
   const selectItem = (
     itemId,
@@ -199,12 +648,90 @@ export default function CustomizationShopPage() {
     );
 
     setError('');
-    setSuccessMessage('');
   };
 
-  /*
-   * 실제 구매
-   */
+  /* =========================
+     Open Purchase Confirm
+  ========================= */
+
+  const openPurchaseConfirm = (
+    item,
+  ) => {
+    if (
+      !user ||
+      purchasingItemId
+    ) {
+      return;
+    }
+
+    setSelectedItemId(
+      item.id,
+    );
+
+    setError('');
+
+    /*
+     * 이미 보유 중인 경우
+     */
+    if (
+      ownedItemIds.includes(
+        item.id,
+      )
+    ) {
+      setPurchaseResult({
+        type:
+          'info',
+
+        title:
+          '이미 보유 중',
+
+        itemName:
+          item.name,
+
+        message:
+          '이미 보유 중인 아이템입니다. 내 꾸미기에서 장착할 수 있습니다.',
+      });
+
+      return;
+    }
+
+    setPurchaseConfirmItem(
+      item,
+    );
+  };
+
+  /* =========================
+     Cancel Confirm
+  ========================= */
+
+  const cancelPurchaseConfirm =
+    () => {
+      if (
+        purchasingItemId
+      ) {
+        return;
+      }
+
+      setPurchaseConfirmItem(
+        null,
+      );
+    };
+
+  /* =========================
+     Close Result
+  ========================= */
+
+  const closePurchaseResult =
+    () => {
+      setPurchaseResult(
+        null,
+      );
+    };
+
+  /* =========================
+     Actual Purchase
+  ========================= */
+
   const handlePurchase =
     async (item) => {
       if (
@@ -214,24 +741,51 @@ export default function CustomizationShopPage() {
         return;
       }
 
-      /*
-       * 중복 구매 방지
-       */
       if (
         ownedItemIds.includes(
           item.id,
         )
       ) {
-        setSelectedItemId(
-          item.id,
+        setPurchaseConfirmItem(
+          null,
         );
 
-        setSuccessMessage(
-          '이미 보유 중인 아이템입니다.',
-        );
+        setPurchaseResult({
+          type:
+            'info',
+
+          title:
+            '이미 보유 중',
+
+          itemName:
+            item.name,
+
+          message:
+            '이미 보유 중인 아이템입니다. 내 꾸미기에서 장착할 수 있습니다.',
+        });
 
         return;
       }
+
+      const price =
+        getCustomizationItemPrice(
+          item,
+        );
+
+      const free =
+        price === 0;
+
+      /*
+       * 확인 팝업 종료 후
+       * 실제 처리 시작
+       */
+      setPurchaseConfirmItem(
+        null,
+      );
+
+      setPurchaseResult(
+        null,
+      );
 
       setSelectedItemId(
         item.id,
@@ -242,7 +796,6 @@ export default function CustomizationShopPage() {
       );
 
       setError('');
-      setSuccessMessage('');
 
       try {
         const result =
@@ -253,36 +806,113 @@ export default function CustomizationShopPage() {
 
         setOwnedItemIds(
           result.customization
-            ?.ownedItemIds ?? [],
+            ?.ownedItemIds ??
+            [],
         );
 
         /*
-         * HC가 차감됐으므로
-         * 상단 지갑 다시 조회
+         * 유료 구매만
+         * HC 잔액 변경
          */
-        setWalletRefreshKey(
-          (current) =>
-            current + 1,
-        );
+        if (
+          result.price > 0
+        ) {
+          setWalletRefreshKey(
+            (current) =>
+              current + 1,
+          );
+        }
 
+        /*
+         * 처리 도중 이미 보유 상태로
+         * 확인된 경우
+         */
         if (
           result.alreadyOwned
         ) {
-          setSuccessMessage(
-            `${item.name}은(는) 이미 보유 중입니다.`,
-          );
+          setPurchaseResult({
+            type:
+              'info',
+
+            title:
+              '이미 보유 중',
+
+            itemName:
+              item.name,
+
+            message:
+              '이미 보유 중인 아이템입니다. 내 꾸미기에서 장착할 수 있습니다.',
+          });
 
           return;
         }
 
-        setSuccessMessage(
-          `${item.name} 구매가 완료되었습니다. 내 꾸미기에서 장착할 수 있습니다.`,
-        );
-      } catch (requestError) {
-        setError(
-          requestError.message ||
-            '아이템을 구매하지 못했습니다.',
-        );
+        /*
+         * 무료 획득 성공
+         */
+        if (
+          result.isFree ||
+          free
+        ) {
+          setPurchaseResult({
+            type:
+              'success',
+
+            title:
+              '획득 완료',
+
+            itemName:
+              item.name,
+
+            message:
+              '무료 아이템을 획득했습니다. 내 꾸미기에서 바로 장착할 수 있습니다.',
+          });
+
+          return;
+        }
+
+        /*
+         * 유료 구매 성공
+         */
+        setPurchaseResult({
+          type:
+            'success',
+
+          title:
+            '구매 완료',
+
+          itemName:
+            item.name,
+
+          message:
+            `${price} HC로 구매했습니다. 내 꾸미기에서 바로 장착할 수 있습니다.`,
+        });
+      } catch (
+        requestError
+      ) {
+        /*
+         * 구매 실패도
+         * 페이지 상단 에러가 아닌
+         * 결과 팝업으로 표시한다.
+         */
+        setPurchaseResult({
+          type:
+            'failure',
+
+          title:
+            free
+              ? '획득 실패'
+              : '구매 실패',
+
+          itemName:
+            item.name,
+
+          message:
+            getPurchaseFailureMessage(
+              requestError,
+              free,
+            ),
+        });
       } finally {
         setPurchasingItemId(
           null,
@@ -290,9 +920,31 @@ export default function CustomizationShopPage() {
       }
     };
 
+  /* =========================
+     Confirm Purchase
+  ========================= */
+
+  const confirmPurchase =
+    () => {
+      if (
+        !purchaseConfirmItem
+      ) {
+        return;
+      }
+
+      handlePurchase(
+        purchaseConfirmItem,
+      );
+    };
+
+  /* =========================
+     Selected Item Info
+  ========================= */
+
   const selectedCategoryClass =
     selectedItem
-      ? selectedItem.category.toLowerCase()
+      ? selectedItem.category
+          .toLowerCase()
       : '';
 
   const isChatThemeSelected =
@@ -306,6 +958,9 @@ export default function CustomizationShopPage() {
         )
       : null;
 
+  const selectedItemFree =
+    selectedItemPrice === 0;
+
   const selectedItemOwned =
     selectedItem
       ? ownedItemIds.includes(
@@ -313,9 +968,59 @@ export default function CustomizationShopPage() {
         )
       : false;
 
+  /* =========================
+     Confirm Item Info
+  ========================= */
+
+  const confirmItemPrice =
+    purchaseConfirmItem
+      ? getCustomizationItemPrice(
+          purchaseConfirmItem,
+        )
+      : null;
+
+  const confirmItemFree =
+    confirmItemPrice === 0;
+
+  /* =========================
+     Result Icon
+  ========================= */
+
+  const resultIcon =
+    purchaseResult?.type ===
+    'success'
+      ? '✓'
+      : purchaseResult?.type ===
+          'failure'
+        ? '!'
+        : 'i';
+
+  const resultIconStyle =
+    purchaseResult?.type ===
+    'success'
+      ? {
+          ...modalStyle.icon,
+          ...modalStyle.successIcon,
+        }
+      : purchaseResult?.type ===
+          'failure'
+        ? {
+            ...modalStyle.icon,
+            ...modalStyle.failureIcon,
+          }
+        : {
+            ...modalStyle.icon,
+            ...modalStyle.infoIcon,
+          };
+
+  /* =========================
+     Render
+  ========================= */
+
   return (
     <main className="customization-shop-page">
       <div className="customization-shop-container">
+
         {/* =========================
             Header
         ========================= */}
@@ -333,6 +1038,7 @@ export default function CustomizationShopPage() {
             <p>
               House 활동으로 획득한 HC를 사용해
               프로필과 채팅 공간을 꾸밀 수 있습니다.
+              무료 아이템은 HC 없이 바로 획득할 수 있습니다.
             </p>
           </div>
 
@@ -361,7 +1067,7 @@ export default function CustomizationShopPage() {
         />
 
         {/* =========================
-            Feedback
+            General Error
         ========================= */}
 
         {error && (
@@ -377,21 +1083,8 @@ export default function CustomizationShopPage() {
           </div>
         )}
 
-        {successMessage && (
-          <div
-            className="house-alert success"
-            role="status"
-            style={{
-              marginTop: 18,
-              marginBottom: 18,
-            }}
-          >
-            {successMessage}
-          </div>
-        )}
-
         {/* =========================
-            Category
+            Category Tabs
         ========================= */}
 
         <section
@@ -401,7 +1094,9 @@ export default function CustomizationShopPage() {
           {CATEGORY_ORDER.map(
             (category) => (
               <button
-                key={category}
+                key={
+                  category
+                }
                 type="button"
                 className={
                   activeCategory ===
@@ -426,6 +1121,7 @@ export default function CustomizationShopPage() {
         </section>
 
         <div className="customization-shop-content">
+
           {/* =========================
               Item List
           ========================= */}
@@ -471,16 +1167,44 @@ export default function CustomizationShopPage() {
                       item.id;
 
                     const itemCategoryClass =
-                      item.category.toLowerCase();
+                      item.category
+                        .toLowerCase();
 
                     const price =
                       getCustomizationItemPrice(
                         item,
                       );
 
+                    const free =
+                      price === 0;
+
+                    const statusLabel =
+                      owned
+                        ? '보유 중'
+                        : free
+                          ? '무료'
+                          : `${price} HC`;
+
+                    const buttonLabel =
+                      owned
+                        ? '보유 중'
+                        : purchasing
+                          ? (
+                              free
+                                ? '획득 중…'
+                                : '구매 중…'
+                            )
+                          : (
+                              free
+                                ? '무료 획득'
+                                : '구매'
+                            );
+
                     return (
                       <article
-                        key={item.id}
+                        key={
+                          item.id
+                        }
                         className={
                           selected
                             ? 'customization-item-card is-selected'
@@ -488,6 +1212,7 @@ export default function CustomizationShopPage() {
                         }
                       >
                         {/* Preview Select */}
+
                         <button
                           type="button"
                           className="customization-item-select"
@@ -515,16 +1240,19 @@ export default function CustomizationShopPage() {
                           </div>
 
                           <strong>
-                            {item.name}
+                            {
+                              item.name
+                            }
                           </strong>
                         </button>
 
                         {/* Purchase */}
+
                         <div className="customization-item-footer">
                           <span className="customization-item-status">
-                            {owned
-                              ? '보유 중'
-                              : `${price} HC`}
+                            {
+                              statusLabel
+                            }
                           </span>
 
                           <button
@@ -538,16 +1266,14 @@ export default function CustomizationShopPage() {
                               )
                             }
                             onClick={() =>
-                              handlePurchase(
+                              openPurchaseConfirm(
                                 item,
                               )
                             }
                           >
-                            {owned
-                              ? '보유 중'
-                              : purchasing
-                                ? '구매 중…'
-                                : '구매'}
+                            {
+                              buttonLabel
+                            }
                           </button>
                         </div>
                       </article>
@@ -612,13 +1338,19 @@ export default function CustomizationShopPage() {
                   </span>
 
                   <strong>
-                    {selectedItem.name}
+                    {
+                      selectedItem.name
+                    }
                   </strong>
 
                   <p>
                     {selectedItemOwned
                       ? '보유 중인 아이템입니다. 내 꾸미기에서 장착할 수 있습니다.'
-                      : `${selectedItemPrice} HC로 구매할 수 있습니다.`}
+                      : selectedItemFree
+                        ? '무료 아이템입니다. HC 차감 없이 바로 획득할 수 있습니다.'
+                        : `${getPriceLabel(
+                            selectedItem,
+                          )}로 구매할 수 있습니다.`}
                   </p>
 
                   {isChatThemeSelected && (
@@ -645,6 +1377,220 @@ export default function CustomizationShopPage() {
       </div>
 
       {/* =========================
+          Purchase Confirm Modal
+      ========================= */}
+
+      {purchaseConfirmItem && (
+        <div
+          style={
+            modalStyle.overlay
+          }
+          role="presentation"
+          onClick={
+            cancelPurchaseConfirm
+          }
+        >
+          <div
+            style={
+              modalStyle.modal
+            }
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customization-purchase-confirm-title"
+            aria-describedby="customization-purchase-confirm-description"
+            onClick={(
+              event,
+            ) =>
+              event.stopPropagation()
+            }
+          >
+            <span
+              style={
+                modalStyle.eyebrow
+              }
+            >
+              GAME HOUSE SHOP
+            </span>
+
+            <h2
+              id="customization-purchase-confirm-title"
+              style={
+                modalStyle.title
+              }
+            >
+              {confirmItemFree
+                ? '무료로 획득하시겠습니까?'
+                : '구매하시겠습니까?'}
+            </h2>
+
+            <p
+              style={
+                modalStyle.itemName
+              }
+            >
+              {
+                purchaseConfirmItem.name
+              }
+            </p>
+
+            <p
+              id="customization-purchase-confirm-description"
+              style={
+                modalStyle.description
+              }
+            >
+              {confirmItemFree
+                ? 'HC가 차감되지 않습니다.'
+                : `${confirmItemPrice} HC가 차감됩니다.`}
+            </p>
+
+            <div
+              style={
+                modalStyle.actions
+              }
+            >
+              <button
+                type="button"
+                style={
+                  modalStyle.secondaryButton
+                }
+                disabled={
+                  Boolean(
+                    purchasingItemId,
+                  )
+                }
+                onClick={
+                  cancelPurchaseConfirm
+                }
+              >
+                아니오
+              </button>
+
+              <button
+                type="button"
+                style={
+                  modalStyle.primaryButton
+                }
+                disabled={
+                  Boolean(
+                    purchasingItemId,
+                  )
+                }
+                onClick={
+                  confirmPurchase
+                }
+              >
+                예
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================
+          Purchase Result Modal
+      ========================= */}
+
+      {purchaseResult && (
+        <div
+          style={
+            modalStyle.overlay
+          }
+          role="presentation"
+          onClick={
+            closePurchaseResult
+          }
+        >
+          <div
+            style={
+              modalStyle.modal
+            }
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customization-purchase-result-title"
+            aria-describedby="customization-purchase-result-description"
+            onClick={(
+              event,
+            ) =>
+              event.stopPropagation()
+            }
+          >
+            <div
+              style={
+                resultIconStyle
+              }
+              aria-hidden="true"
+            >
+              {
+                resultIcon
+              }
+            </div>
+
+            <span
+              style={
+                modalStyle.eyebrow
+              }
+            >
+              GAME HOUSE SHOP
+            </span>
+
+            <h2
+              id="customization-purchase-result-title"
+              style={
+                modalStyle.title
+              }
+            >
+              {
+                purchaseResult.title
+              }
+            </h2>
+
+            {purchaseResult.itemName && (
+              <p
+                style={
+                  modalStyle.itemName
+                }
+              >
+                {
+                  purchaseResult.itemName
+                }
+              </p>
+            )}
+
+            <p
+              id="customization-purchase-result-description"
+              style={
+                modalStyle.description
+              }
+            >
+              {
+                purchaseResult.message
+              }
+            </p>
+
+            <div
+              style={
+                modalStyle.singleAction
+              }
+            >
+              <button
+                type="button"
+                style={
+                  modalStyle.primaryButton
+                }
+                onClick={
+                  closePurchaseResult
+                }
+                autoFocus
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================
           Chat Theme Full Preview
       ========================= */}
 
@@ -665,7 +1611,9 @@ export default function CustomizationShopPage() {
               role="dialog"
               aria-modal="true"
               aria-label={`${selectedItem.name} 전체 화면 미리보기`}
-              onClick={(event) =>
+              onClick={(
+                event,
+              ) =>
                 event.stopPropagation()
               }
             >
@@ -676,7 +1624,9 @@ export default function CustomizationShopPage() {
                   </span>
 
                   <strong>
-                    {selectedItem.name}
+                    {
+                      selectedItem.name
+                    }
                   </strong>
                 </div>
 

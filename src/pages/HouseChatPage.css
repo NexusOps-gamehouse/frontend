@@ -1,71 +1,722 @@
-.house-chat-page { max-width: 980px; }
+/* =========================================================
+   House Chat
+========================================================= */
+
+.house-chat-page {
+  max-width: 980px;
+}
+
 .house-chat-panel {
-  overflow: hidden; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); box-shadow: 0 18px 45px -30px rgba(0,0,0,.5);
+  overflow: hidden;
+
+  background:
+    var(--surface);
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    var(--radius-lg);
+
+  box-shadow:
+    0
+    18px
+    45px
+    -30px
+    rgba(0, 0, 0, 0.5);
 }
+
+/* =========================================================
+   Header
+========================================================= */
+
 .house-chat-header {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;
-  padding: 24px 28px; border-bottom: 1px solid var(--border);
+  display: flex;
+
+  align-items: center;
+
+  justify-content:
+    space-between;
+
+  gap: 24px;
+
+  padding:
+    24px
+    28px;
+
+  border-bottom:
+    1px solid
+    var(--border);
 }
-.house-chat-header h1 { font-size: 24px; letter-spacing: -.03em; }
-.house-chat-header p { margin-top: 6px; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+
+.house-chat-header h1 {
+  font-size: 24px;
+
+  letter-spacing:
+    -0.03em;
+}
+
+.house-chat-header p {
+  margin-top: 6px;
+
+  color:
+    var(--text-muted);
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+/* =========================================================
+   My Rank
+========================================================= */
+
+.house-chat-my-rank {
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  flex:
+    0
+    0
+    auto;
+
+  min-height: 104px;
+
+  padding:
+    8px
+    14px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    14px;
+
+  background:
+    var(--surface-hover);
+}
+
+.house-chat-my-rank-info {
+  display: flex;
+
+  flex-direction:
+    column;
+
+  gap: 2px;
+}
+
+.house-chat-my-rank-info span {
+  color:
+    var(--text-muted);
+
+  font-size: 10px;
+
+  font-weight: 700;
+}
+
+.house-chat-my-rank-info strong {
+  color:
+    var(--text-main);
+
+  font-size: 13px;
+}
+
+/* =========================================================
+   House Rank Avatar
+========================================================= */
+
+/*
+ * wrapper = 프레임 전체 크기
+ *
+ * 실제 프로필 이미지는
+ * wrapper 중앙에 고정한다.
+ *
+ * 프레임만 역할별 offset으로 움직인다.
+ */
+
+.house-rank-avatar {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width:
+    var(
+      --rank-frame-size
+    );
+
+  height:
+    var(
+      --rank-frame-size
+    );
+
+  flex:
+    0
+    0
+    var(
+      --rank-frame-size
+    );
+
+  overflow:
+    visible;
+}
+
+/* =========================================================
+   Profile Photo
+========================================================= */
+
+.house-rank-avatar-photo {
+  position: absolute;
+
+  z-index: 1;
+
+  top: 50%;
+
+  left: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width:
+    var(
+      --rank-avatar-size
+    );
+
+  height:
+    var(
+      --rank-avatar-size
+    );
+
+  overflow: hidden;
+
+  border-radius:
+    50%;
+
+  transform:
+    translate(
+      -50%,
+      -50%
+    );
+
+  background:
+    var(--surface);
+}
+
+/*
+ * 기존 전역 .av 크기보다
+ * House 내부에서는 이 값이 우선.
+ */
+
+.house-rank-avatar-photo .av {
+  width:
+    var(
+      --rank-avatar-size
+    ) !important;
+
+  height:
+    var(
+      --rank-avatar-size
+    ) !important;
+
+  min-width:
+    var(
+      --rank-avatar-size
+    ) !important;
+
+  min-height:
+    var(
+      --rank-avatar-size
+    ) !important;
+
+  flex:
+    0
+    0
+    var(
+      --rank-avatar-size
+    ) !important;
+
+  border-radius: 50%;
+
+  overflow: hidden;
+}
+
+.house-rank-avatar-photo .av img {
+  display: block;
+
+  width: 100% !important;
+
+  height: 100% !important;
+
+  object-fit: cover;
+
+  border-radius: 50%;
+}
+
+/* =========================================================
+   Rank Frame
+========================================================= */
+
+.house-rank-avatar-frame {
+  position: absolute;
+
+  z-index: 2;
+
+  /*
+   * frameOffset은
+   * PNG의 내부 원 중심 차이를 보정한다.
+   */
+  top:
+    calc(
+      50% +
+      var(
+        --rank-frame-offset-y
+      )
+    );
+
+  left:
+    calc(
+      50% +
+      var(
+        --rank-frame-offset-x
+      )
+    );
+
+  display: block;
+
+  width:
+    var(
+      --rank-frame-size
+    );
+
+  height:
+    var(
+      --rank-frame-size
+    );
+
+  max-width: none;
+
+  max-height: none;
+
+  object-fit: contain;
+
+  pointer-events: none;
+
+  user-select: none;
+
+  transform:
+    translate(
+      -50%,
+      -50%
+    );
+}
+
+/* =========================================================
+   Messages
+========================================================= */
+
 .house-chat-messages {
-  height: min(600px, calc(100vh - 330px)); min-height: 360px; overflow-y: auto;
-  padding: 24px 28px; background: var(--bg-color); scroll-behavior: smooth;
+  height:
+    min(
+      600px,
+      calc(
+        100vh - 330px
+      )
+    );
+
+  min-height: 360px;
+
+  overflow-y: auto;
+
+  padding:
+    24px
+    28px;
+
+  background:
+    var(--bg-color);
+
+  scroll-behavior:
+    smooth;
 }
-.house-chat-empty { min-height: 310px; }
-.house-chat-message { display: flex; align-items: flex-start; gap: 10px; max-width: 78%; margin-bottom: 18px; }
-.house-chat-message.mine { margin-left: auto; justify-content: flex-end; }
-.house-chat-message .ui-author-av { width: 34px; height: 34px; flex: 0 0 34px; font-size: 12px; }
-.house-chat-message-body { min-width: 0; }
-.house-chat-message-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-.house-chat-message.mine .house-chat-message-meta { justify-content: flex-end; }
-.house-chat-message-meta strong { color: var(--text-main); font-size: 12px; }
-.house-chat-message-meta time { color: var(--text-muted); font-size: 10px; }
+
+.house-chat-empty {
+  min-height: 310px;
+}
+
+.house-chat-message {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  max-width: 78%;
+
+  margin-bottom: 16px;
+}
+
+.house-chat-message.mine {
+  margin-left: auto;
+
+  justify-content:
+    flex-end;
+}
+
+.house-chat-message-body {
+  min-width: 0;
+}
+
+/* =========================================================
+   Message Meta
+========================================================= */
+
+.house-chat-message-meta {
+  display: flex;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-bottom: 6px;
+}
+
+.house-chat-message.mine
+.house-chat-message-meta {
+  justify-content:
+    flex-end;
+}
+
+.house-chat-message-meta strong {
+  color:
+    var(--text-main);
+
+  font-size: 12px;
+}
+
+.house-chat-message-meta time {
+  color:
+    var(--text-muted);
+
+  font-size: 10px;
+}
+
+/* =========================================================
+   Message Bubble
+========================================================= */
+
 .house-chat-message-body > p {
-  padding: 11px 14px; color: var(--text-main); background: var(--surface);
-  border: 1px solid var(--border); border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md);
-  font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; word-break: break-word; white-space: pre-wrap;
+  padding:
+    11px
+    14px;
+
+  color:
+    var(--text-main);
+
+  background:
+    var(--surface);
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    4px
+    var(--radius-md)
+    var(--radius-md)
+    var(--radius-md);
+
+  font-size: 14px;
+
+  line-height: 1.65;
+
+  overflow-wrap:
+    anywhere;
+
+  word-break:
+    break-word;
+
+  white-space:
+    pre-wrap;
 }
-.house-chat-message.mine .house-chat-message-body > p {
-  color: #fff; background: var(--primary); border-color: var(--primary);
-  border-radius: var(--radius-md) 4px var(--radius-md) var(--radius-md);
+
+.house-chat-message.mine
+.house-chat-message-body > p {
+  color: #fff;
+
+  background:
+    var(--primary);
+
+  border-color:
+    var(--primary);
+
+  border-radius:
+    var(--radius-md)
+    4px
+    var(--radius-md)
+    var(--radius-md);
 }
-.house-chat-composer { padding: 16px 20px 12px; border-top: 1px solid var(--border); }
-.house-chat-composer .house-alert { margin: 0 0 10px; }
-.house-chat-input-row { display: flex; align-items: flex-end; gap: 10px; }
+
+/* =========================================================
+   Composer
+========================================================= */
+
+.house-chat-composer {
+  padding:
+    16px
+    20px
+    12px;
+
+  border-top:
+    1px solid
+    var(--border);
+}
+
+.house-chat-composer
+.house-alert {
+  margin:
+    0
+    0
+    10px;
+}
+
+.house-chat-input-row {
+  display: flex;
+
+  align-items:
+    flex-end;
+
+  gap: 10px;
+}
+
 .house-chat-input-row textarea {
-  width: 100%; min-height: 52px; max-height: 140px; padding: 12px 14px; resize: vertical;
-  background: var(--surface-hover); color: var(--text-main); border: 1px solid var(--border);
-  border-radius: var(--radius-md); font: inherit; font-size: 14px; line-height: 1.5;
-}
-.house-chat-input-row textarea:focus { outline: none; border-color: var(--primary); }
-.house-chat-input-row textarea::placeholder { color: var(--text-muted); }
-.house-chat-input-row .ui-btn-primary {
-  display: inline-flex; min-width: 92px; height: 48px; align-items: center; justify-content: center; border: 0;
-}
-.house-chat-composer > small { display: block; margin-top: 5px; color: var(--text-muted); font-size: 10px; text-align: right; }
-.house-chat-denied { max-width: 620px; margin: 44px auto 0; }
-.house-chat-denied > div:first-child { margin-bottom: 10px; font-size: 30px; }
-.house-chat-denied h1 { margin-bottom: 8px; font-size: 22px; }
-.house-chat-denied > p { margin-bottom: 18px; }
-.house-chat-denied > .ui-btn-secondary,
-.house-chat-error-actions .ui-btn-primary,
-.house-chat-error-actions .ui-btn-secondary { display: inline-flex; align-items: center; justify-content: center; }
-.house-chat-error-actions { display: flex; justify-content: center; gap: 8px; }
+  width: 100%;
 
-@media (max-width: 720px) {
-  .house-chat-page { padding: 20px 16px 36px; }
-  .house-chat-header { padding: 20px; }
-  .house-chat-messages { height: calc(100vh - 330px); min-height: 330px; padding: 20px 16px; }
-  .house-chat-message { max-width: 88%; }
+  min-height: 52px;
+
+  max-height: 140px;
+
+  padding:
+    12px
+    14px;
+
+  resize: vertical;
+
+  background:
+    var(--surface-hover);
+
+  color:
+    var(--text-main);
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    var(--radius-md);
+
+  font: inherit;
+
+  font-size: 14px;
+
+  line-height: 1.5;
 }
 
-@media (max-width: 520px) {
-  .house-chat-header { flex-direction: column; gap: 12px; }
-  .house-chat-messages { height: calc(100vh - 390px); min-height: 300px; }
-  .house-chat-message { max-width: 94%; }
-  .house-chat-input-row { align-items: stretch; flex-direction: column; }
-  .house-chat-input-row .ui-btn-primary { width: 100%; }
-  .house-chat-error-actions { flex-direction: column; }
+.house-chat-input-row textarea:focus {
+  outline: none;
+
+  border-color:
+    var(--primary);
+}
+
+.house-chat-input-row textarea::placeholder {
+  color:
+    var(--text-muted);
+}
+
+.house-chat-input-row
+.ui-btn-primary {
+  display:
+    inline-flex;
+
+  min-width: 92px;
+
+  height: 48px;
+
+  align-items: center;
+
+  justify-content:
+    center;
+
+  border: 0;
+}
+
+.house-chat-composer > small {
+  display: block;
+
+  margin-top: 5px;
+
+  color:
+    var(--text-muted);
+
+  font-size: 10px;
+
+  text-align: right;
+}
+
+/* =========================================================
+   Error
+========================================================= */
+
+.house-chat-denied {
+  max-width: 620px;
+
+  margin:
+    44px
+    auto
+    0;
+}
+
+.house-chat-denied
+> div:first-child {
+  margin-bottom: 10px;
+
+  font-size: 30px;
+}
+
+.house-chat-denied h1 {
+  margin-bottom: 8px;
+
+  font-size: 22px;
+}
+
+.house-chat-denied > p {
+  margin-bottom: 18px;
+}
+
+.house-chat-denied
+> .ui-btn-secondary,
+.house-chat-error-actions
+.ui-btn-primary,
+.house-chat-error-actions
+.ui-btn-secondary {
+  display:
+    inline-flex;
+
+  align-items: center;
+
+  justify-content:
+    center;
+}
+
+.house-chat-error-actions {
+  display: flex;
+
+  justify-content:
+    center;
+
+  gap: 8px;
+}
+
+/* =========================================================
+   Tablet
+========================================================= */
+
+@media (
+  max-width:
+    720px
+) {
+  .house-chat-page {
+    padding:
+      20px
+      16px
+      36px;
+  }
+
+  .house-chat-header {
+    padding: 20px;
+  }
+
+  .house-chat-messages {
+    height:
+      calc(
+        100vh - 330px
+      );
+
+    min-height: 330px;
+
+    padding:
+      20px
+      16px;
+  }
+
+  .house-chat-message {
+    max-width: 88%;
+  }
+}
+
+/* =========================================================
+   Mobile
+========================================================= */
+
+@media (
+  max-width:
+    520px
+) {
+  .house-chat-header {
+    flex-direction:
+      column;
+
+    align-items:
+      stretch;
+
+    gap: 12px;
+  }
+
+  .house-chat-my-rank {
+    align-self:
+      flex-start;
+  }
+
+  .house-chat-messages {
+    height:
+      calc(
+        100vh - 390px
+      );
+
+    min-height: 300px;
+  }
+
+  .house-chat-message {
+    max-width: 94%;
+  }
+
+  .house-chat-input-row {
+    align-items:
+      stretch;
+
+    flex-direction:
+      column;
+  }
+
+  .house-chat-input-row
+  .ui-btn-primary {
+    width: 100%;
+  }
+
+  .house-chat-error-actions {
+    flex-direction:
+      column;
+  }
 }

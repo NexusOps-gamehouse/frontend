@@ -12,6 +12,11 @@ import {
   getCustomizationItemPrice,
 } from './customizationShopCatalog';
 
+import {
+  getChatThemeAvatarById,
+  getDefaultChatThemeAvatar,
+} from './customizationChatAvatars';
+
 /*
  * v1은 디자인 테스트용으로
  * 모든 카탈로그 아이템을 보유했기 때문에
@@ -115,6 +120,11 @@ const createInitialState =
     const starters =
       starterOwnedItemIds();
 
+    const equippedChatThemeId =
+      firstItemId(
+        CUSTOMIZATION_CATEGORY.CHAT_THEME,
+      );
+
     return {
       ownedItemIds:
         starters,
@@ -135,9 +145,12 @@ const createInitialState =
         ),
 
       equippedChatThemeId:
-        firstItemId(
-          CUSTOMIZATION_CATEGORY.CHAT_THEME,
-        ),
+        equippedChatThemeId,
+
+      equippedChatAvatarId:
+        getDefaultChatThemeAvatar(
+          equippedChatThemeId,
+        )?.id ?? null,
     };
   };
 
@@ -237,6 +250,26 @@ const normalizeUserState = (
       value.ownedItemIds,
     );
 
+  const equippedChatThemeId =
+    normalizeEquippedItem(
+      value.equippedChatThemeId,
+      CUSTOMIZATION_CATEGORY.CHAT_THEME,
+      ownedItemIds,
+    );
+
+  const savedChatAvatar =
+    getChatThemeAvatarById(
+      value.equippedChatAvatarId,
+    );
+
+  const equippedChatAvatarId =
+    savedChatAvatar?.themeId ===
+      equippedChatThemeId
+      ? savedChatAvatar.id
+      : getDefaultChatThemeAvatar(
+          equippedChatThemeId,
+        )?.id ?? null;
+
   return {
     ownedItemIds,
 
@@ -262,11 +295,9 @@ const normalizeUserState = (
       ),
 
     equippedChatThemeId:
-      normalizeEquippedItem(
-        value.equippedChatThemeId,
-        CUSTOMIZATION_CATEGORY.CHAT_THEME,
-        ownedItemIds,
-      ),
+      equippedChatThemeId,
+
+    equippedChatAvatarId,
   };
 };
 
@@ -309,7 +340,7 @@ const writeAllStates = (
 
   if (
     typeof window !==
-    'undefined'
+      'undefined'
   ) {
     window.dispatchEvent(
       new CustomEvent(
@@ -444,6 +475,40 @@ export async function mockSaveEquippedCustomization(
     },
   );
 
+  const requestedChatAvatarId =
+    equippedItems?.equippedChatAvatarId;
+
+  if (
+    requestedChatAvatarId !==
+      undefined
+  ) {
+    if (
+      requestedChatAvatarId === null &&
+      nextState.equippedChatThemeId === null
+    ) {
+      nextState.equippedChatAvatarId =
+        null;
+    } else {
+      const avatar =
+        getChatThemeAvatarById(
+          requestedChatAvatarId,
+        );
+
+      if (
+        !avatar ||
+        avatar.themeId !==
+          nextState.equippedChatThemeId
+      ) {
+        throw new Error(
+          '선택한 채팅 테마에서 사용할 수 없는 프로필 이미지입니다.',
+        );
+      }
+
+      nextState.equippedChatAvatarId =
+        avatar.id;
+    }
+  }
+
   states[userId] =
     normalizeUserState(
       nextState,
@@ -479,7 +544,7 @@ export async function mockGetOwnedCustomizationItems(
 }
 
 /* =========================
-   Purchase
+   Purchase / Free Acquire
 ========================= */
 
 export async function mockPurchaseCustomizationItem(
@@ -523,7 +588,8 @@ export async function mockPurchaseCustomizationItem(
 
   /*
    * 이미 보유 중이라면
-   * 중복으로 HC를 차감하지 않는다.
+   * 무료/유료 여부와 관계없이
+   * 다시 지급하거나 HC를 차감하지 않는다.
    */
   if (
     current.ownedItemIds.includes(
@@ -535,6 +601,9 @@ export async function mockPurchaseCustomizationItem(
         clone(item),
 
       price,
+
+      isFree:
+        price === 0,
 
       alreadyOwned:
         true,
@@ -550,22 +619,31 @@ export async function mockPurchaseCustomizationItem(
   }
 
   /*
-   * 1. HC 차감
+   * 유료 아이템:
+   * HC를 먼저 차감한다.
+   *
+   * 무료 아이템:
+   * HC 거래를 만들지 않고
+   * 현재 지갑 상태만 조회한다.
    */
   const wallet =
-    await mockSpendHouseCoin(
-      user,
-      {
-        amount:
-          price,
+    price === 0
+      ? await mockGetHouseCoinWallet(
+          user,
+        )
+      : await mockSpendHouseCoin(
+          user,
+          {
+            amount:
+              price,
 
-        itemId:
-          item.id,
-      },
-    );
+            itemId:
+              item.id,
+          },
+        );
 
   /*
-   * 2. 구매한 아이템 소유권 추가
+   * 아이템 소유권 추가
    */
   current.ownedItemIds = [
     ...new Set([
@@ -584,7 +662,7 @@ export async function mockPurchaseCustomizationItem(
   );
 
   /*
-   * 실제 백엔드에서는 반드시
+   * 실제 백엔드에서는 유료 구매의 경우
    *
    * HC 차감
    * +
@@ -592,12 +670,18 @@ export async function mockPurchaseCustomizationItem(
    *
    * 을 하나의 DB Transaction으로
    * 처리해야 한다.
+   *
+   * 무료 아이템은 가격이 0인 상품으로
+   * 서버에서 소유권만 지급하도록 처리한다.
    */
   return {
     item:
       clone(item),
 
     price,
+
+    isFree:
+      price === 0,
 
     alreadyOwned:
       false,
@@ -620,7 +704,7 @@ export function subscribeCustomizationChange(
 ) {
   if (
     typeof window ===
-    'undefined'
+      'undefined'
   ) {
     return () => {};
   }

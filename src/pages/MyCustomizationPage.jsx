@@ -15,7 +15,13 @@ import {
   CUSTOMIZATION_CATEGORY_LABEL,
   customizationItems,
 } from '../mocks/customizationItems';
+import {
+  getChatThemeAvatarById,
+  getChatThemeAvatars,
+  getDefaultChatThemeAvatar,
+} from '../mocks/customizationChatAvatars';
 import './MyCustomizationPage.css';
+import './ChatThemeFinal.css';
 
 const PROFILE_CATEGORIES = [
   CUSTOMIZATION_CATEGORY.FRAME,
@@ -46,6 +52,9 @@ const EMPTY_SELECTION = {
 
   [CUSTOMIZATION_CATEGORY.CHAT_THEME]:
     null,
+
+  equippedChatAvatarId:
+    null,
 };
 
 const getBannerLayoutKey = (
@@ -71,23 +80,41 @@ const getBannerLayoutKey = (
 
 const stateToSelection = (
   state,
-) => ({
-  [CUSTOMIZATION_CATEGORY.FRAME]:
-    state?.equippedFrameId ??
-    null,
-
-  [CUSTOMIZATION_CATEGORY.PROFILE_BANNER]:
-    state?.equippedBannerId ??
-    null,
-
-  [CUSTOMIZATION_CATEGORY.EMBLEM]:
-    state?.equippedEmblemId ??
-    null,
-
-  [CUSTOMIZATION_CATEGORY.CHAT_THEME]:
+) => {
+  const equippedChatThemeId =
     state?.equippedChatThemeId ??
-    null,
-});
+    null;
+
+  const savedChatAvatar =
+    getChatThemeAvatarById(
+      state?.equippedChatAvatarId,
+    );
+
+  return {
+    [CUSTOMIZATION_CATEGORY.FRAME]:
+      state?.equippedFrameId ??
+      null,
+
+    [CUSTOMIZATION_CATEGORY.PROFILE_BANNER]:
+      state?.equippedBannerId ??
+      null,
+
+    [CUSTOMIZATION_CATEGORY.EMBLEM]:
+      state?.equippedEmblemId ??
+      null,
+
+    [CUSTOMIZATION_CATEGORY.CHAT_THEME]:
+      equippedChatThemeId,
+
+    equippedChatAvatarId:
+      savedChatAvatar?.themeId ===
+        equippedChatThemeId
+        ? savedChatAvatar.id
+        : getDefaultChatThemeAvatar(
+            equippedChatThemeId,
+          )?.id ?? null,
+  };
+};
 
 export default function MyCustomizationPage() {
   const navigate = useNavigate();
@@ -262,6 +289,26 @@ export default function MyCustomizationPage() {
       ],
     );
 
+  const previewChatAvatars =
+    useMemo(
+      () =>
+        getChatThemeAvatars(
+          selectedItems[
+            CUSTOMIZATION_CATEGORY.CHAT_THEME
+          ],
+        ),
+      [
+        selectedItems,
+      ],
+    );
+
+  const previewChatAvatar =
+    previewChatAvatars.find(
+      (avatar) =>
+        avatar.id ===
+        selectedItems.equippedChatAvatarId,
+    ) ?? previewChatAvatars[0] ?? null;
+
   const bannerLayoutKey =
     getBannerLayoutKey(
       previewBanner,
@@ -333,11 +380,64 @@ export default function MyCustomizationPage() {
     itemId,
   ) => {
     setSelectedItems(
+      (current) => {
+        if (
+          activeCategory ===
+          CUSTOMIZATION_CATEGORY.CHAT_THEME
+        ) {
+          const avatars =
+            getChatThemeAvatars(
+              itemId,
+            );
+
+          const currentAvatar =
+            getChatThemeAvatarById(
+              current.equippedChatAvatarId,
+            );
+
+          return {
+            ...current,
+
+            [activeCategory]:
+              itemId,
+
+            equippedChatAvatarId:
+              currentAvatar?.themeId ===
+                itemId
+                ? currentAvatar.id
+                : avatars[0]?.id ?? null,
+          };
+        }
+
+        return {
+          ...current,
+
+          [activeCategory]:
+            itemId,
+        };
+      },
+    );
+
+    setSuccessMessage('');
+  };
+
+  const handleSelectChatAvatar = (
+    avatarId,
+  ) => {
+    if (
+      !previewChatAvatars.some(
+        (avatar) =>
+          avatar.id === avatarId,
+      )
+    ) {
+      return;
+    }
+
+    setSelectedItems(
       (current) => ({
         ...current,
-
-        [activeCategory]:
-          itemId,
+        equippedChatAvatarId:
+          avatarId,
       }),
     );
 
@@ -763,12 +863,26 @@ export default function MyCustomizationPage() {
               <>
                 <div className="my-customization-chat-preview">
                   {previewChatTheme ? (
-                    <img
-                      src={
-                        previewChatTheme.asset
-                      }
-                      alt={`${previewChatTheme.name} 채팅 테마`}
-                    />
+                    <>
+                      <img
+                        className="my-customization-chat-theme-image"
+                        src={
+                          previewChatTheme.asset
+                        }
+                        alt={`${previewChatTheme.name} 채팅 테마`}
+                      />
+
+                      {previewChatAvatar && (
+                        <div className="my-customization-chat-avatar-preview">
+                          <img
+                            src={
+                              previewChatAvatar.asset
+                            }
+                            alt={`${previewChatAvatar.name} 프로필 이미지`}
+                          />
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="my-customization-chat-empty">
                       적용할 채팅 테마를
@@ -777,20 +891,83 @@ export default function MyCustomizationPage() {
                   )}
                 </div>
 
+                <section className="my-customization-chat-avatar-picker">
+                  <div className="my-customization-chat-avatar-heading">
+                    <div>
+                      <h3>테마 프로필 선택</h3>
+                      <p>채팅에서 사용할 프로필 이미지를 직접 선택하세요.</p>
+                    </div>
+
+                    <span>{previewChatAvatars.length}개</span>
+                  </div>
+
+                  {previewChatAvatars.length > 0 ? (
+                    <div className="my-customization-chat-avatar-grid" role="radiogroup" aria-label="채팅 테마 프로필 이미지">
+                      {previewChatAvatars.map(
+                        (avatar) => {
+                          const isSelected =
+                            previewChatAvatar?.id ===
+                            avatar.id;
+
+                          return (
+                            <button
+                              key={avatar.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={isSelected}
+                              className={isSelected
+                                ? 'my-customization-chat-avatar-option is-selected'
+                                : 'my-customization-chat-avatar-option'}
+                              onClick={() =>
+                                handleSelectChatAvatar(
+                                  avatar.id,
+                                )
+                              }
+                            >
+                              <span className="my-customization-chat-avatar-image">
+                                <img src={avatar.asset} alt="" aria-hidden="true" />
+                                {isSelected && <span aria-hidden="true">✓</span>}
+                              </span>
+                              <strong>{avatar.name}</strong>
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+                  ) : (
+                    <div className="my-customization-chat-avatar-empty">
+                      이 테마에서 사용할 수 있는 프로필 이미지가 없습니다.
+                    </div>
+                  )}
+                </section>
+
                 <section className="my-customization-current-panel">
                   <h3>
                     현재 조합
                   </h3>
 
-                  <div className="my-customization-chat-current">
-                    <span>
-                      채팅방 테마
-                    </span>
+                  <div className="my-customization-chat-current-list">
+                    <div className="my-customization-chat-current">
+                      <span>
+                        채팅방 테마
+                      </span>
 
-                    <strong>
-                      {previewChatTheme?.name ??
-                        '없음'}
-                    </strong>
+                      <strong>
+                        {previewChatTheme?.name ??
+                          '없음'}
+                      </strong>
+                    </div>
+
+                    <div className="my-customization-chat-current">
+                      <span>
+                        프로필 이미지
+                      </span>
+
+                      <strong>
+                        {previewChatAvatar?.name ??
+                          '기본 Avatar'}
+                      </strong>
+                    </div>
                   </div>
                 </section>
               </>

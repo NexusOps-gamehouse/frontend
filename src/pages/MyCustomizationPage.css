@@ -156,22 +156,16 @@
   --safe-bottom: 14%;
 
   /*
-   * 모든 배너 공통 크기
-   * 수호의 명 기준
+   * 프로필 이미지는 유지하고
+   * 테두리만 이미지에 조금 더 가깝게 축소
    */
   --avatar-column: 120px;
-  --avatar-stage-size: 112px;
+  --avatar-stage-size: 92px;
   --avatar-size: 64px;
 
-  --emblem-column: 112px;
+  --emblem-column: 110px;
   --emblem-width: 88px;
   --emblem-height: 112px;
-
-  /*
-   * 배너별 위치 미세조정
-   */
-  --avatar-offset-x: 0px;
-  --emblem-offset-x: 0px;
 
   --content-gap: 10px;
 
@@ -278,10 +272,6 @@
   max-height: 100%;
 
   flex: 0 0 auto;
-
-  transform: translateX(
-    var(--avatar-offset-x)
-  );
 }
 
 .custom-profile-avatar {
@@ -483,10 +473,6 @@
   max-height: 100%;
 
   flex: 0 0 auto;
-
-  transform: translateX(
-    var(--emblem-offset-x)
-  );
 }
 
 .custom-profile-emblem img {
@@ -523,28 +509,21 @@
 
 /* =========================
    수호의 명
-
-   테두리와 휘장을
-   이전보다 조금 더 중앙 쪽으로 이동
 ========================= */
 
 .banner-layout-guardian {
   --safe-left: 11%;
-  --safe-right: 13%;
+  --safe-right: 11.5%;
   --safe-top: 14%;
   --safe-bottom: 14%;
 
-  --content-gap: 10px;
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
 
-  /*
-   * 기존:
-   * +7px / -7px
-   *
-   * 현재:
-   * +10px / -10px
-   */
-  --avatar-offset-x: 10px;
-  --emblem-offset-x: -10px;
+  --emblem-column: 112px;
+  --emblem-width: 88px;
+  --emblem-height: 112px;
 }
 
 /* =========================
@@ -557,7 +536,16 @@
   --safe-top: 18%;
   --safe-bottom: 18%;
 
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 100px;
+
   --content-gap: 7px;
+
+  --emblem-width: 82px;
+  --emblem-height: 102px;
 }
 
 /* =========================
@@ -566,11 +554,18 @@
 
 .banner-layout-disco {
   --safe-left: 12%;
-  --safe-right: 13.5%;
+  --safe-right: 12%;
   --safe-top: 17%;
   --safe-bottom: 17%;
 
-  --content-gap: 8px;
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 104px;
+
+  --emblem-width: 84px;
+  --emblem-height: 104px;
 }
 
 /* =========================
@@ -584,7 +579,16 @@
   --safe-top: 31%;
   --safe-bottom: 9%;
 
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 98px;
+
   --content-gap: 6px;
+
+  --emblem-width: 80px;
+  --emblem-height: 100px;
 }
 
 /* =========================
@@ -597,7 +601,16 @@
   --safe-top: 17%;
   --safe-bottom: 20%;
 
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 98px;
+
   --content-gap: 5px;
+
+  --emblem-width: 80px;
+  --emblem-height: 100px;
 }
 
 /* =========================
@@ -610,7 +623,16 @@
   --safe-top: 18%;
   --safe-bottom: 22%;
 
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 100px;
+
   --content-gap: 6px;
+
+  --emblem-width: 82px;
+  --emblem-height: 102px;
 }
 
 /* =========================
@@ -623,9 +645,16 @@
   --safe-top: 18%;
   --safe-bottom: 22%;
 
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 102px;
+
   --content-gap: 7px;
 
-  --emblem-offset-x: -14px;
+  --emblem-width: 84px;
+  --emblem-height: 104px;
 }
 
 /* =========================
@@ -638,7 +667,16 @@
   --safe-top: 14%;
   --safe-bottom: 26%;
 
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 100px;
+
   --content-gap: 6px;
+
+  --emblem-width: 82px;
+  --emblem-height: 102px;
 }
 
 /* =========================
@@ -651,7 +689,14 @@
   --safe-top: 16%;
   --safe-bottom: 16%;
 
-  --content-gap: 8px;
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 104px;
+
+  --emblem-width: 84px;
+  --emblem-height: 104px;
 }
 
 /* =========================
@@ -920,6 +965,8 @@
 ========================= */
 
 .my-customization-chat-preview {
+  position: relative;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -935,7 +982,7 @@
   background: #101014;
 }
 
-.my-customization-chat-preview img {
+.my-customization-chat-preview > .my-customization-chat-theme-image {
   display: block;
 
   width: 100%;
@@ -945,9 +992,185 @@
   object-fit: contain;
 }
 
+.my-customization-chat-avatar-preview {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 76px;
+  height: 76px;
+
+  overflow: hidden;
+
+  border: 3px solid var(--surface, #fff);
+  border-radius: 50%;
+
+  background: var(--surface, #fff);
+
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.my-customization-chat-avatar-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .my-customization-chat-empty {
   color: #999;
   font-size: 13px;
+}
+
+.my-customization-chat-avatar-picker {
+  margin-top: 18px;
+  padding: 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background: var(--card, var(--surface, #fff));
+}
+
+.my-customization-chat-avatar-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.my-customization-chat-avatar-heading h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.my-customization-chat-avatar-heading p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.my-customization-chat-avatar-heading > span {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.my-customization-chat-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.my-customization-chat-avatar-option {
+  min-width: 0;
+  padding: 10px 8px;
+
+  border: 1px solid var(--border);
+  border-radius: 11px;
+
+  background: var(--bg, var(--surface-hover, #f7f8fb));
+  color: var(--text-main);
+
+  font: inherit;
+  text-align: center;
+
+  cursor: pointer;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.my-customization-chat-avatar-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.my-customization-chat-avatar-option:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.my-customization-chat-avatar-option.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow, rgba(19, 63, 195, 0.12));
+}
+
+.my-customization-chat-avatar-image {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 8px;
+
+  overflow: hidden;
+
+  border: 2px solid var(--border);
+  border-radius: 50%;
+
+  background: var(--surface, #fff);
+}
+
+.my-customization-chat-avatar-option.is-selected .my-customization-chat-avatar-image {
+  border-color: var(--primary);
+}
+
+.my-customization-chat-avatar-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.my-customization-chat-avatar-image > span {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+
+  border: 2px solid var(--surface, #fff);
+  border-radius: 50%;
+
+  background: var(--primary);
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.my-customization-chat-avatar-option > strong {
+  display: block;
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-customization-chat-avatar-empty {
+  padding: 22px 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.my-customization-chat-current-list {
+  display: grid;
+  gap: 8px;
 }
 
 .my-customization-chat-current {
@@ -1046,9 +1269,13 @@
       repeat(3, minmax(0, 1fr));
   }
 
+  /*
+   * 프로필 이미지는 그대로,
+   * 테두리만 조금 더 축소
+   */
   .custom-profile-preview {
     --avatar-column: 100px;
-    --avatar-stage-size: 92px;
+    --avatar-stage-size: 78px;
     --avatar-size: 54px;
 
     --emblem-column: 96px;
@@ -1073,30 +1300,20 @@
     font-size: 7px;
   }
 
-  /* 수호의 명 */
-  .banner-layout-guardian {
-    --safe-left: 11%;
-    --safe-right: 13%;
-
-    --avatar-offset-x: 8px;
-    --emblem-offset-x: -8px;
-  }
-
-  .banner-layout-disco {
-    --safe-right: 13.5%;
-  }
-
   .banner-layout-forest {
     --safe-top: 30%;
     --safe-bottom: 10%;
+
+    --avatar-column: 100px;
+    --avatar-stage-size: 78px;
+    --avatar-size: 54px;
+
+    --emblem-width: 72px;
+    --emblem-height: 90px;
   }
 
   .banner-layout-voyage {
     --safe-right: 10.5%;
-  }
-
-  .banner-layout-fairy {
-    --emblem-offset-x: -10px;
   }
 }
 
@@ -1174,9 +1391,13 @@
     width: 100%;
   }
 
+  /*
+   * 모바일에서도 이미지 크기는 그대로,
+   * 테두리만 조금 더 축소
+   */
   .custom-profile-preview {
     --avatar-column: 78px;
-    --avatar-stage-size: 72px;
+    --avatar-stage-size: 60px;
     --avatar-size: 42px;
 
     --emblem-column: 76px;
@@ -1205,53 +1426,41 @@
     font-size: 6px;
   }
 
-  /* 수호의 명 */
   .banner-layout-guardian {
     --safe-left: 10%;
-    --safe-right: 12%;
-
-    --avatar-offset-x: 6px;
-    --emblem-offset-x: -6px;
+    --safe-right: 10.5%;
   }
 
-  /* 애머시스트 */
   .banner-layout-amethyst {
     --safe-left: 13%;
     --safe-right: 13%;
   }
 
-  /* 디스코 팝 */
-  .banner-layout-disco {
-    --safe-right: 12.5%;
-  }
-
-  /* 숲의 전사 */
   .banner-layout-forest {
     --safe-left: 17%;
     --safe-right: 15%;
 
     --safe-top: 30%;
     --safe-bottom: 10%;
+
+    --avatar-column: 78px;
+    --avatar-stage-size: 60px;
+    --avatar-size: 42px;
+
+    --emblem-width: 58px;
+    --emblem-height: 72px;
   }
 
-  /* 별 헤는 밤 */
   .banner-layout-starry {
     --safe-left: 21%;
     --safe-right: 13%;
   }
 
-  /* 항해의 길 */
   .banner-layout-voyage {
     --safe-left: 18%;
     --safe-right: 9.5%;
   }
 
-  /* 요정의 정원 */
-  .banner-layout-fairy {
-    --emblem-offset-x: -8px;
-  }
-
-  /* 머메이드 오션 */
   .banner-layout-mermaid {
     --safe-left: 14%;
     --safe-right: 15%;
@@ -1269,6 +1478,21 @@
   .my-customization-item-grid {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
+  }
+
+  .my-customization-chat-preview {
+    min-height: 360px;
+  }
+
+  .my-customization-chat-avatar-preview {
+    bottom: 16px;
+    left: 16px;
+    width: 64px;
+    height: 64px;
+  }
+
+  .my-customization-chat-avatar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .my-customization-action-inner {
