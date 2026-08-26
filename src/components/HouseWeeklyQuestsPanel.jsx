@@ -18,7 +18,7 @@ const remainingTime = (endAt, now) => {
   return `${hours}시간 ${minutes % 60}분 남음`;
 };
 
-export default function HouseWeeklyQuestsPanel({ house, user, onHouseUpdate, onNotice }) {
+export default function HouseWeeklyQuestsPanel({ house, user, onHouseUpdate, onNotice, onCoinReward }) {
   const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,6 +32,7 @@ export default function HouseWeeklyQuestsPanel({ house, user, onHouseUpdate, onN
     try {
       const data = await getHouseWeeklyQuests(house.id, user);
       setWeekly(data);
+      if (data.houseCoinReward?.rewarded) onCoinReward?.();
       const today = getKstDateId();
       setActivityDate(today >= data.startDate && today <= data.endDate ? today : data.startDate);
     } catch (err) {
@@ -40,7 +41,7 @@ export default function HouseWeeklyQuestsPanel({ house, user, onHouseUpdate, onN
     } finally {
       setLoading(false);
     }
-  }, [house.id, user]);
+  }, [house.id, onCoinReward, user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -69,6 +70,7 @@ export default function HouseWeeklyQuestsPanel({ house, user, onHouseUpdate, onN
       const result = await recordHouseQuestProgress(house.id, quest.type, payload, user);
       setWeekly(result.weeklyQuests);
       onHouseUpdate(result.house);
+      if (result.weeklyQuests.houseCoinReward?.rewarded) onCoinReward?.();
       if (result.rewardGranted > 0) {
         onNotice(`${quest.name} 완료! House XP +${result.rewardGranted}${result.leveledUp ? ` · LV. ${result.house.level} 달성` : ''}`);
       } else if (!result.progressChanged) {
@@ -109,6 +111,22 @@ export default function HouseWeeklyQuestsPanel({ house, user, onHouseUpdate, onN
           {weekly.allCompleted && (
             <div className="house-alert success" role="status">이번 주 House Mission을 모두 완료했습니다!</div>
           )}
+          <div className={`house-quest-coin-reward ${weekly.allCompleted ? 'completed' : ''}`}>
+            <div>
+              <strong>전체 완료 보상</strong>
+              <p>{weekly.allCompleted
+                ? '완료 시점의 House 멤버에게 개인 HC가 지급됩니다.'
+                : '이번 주 퀘스트 3개를 모두 완료하면 멤버마다 HC를 받아요.'}</p>
+            </div>
+            <div>
+              <strong>HC +{weekly.houseCoinReward?.amount ?? 50}</strong>
+              <span>{weekly.houseCoinReward?.rewarded
+                ? '지급 완료'
+                : weekly.allCompleted && !weekly.houseCoinReward?.eligible
+                  ? '보상 대상 아님'
+                  : weekly.allCompleted ? '지급 확인 중' : `${weekly.quests.filter((quest) => !quest.completed).length}개 남음`}</span>
+            </div>
+          </div>
           <div className="house-quest-list">
             {weekly.quests.map((quest) => {
               const progress = Math.min(100, Math.max(0, (quest.progress / quest.target) * 100));
