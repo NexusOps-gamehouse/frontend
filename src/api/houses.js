@@ -9,6 +9,7 @@ import {
   mockDeleteHouseNotice,
   mockDeleteHouseSchedule,
   mockGetHouse,
+  mockGetHouseWeeklyQuests,
   mockGetHouseSuggestionState,
   mockInviteFriends,
   mockListJoinRequests,
@@ -18,6 +19,7 @@ import {
   mockListMyInvitations,
   mockRejectInvitation,
   mockRejectJoinRequest,
+  mockRecordHouseQuestProgress,
   mockRemoveHouseMember,
   mockResetHouseSuggestion,
   mockRequestHouseJoin,
@@ -47,6 +49,13 @@ export const updateHouse = (houseId, payload, user) => mockUpdateHouse(houseId, 
 // TODO(house-xp): 실제 서비스에서는 클라이언트가 XP 값을 결정하지 않는다.
 // 서버가 게임·일정·퀘스트 활동을 검증해 POST /houses/:houseId/xp 로 지급한다.
 export const addHouseXp = (houseId, amount, user) => mockAddHouseXp(houseId, amount, user);
+// 실제 API 연결 시 GET /houses/:houseId/weekly-quests 로 교체한다.
+export const getHouseWeeklyQuests = (houseId, user) => mockGetHouseWeeklyQuests(houseId, user);
+// TODO(house-quests): 실서비스에서는 프론트가 진행도를 임의로 올리지 않는다.
+// 서버가 게임 결과와 참여자를 검증해 POST /houses/:houseId/weekly-quests/progress 로 기록한다.
+export const recordHouseQuestProgress = (houseId, questType, payload, user) => (
+  mockRecordHouseQuestProgress(houseId, questType, payload, user)
+);
 export const requestHouseJoin = (houseId, user) => mockRequestHouseJoin(houseId, user);
 export const cancelJoinRequest = (houseId, user) => mockCancelJoinRequest(houseId, user);
 export const listJoinRequests = (houseId, user) => mockListJoinRequests(houseId, user);

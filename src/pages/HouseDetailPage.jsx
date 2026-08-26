@@ -17,6 +17,7 @@ import {
 } from '../api/houses';
 import HouseInviteModal from '../components/HouseInviteModal';
 import HouseGrowthPanel from '../components/HouseGrowthPanel';
+import HouseWeeklyQuestsPanel from '../components/HouseWeeklyQuestsPanel';
 import HouseNoticeFormModal from '../components/HouseNoticeFormModal';
 import HouseSchedulesSection from '../components/HouseSchedulesSection';
 import Modal from '../components/Modal';
@@ -328,6 +329,10 @@ export default function HouseDetailPage() {
       </section>
 
       <HouseGrowthPanel house={house} user={user} onUpdate={setHouse} onNotice={setNotice} />
+
+      {house.type === 'COMPETITIVE' && isMember && (
+        <HouseWeeklyQuestsPanel house={house} user={user} onHouseUpdate={setHouse} onNotice={setNotice} />
+      )}
 
       {error && <div className="house-alert error detail-error" role="alert">{error}</div>}
       {notice && <div className="house-alert success detail-error" role="status">{notice}</div>}
