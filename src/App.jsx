@@ -24,6 +24,7 @@ import HouseDetailPage from './pages/HouseDetailPage';
 import HouseChatPage from './pages/HouseChatPage';
 import HouseSettingsPage from './pages/HouseSettingsPage';
 import HouseSuggestionPreviewPage from './pages/HouseSuggestionPreviewPage';
+import CustomizationShopPage from './pages/CustomizationShopPage';
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -64,6 +65,7 @@ export default function App() {
         )}
         <Route path="/mypage" element={<Private><MyPage /></Private>} />
         <Route path="/mypage/edit" element={<Private><ProfileEditPage /></Private>} />
+        <Route path="/customization/shop" element={<Private><CustomizationShopPage /></Private>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
