@@ -381,7 +381,7 @@ export default function SmartMatchPanel() {
                     </select>
                   </div>
                   <div className="smp-field">
-                    <label>어떤 플레이 스타일을 원하시나요? <span className="hint">고르면 그 텐션을 정해둔 방만 남아요. 비우면 무관</span></label>
+                    <label>어떤 플레이 스타일을 원하시나요? <span className="hint">다른 스타일은 빼드려요. 비우면 무관.</span></label>
                     <Chips options={PLAY_STYLES} value={playStyle} onChange={setPlayStyle} />
                   </div>
                   <div className="smp-field">
