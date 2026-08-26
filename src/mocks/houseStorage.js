@@ -9,6 +9,10 @@ import {
   normalizeWeeklyQuestHistory,
   weeklyQuestView,
 } from '../utils/houseWeeklyQuests.js';
+import {
+  getWeeklyCompletionRewardStatus,
+  grantWeeklyCompletionReward,
+} from './houseCoinStorage.js';
 
 const STORAGE_KEY = 'gamehouse.houses.v1';
 const SUGGESTION_STORAGE_KEY = 'gamehouse.houseSuggestions.v1';
@@ -414,7 +418,20 @@ export async function mockGetHouseWeeklyQuests(houseId, user, now = Date.now()) 
   const existingWeekIds = new Set(Object.keys(house.weeklyQuests));
   const { week, state } = ensureWeeklyQuestState(house.weeklyQuests, now);
   if (!existingWeekIds.has(week.weekId)) writeHouses(houses);
-  return clone(weeklyQuestView(state, week));
+  const view = weeklyQuestView(state, week);
+  if (view.allCompleted) {
+    grantWeeklyCompletionReward({
+      houseId: house.id,
+      weekId: week.weekId,
+      houseType: house.type,
+      allCompleted: true,
+      members: house.members,
+    });
+  }
+  return clone({
+    ...view,
+    houseCoinReward: getWeeklyCompletionRewardStatus(house.id, week.weekId, user),
+  });
 }
 
 export async function mockRecordHouseQuestProgress(houseId, questType, payload, user, now = Date.now()) {
@@ -462,10 +479,24 @@ export async function mockRecordHouseQuestProgress(houseId, questType, payload, 
     rewardGranted = definition.rewardXp;
   }
 
+  const weeklyView = weeklyQuestView(state, week);
+  if (weeklyView.allCompleted) {
+    grantWeeklyCompletionReward({
+      houseId: house.id,
+      weekId: week.weekId,
+      houseType: house.type,
+      allCompleted: true,
+      members: house.members,
+    });
+  }
+
   writeHouses(houses);
   const updatedHouse = withViewerState(house, user);
   return {
-    weeklyQuests: weeklyQuestView(state, week),
+    weeklyQuests: {
+      ...weeklyView,
+      houseCoinReward: getWeeklyCompletionRewardStatus(house.id, week.weekId, user),
+    },
     house: updatedHouse,
     rewardGranted,
     progressChanged,

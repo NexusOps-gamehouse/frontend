@@ -17,6 +17,7 @@ import {
 } from '../api/houses';
 import HouseInviteModal from '../components/HouseInviteModal';
 import HouseGrowthPanel from '../components/HouseGrowthPanel';
+import HouseCoinWallet from '../components/HouseCoinWallet';
 import HouseWeeklyQuestsPanel from '../components/HouseWeeklyQuestsPanel';
 import HouseNoticeFormModal from '../components/HouseNoticeFormModal';
 import HouseSchedulesSection from '../components/HouseSchedulesSection';
@@ -69,6 +70,10 @@ export default function HouseDetailPage() {
   const [noticeToDelete, setNoticeToDelete] = useState(null);
   const [deletingNotice, setDeletingNotice] = useState(false);
   const [deleteNoticeError, setDeleteNoticeError] = useState('');
+  const [coinWalletVersion, setCoinWalletVersion] = useState(0);
+  const refreshCoinWallet = useCallback(() => {
+    setCoinWalletVersion((value) => value + 1);
+  }, []);
 
   const loadNotices = useCallback(async () => {
     setNoticesLoading(true);
@@ -328,10 +333,13 @@ export default function HouseDetailPage() {
         </aside>
       </section>
 
+      <HouseCoinWallet user={user} refreshKey={coinWalletVersion} />
+
       <HouseGrowthPanel house={house} user={user} onUpdate={setHouse} onNotice={setNotice} />
 
       {house.type === 'COMPETITIVE' && isMember && (
-        <HouseWeeklyQuestsPanel house={house} user={user} onHouseUpdate={setHouse} onNotice={setNotice} />
+        <HouseWeeklyQuestsPanel house={house} user={user} onHouseUpdate={setHouse} onNotice={setNotice}
+                                onCoinReward={refreshCoinWallet} />
       )}
 
       {error && <div className="house-alert error detail-error" role="alert">{error}</div>}
