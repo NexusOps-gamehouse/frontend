@@ -16,27 +16,8 @@ export const MIC_LEVELS = [
   { label: '상관없음', code: 'ANY' },
 ];
 
-/**
- * 스마트 매칭(match/new) 검색 폼이 게임에 따라 다르게 보여줄 옵션들.
- * 포지션/역할·티어 서열·게임모드는 게임마다 어휘가 달라서(예: LOL 포지션 vs
- * 발로란트 역할, LOL 티어 vs 발로란트 티어) post/new와 같은 구조로 게임 선택 →
- * 조건부 하위 질문 흐름을 만든다. 티어 목록은 match 백엔드의
- * LolMatchingStrategy/ValorantMatchingStrategy 서열표와 맞춰뒀다.
- */
-export const MATCH_GAME_CONFIG = {
-  리그오브레전드: {
-    positionLabel: '포지션',
-    positions: ['탑', '정글', '미드', '원딜', '서폿'],
-    tiers: ['아이언', '브론즈', '실버', '골드', '플래티넘', '에메랄드', '다이아몬드', '마스터 이상'],
-    gameModes: ['일반', '랭크', '칼바람'],
-  },
-  발로란트: {
-    positionLabel: '역할',
-    positions: ['듀얼리스트', '이니시에이터', '컨트롤러', '센티널'],
-    tiers: ['아이언', '브론즈', '실버', '골드', '플래티넘', '다이아몬드', '초월자', '불멸', '레디언트'],
-    gameModes: ['일반', '경쟁전', '데스매치', '기타'],
-  },
-};
+/* MATCH_GAME_CONFIG(스마트 매칭 검색 폼 옵션)는 GAME_REQUIREMENT_FIELDS 에서
+ * 파생시킨다. 정의가 그 아래에 있어야 해서 이 파일 뒷부분으로 옮겨두었다. */
 
 /**
  * 1회 플레이 선호 분량.
@@ -172,3 +153,35 @@ export const GAME_REQUIREMENT_FIELDS = {
 /** '상관없음'과 빈 값을 걷어낸다. 조건 없음은 빈 값으로 저장한다. */
 export const withoutAny = (values) =>
   (values ?? []).filter((v) => v && v !== ANY);
+
+/**
+ * 스마트 매칭 검색 폼이 게임에 따라 다르게 보여줄 옵션들.
+ *
+ * [왜 파생시키는가] 예전에는 이 목록을 손으로 따로 적어두었는데, 그 사이 세 군데가
+ * 조용히 어긋나 있었다.
+ *   - 발로란트 역할: 여기는 '듀얼리스트/이니시에이터/컨트롤러/센티널', 모집글은
+ *     '타격대/척후대/전략가/감시자'. 겹치는 값이 하나도 없어 발로란트에서 역할을
+ *     고르면 결과가 **항상 0건**이었다.
+ *   - LOL 게임 모드: 여기는 '일반', 모집글은 '신속'. '일반'으로 저장된 LOL 글은
+ *     존재할 수 없으니 후보 목록 자체가 빈 배열로 돌아왔다.
+ *   - 발로란트 티어: 여기는 '초월자', 모집글은 '초월'.
+ *
+ * 검색 조건은 결국 "모집글에 저장된 값"과 문자열로 비교된다. 그러니 기준은 저장을
+ * 검증하는 쪽(GAME_REQUIREMENT_FIELDS = 백엔드 GameOptions)이어야 한다. 목록을 두
+ * 벌 두면 언젠가 또 어긋나고, 그때도 에러가 아니라 '결과 0건'으로만 나타난다.
+ *
+ * 키가 한글 라벨인 이유: match 서비스로 보내는 game 값이 앱 전체가 쓰는 표시명이고
+ * (백엔드가 GameOptions.ALIASES 로 코드로 바꿔 흡수한다), 화면 select 도 이 라벨을
+ * 그대로 그린다.
+ */
+export const MATCH_GAME_CONFIG = Object.fromEntries(
+  POST_GAMES.map(({ code, label }) => {
+    const f = GAME_REQUIREMENT_FIELDS[code];
+    return [label, {
+      positionLabel: f.roleLabel,
+      positions: withoutAny(f.roles),
+      tiers: withoutAny(f.tiers),
+      gameModes: withoutAny(f.modes),
+    }];
+  }),
+);

@@ -2,15 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errMsg } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { MATCH_GAME_CONFIG, PLAY_STYLES, MIC_LEVELS, MEMBER_COUNTS } from '../constants';
+import { MATCH_GAME_CONFIG, PLAY_STYLES, MIC_LEVELS, MEMBER_COUNTS, PLAY_TIMES } from '../constants';
 import Chips, { MultiChips } from './Chips';
 import { timeAgo } from '../utils';
 import { searchMatch, recordMatchEvent, recordImpressions, matchErrMsg } from '../api/match';
-
 const RECENT_KEY = 'gh_recent_match';
 const MATCH_GAMES = Object.keys(MATCH_GAME_CONFIG);
 const ANY_LABEL = '상관없음';
-
 const styles = `
 .smp-panel { position: relative; }
 .smp-title { font-size: 13px; font-weight: 800; margin-bottom: 14px; }
@@ -24,9 +22,11 @@ const styles = `
 .smp-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .smp-recent { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .smp-recent-title { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
-.smp-recent-row { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; }
-.smp-recent-score { font-weight: 800; color: var(--primary); }
-
+.smp-recent-meta { font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; }
+.smp-recent-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.smp-recent-row + .smp-recent-row { margin-top: 4px; }
+.smp-recent-row-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.smp-recent-score { font-weight: 800; color: var(--primary); flex-shrink: 0; }
 /* ---- 모달 ---- */
 .smp-overlay {
   position: fixed; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(2px);
@@ -45,7 +45,6 @@ const styles = `
 }
 .smp-close:hover { border-color: var(--danger); color: var(--danger); }
 .smp-modal-body { padding: 20px 24px 24px; }
-
 .smp-field { margin-bottom: 18px; }
 .smp-field label { display: block; font-size: 12.5px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; }
 .smp-field .hint { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-left: 6px; }
@@ -60,7 +59,6 @@ const styles = `
   color: var(--text-muted); cursor: pointer; font-family: inherit;
 }
 .smp-toggle2 button.sel { background: var(--primary); color: #fff; }
-
 .smp-submit {
   width: 100%; padding: 15px; border: none; border-radius: var(--radius-md); cursor: pointer; margin-top: 6px;
   background: linear-gradient(135deg, var(--primary), #1d4ed8); color: #fff; font-size: 15px; font-weight: 800;
@@ -68,7 +66,6 @@ const styles = `
 }
 .smp-submit:hover:not(:disabled) { filter: brightness(1.08); }
 .smp-submit:disabled { opacity: .6; cursor: not-allowed; }
-
 /* ---- 결과 ---- */
 .smp-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
 .smp-meta { font-size: 12px; color: var(--text-muted); }
@@ -82,7 +79,6 @@ const styles = `
 .smp-refresh:disabled { opacity: .6; cursor: default; }
 .smp-refresh .ic { display: inline-block; transition: transform .5s; }
 .smp-refresh.spin .ic { transform: rotate(360deg); }
-
 .smp-rank1 {
   border: 1.5px solid var(--gold); background: linear-gradient(180deg, rgba(245,158,11,.06), transparent);
   border-radius: var(--radius-lg); padding: 18px; margin-bottom: 14px; position: relative;
@@ -95,9 +91,16 @@ const styles = `
 .smp-rank1-title { font-size: 14.5px; font-weight: 800; cursor: pointer; }
 .smp-rank1-title:hover { color: var(--primary); }
 .smp-rank1-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+/* 파티 구성 — "OO님의 파티"만 보여주던 자리에 실제로 누가 있는지 붙인다. */
+.smp-party { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; align-items: center; }
+.smp-party-chip {
+  font-size: 11px; font-weight: 600; color: var(--text-main); background: var(--surface-hover);
+  border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+}
+.smp-party-chip.host { background: var(--gold); color: #fff; }
+.smp-party-note { font-size: 11px; color: var(--text-muted); }
 .smp-rank1-score { font-size: 22px; font-weight: 800; color: var(--primary); white-space: nowrap; }
 .smp-rank1-score span { font-size: 11px; color: var(--text-muted); font-weight: 600; }
-
 .smp-ai-box { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; }
 .smp-ai-tag {
   display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800; color: #fff;
@@ -108,21 +111,21 @@ const styles = `
 .smp-ai-reasons li { font-size: 12.5px; color: var(--text-main); display: flex; gap: 6px; line-height: 1.5; }
 .smp-ai-reasons li::before { content: '✓'; color: var(--online); font-weight: 800; flex-shrink: 0; }
 .smp-ai-caution { font-size: 12px; color: #92400e; background: rgba(245,158,11,.12); border-radius: 7px; padding: 8px 10px; display: flex; gap: 6px; line-height: 1.5; }
-
 .smp-axis-list { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
 .smp-axis-row { display: grid; grid-template-columns: 76px 1fr 34px; align-items: center; gap: 8px; }
 .smp-axis-name { font-size: 11px; color: var(--text-muted); font-weight: 600; }
 .smp-axis-track { height: 6px; border-radius: 99px; background: var(--surface-hover); overflow: hidden; }
 .smp-axis-fill { height: 100%; border-radius: 99px; background: var(--primary); }
 .smp-axis-val { font-size: 11px; font-weight: 700; text-align: right; }
-
+/* 재본 적 없는 축(설문·프로필 미입력) — 점수는 중립값이라 '안 맞는다'로 읽히면 안 된다. */
+.smp-axis-row.unknown { opacity: .5; }
+.smp-axis-row.unknown .smp-axis-fill { background: var(--text-muted); }
 .smp-join-rank1 {
   width: 100%; margin-top: 14px; padding: 12px; border: none; border-radius: var(--radius-sm);
   background: var(--text-main); color: var(--surface); font-weight: 800; font-size: 13.5px; cursor: pointer; font-family: inherit;
 }
 .smp-join-rank1:hover:not(:disabled) { background: var(--primary); color: #fff; }
 .smp-join-rank1:disabled { background: var(--online); color: #fff; cursor: default; }
-
 .smp-row {
   display: flex; align-items: center; gap: 12px; padding: 11px 12px; border: 1px solid var(--border);
   border-radius: var(--radius-md); margin-bottom: 8px; background: var(--surface);
@@ -142,9 +145,7 @@ const styles = `
 }
 .smp-join-small:hover:not(:disabled) { background: var(--primary); border-color: var(--primary); color: #fff; }
 .smp-join-small:disabled { background: var(--online); border-color: var(--online); color: #fff; cursor: default; }
-
 .smp-empty { font-size: 13.5px; color: var(--text-muted); text-align: center; padding: 30px 10px; line-height: 1.6; }
-
 .smp-toast {
   position: fixed; bottom: 28px; right: 28px; background: var(--text-main); color: var(--surface);
   padding: 14px 20px; border-radius: var(--radius-md); font-size: 13.5px; font-weight: 600;
@@ -155,7 +156,6 @@ const styles = `
   display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0;
 }
 `;
-
 /** localStorage에서 최근 매칭 요약 읽기. 없거나 깨졌으면 null. */
 function loadRecent() {
   try {
@@ -165,26 +165,54 @@ function loadRecent() {
     return null;
   }
 }
+/**
+ * 파티에 실제로 누가 있는지 + 점수의 신뢰도.
+ *
+ * 서버는 원래도 파티원을 조회하고 있었지만(성향 점수를 가져오려면 id가 필요하다)
+ * 응답에 싣지 않아서 화면은 "OO님의 파티"까지만 말할 수 있었다. 이제 party /
+ * surveyedCount 가 내려온다.
+ *
+ * 설문 미응답자는 더 이상 점수를 깎지 않는 대신(그건 궁합 정보가 아니라 결측이다)
+ * 여기서 "N명 중 M명 설문 완료"로 드러난다 — 점수를 얼마나 믿을지는 사용자가 판단한다.
+ */
+function PartyLine({ item }) {
+  const party = item.party ?? [];
+  if (party.length === 0) return null;
+
+  const surveyed = item.surveyedCount ?? 0;
+  return (
+    <div className="smp-party">
+      {party.map((m) => (
+        <span key={m.userId} className={`smp-party-chip${m.host ? ' host' : ''}`}>
+          {m.host ? '👑 ' : ''}{m.nickname ?? '알 수 없음'}{m.age ? ` · ${m.age}세` : ''}
+        </span>
+      ))}
+      {surveyed < party.length && (
+        <span className="smp-party-note">{party.length}명 중 {surveyed}명 성향 설문 완료</span>
+      )}
+    </div>
+  );
+}
 
 export default function SmartMatchPanel() {
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState('form'); // 'form' | 'results'
   const [recent, setRecent] = useState(loadRecent);
-
   // 검색 조건 — post/new와 같은 구조: 게임 선택 → 게임별 조건부 하위 질문
   const [game, setGame] = useState(MATCH_GAMES[0]);
   const cfg = MATCH_GAME_CONFIG[game];
   const [gameMode, setGameMode] = useState('');
   const [positions, setPositions] = useState([]);
   const [tier, setTier] = useState(''); // ''=상관없음
-  const [playTime, setPlayTime] = useState('');
-  const [playStyle, setPlayStyle] = useState(''); // ''=상관없음. 아직 결과에는 반영되지 않음(참고용)
+  // 시간대는 자유 입력이 아니라 프로필과 같은 어휘(아침/낮/저녁/새벽)로 받는다.
+  // 자유 텍스트("오늘 21시")는 서버가 프로필의 playTimes와 비교할 방법이 없어
+  // 저장도 안 되고 점수에도 못 쓰이는 값이었다. 비우면 프로필 값을 그대로 쓴다.
+  const [playTimes, setPlayTimes] = useState([]);
+  const [playStyle, setPlayStyle] = useState(''); // ''=상관없음. 고르면 그 텐션의 방만 남는 Hard Filter
   const [micLevel, setMicLevel] = useState('ANY');
   const [sizes, setSizes] = useState([]);
-
   /** 게임을 바꾸면 게임별 옵션이 통째로 달라지니, 그 게임에 종속된 선택값은 초기화한다. */
   const changeGame = (g) => {
     setGame(g);
@@ -192,7 +220,6 @@ export default function SmartMatchPanel() {
     setPositions([]);
     setTier('');
   };
-
   const [searching, setSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -200,13 +227,11 @@ export default function SmartMatchPanel() {
   const [meta, setMeta] = useState(null); // { gameLabel, gameModeLabel, sizeLabel }
   const [appliedIds, setAppliedIds] = useState(() => new Set());
   const [toast, setToast] = useState(null);
-
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(null), 2600);
     return () => clearTimeout(id);
   }, [toast]);
-
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') close(); };
@@ -214,7 +239,6 @@ export default function SmartMatchPanel() {
     return () => document.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
   const openModal = () => {
     if (!user) { navigate('/login'); return; }
     setStep('form');
@@ -222,7 +246,6 @@ export default function SmartMatchPanel() {
     setOpen(true);
   };
   const close = () => setOpen(false);
-
   const buildRequest = () => ({
     game,
     gameMode: gameMode || null,
@@ -231,10 +254,9 @@ export default function SmartMatchPanel() {
     micLevel,
     playStyle: playStyle || null,
     targetMembersOptions: sizes.map((n) => parseInt(n, 10)),
-    playTime: playTime || null,
+    playTime: playTimes.join(',') || null,
     limit: 5,
   });
-
   const submit = async (e) => {
     e.preventDefault();
     setSearchError('');
@@ -250,7 +272,6 @@ export default function SmartMatchPanel() {
       setSearching(false);
     }
   };
-
   const applyResult = (req, data) => {
     setResult(data);
     setAppliedIds(new Set());
@@ -261,13 +282,13 @@ export default function SmartMatchPanel() {
     });
     if (data.results.length > 0) {
       recordImpressions(data.results.map((r) => r.resultId));
-      const top = data.results[0];
-      const nextRecent = { gameLabel: req.game, score: Math.round(top.score), at: new Date().toISOString() };
+      // 최근 매칭 결과 위젯에 1위 점수 한 줄만 보여주던 걸 top 3(제목+점수)까지 보여주도록 확장.
+      const topThree = data.results.slice(0, 3).map((r) => ({ title: r.title, score: Math.round(r.score) }));
+      const nextRecent = { gameLabel: req.game, results: topThree, at: new Date().toISOString() };
       setRecent(nextRecent);
       try { localStorage.setItem(RECENT_KEY, JSON.stringify(nextRecent)); } catch { /* 무시 */ }
     }
   };
-
   const refresh = async () => {
     if (!result) return;
     setRefreshing(true);
@@ -281,13 +302,11 @@ export default function SmartMatchPanel() {
       setTimeout(() => setRefreshing(false), 400);
     }
   };
-
   const goToPost = (item) => {
     recordMatchEvent(item.resultId, 'CLICK');
     setOpen(false);
     navigate(`/post/${item.postId}`);
   };
-
   const apply = async (item) => {
     if (appliedIds.has(item.resultId)) return;
     try {
@@ -299,28 +318,28 @@ export default function SmartMatchPanel() {
       alert(errMsg(err));
     }
   };
-
   const calculatedAtText = result?.calculatedAt
     ? `${new Date(result.calculatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} 기준 계산됨`
     : '';
-
   return (
     <aside className="smp-panel">
       <style>{styles}</style>
       <div className="smp-title">스마트 매칭</div>
       <p className="smp-blurb">포지션·티어·플레이 성향을 반영해 지금 나에게 가장 잘 맞는 파티 Top 5를 찾아드려요.</p>
       <button type="button" className="smp-cta" onClick={openModal}>⚡ 매칭하기</button>
-
       {recent && (
         <div className="smp-recent">
           <div className="smp-recent-title">최근 매칭 결과</div>
-          <div className="smp-recent-row">
-            <span>{timeAgo(recent.at)} · {recent.gameLabel}</span>
-            <span className="smp-recent-score">{recent.score}점</span>
-          </div>
+          <div className="smp-recent-meta">{timeAgo(recent.at)} · {recent.gameLabel}</div>
+          {/* recent.results가 없으면(예전 형식으로 저장된 localStorage) recent.score 한 줄로 대체 표시 */}
+          {(recent.results ?? (recent.score != null ? [{ score: recent.score }] : [])).map((r, i) => (
+            <div className="smp-recent-row" key={i}>
+              <span className="smp-recent-row-title">{r.title || `${i + 1}위`}</span>
+              <span className="smp-recent-score">{r.score}점</span>
+            </div>
+          ))}
         </div>
       )}
-
       {open && (
         <div className="smp-overlay" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
           <div className="smp-modal">
@@ -340,7 +359,6 @@ export default function SmartMatchPanel() {
                       {MATCH_GAMES.map((g) => <option key={g} value={g}>{g}</option>)}
                     </select>
                   </div>
-
                   <div className="smp-field">
                     <label>어떤 게임 모드를 원하시나요?</label>
                     <select className="smp-input" value={gameMode} onChange={(e) => setGameMode(e.target.value)}>
@@ -348,7 +366,6 @@ export default function SmartMatchPanel() {
                       {cfg.gameModes.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
-
                   <div className="smp-field">
                     <label>
                       어떤 {cfg.positionLabel}(으)로 참여하고 싶으신가요?
@@ -356,7 +373,6 @@ export default function SmartMatchPanel() {
                     </label>
                     <MultiChips options={cfg.positions} values={positions} onChange={setPositions} />
                   </div>
-
                   <div className="smp-field">
                     <label>어느 정도의 티어를 원하시나요?</label>
                     <select className="smp-input" value={tier} onChange={(e) => setTier(e.target.value)}>
@@ -364,12 +380,10 @@ export default function SmartMatchPanel() {
                       {cfg.tiers.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
-
                   <div className="smp-field">
-                    <label>어떤 플레이 스타일을 원하시나요? <span className="hint">참고용, 아직 결과에는 반영되지 않아요</span></label>
+                    <label>어떤 플레이 스타일을 원하시나요? <span className="hint">고르면 그 텐션을 정해둔 방만 남아요. 비우면 무관</span></label>
                     <Chips options={PLAY_STYLES} value={playStyle} onChange={setPlayStyle} />
                   </div>
-
                   <div className="smp-field">
                     <label>요구하는 음성 채팅 정도는요?</label>
                     <div className="smp-toggle2">
@@ -379,20 +393,15 @@ export default function SmartMatchPanel() {
                       ))}
                     </div>
                   </div>
-
                   <div className="smp-field">
-                    <label>같이 할 시간 <span className="hint">참고용, 결과에는 반영되지 않아요</span></label>
-                    <input className="smp-input" placeholder="예: 오늘 21시"
-                           value={playTime} onChange={(e) => setPlayTime(e.target.value)} />
+                    <label>주로 언제 하시나요? <span className="hint">복수 선택 가능, 비우면 프로필에 저장된 시간대를 써요</span></label>
+                    <MultiChips options={PLAY_TIMES} values={playTimes} onChange={setPlayTimes} />
                   </div>
-
                   <div className="smp-field">
                     <label>희망 파티원 수 (본인 포함) <span className="hint">복수 선택 가능, 비우면 무관</span></label>
                     <MultiChips options={MEMBER_COUNTS.map((n) => `${n}명`)} values={sizes} onChange={setSizes} />
                   </div>
-
                   {searchError && <div className="smp-empty" style={{ color: 'var(--danger)', padding: '0 0 12px' }}>{searchError}</div>}
-
                   <button type="submit" className="smp-submit" disabled={searching}>
                     {searching ? '찾는 중...' : '매칭하기'}
                   </button>
@@ -418,7 +427,6 @@ export default function SmartMatchPanel() {
                       <span className="ic">↻</span> 새로고침
                     </button>
                   </div>
-
                   {result && result.results.length === 0 ? (
                     <div className="smp-empty">{result.topExplanation?.headline || '지금 조건에 맞는 모집글이 없어요.'}</div>
                   ) : (
@@ -432,10 +440,10 @@ export default function SmartMatchPanel() {
                                 {result.results[0].title}
                               </div>
                               <div className="smp-rank1-sub">{result.results[0].authorNickname} 님의 파티</div>
+                              <PartyLine item={result.results[0]} />
                             </div>
                             <div className="smp-rank1-score">{Math.round(result.results[0].score)}<span>점</span></div>
                           </div>
-
                           {result.topExplanation && (
                             <div className="smp-ai-box">
                               <span className="smp-ai-tag">✨ AI 매칭 설명</span>
@@ -450,19 +458,18 @@ export default function SmartMatchPanel() {
                               )}
                             </div>
                           )}
-
                           <div className="smp-axis-list">
                             {result.results[0].axes.map((a) => (
-                              <div className="smp-axis-row" key={a.axis}>
+                              <div className={`smp-axis-row${a.known === false ? ' unknown' : ''}`} key={a.axis}
+                                   title={a.known === false ? '아직 정보가 없어 중립값으로 계산된 항목이에요' : undefined}>
                                 <span className="smp-axis-name">{a.axis}</span>
                                 <div className="smp-axis-track">
                                   <div className="smp-axis-fill" style={{ width: `${Math.round(a.score)}%` }} />
                                 </div>
-                                <span className="smp-axis-val">{Math.round(a.score)}</span>
+                                <span className="smp-axis-val">{a.known === false ? '—' : Math.round(a.score)}</span>
                               </div>
                             ))}
                           </div>
-
                           <button type="button" className="smp-join-rank1"
                                   disabled={appliedIds.has(result.results[0].resultId)}
                                   onClick={() => apply(result.results[0])}>
@@ -470,7 +477,6 @@ export default function SmartMatchPanel() {
                           </button>
                         </div>
                       )}
-
                       {result?.results.slice(1).map((item) => (
                         <div className="smp-row" key={item.resultId}>
                           <div className="smp-row-num">{item.rank}</div>
@@ -494,7 +500,6 @@ export default function SmartMatchPanel() {
           </div>
         </div>
       )}
-
       {toast && (
         <div className="smp-toast">
           <span className="ok">✓</span><span>{toast}</span>
