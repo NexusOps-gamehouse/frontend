@@ -1,5 +1,14 @@
 import { GAMES } from '../constants.js';
 import { calculateHouseGrowth, normalizeHouseXp } from '../utils/houseGrowth.js';
+import {
+  HOUSE_QUEST_TYPES,
+  HOUSE_WEEKLY_QUESTS,
+  ensureWeeklyQuestState,
+  getKstDateId,
+  isDateInKstWeek,
+  normalizeWeeklyQuestHistory,
+  weeklyQuestView,
+} from '../utils/houseWeeklyQuests.js';
 
 const STORAGE_KEY = 'gamehouse.houses.v1';
 const SUGGESTION_STORAGE_KEY = 'gamehouse.houseSuggestions.v1';
@@ -25,6 +34,7 @@ const INITIAL_HOUSES = [
     notices: [],
     schedules: [],
     xp: 0,
+    weeklyQuests: {},
     createdAt: '2026-08-18T10:00:00.000Z',
   },
   {
@@ -45,6 +55,7 @@ const INITIAL_HOUSES = [
     notices: [],
     schedules: [],
     xp: 0,
+    weeklyQuests: {},
     createdAt: '2026-08-20T12:30:00.000Z',
   },
   {
@@ -62,12 +73,14 @@ const INITIAL_HOUSES = [
     notices: [],
     schedules: [],
     xp: 0,
+    weeklyQuests: {},
     createdAt: '2026-08-22T15:00:00.000Z',
   },
 ];
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const MEMBER_ROLES = new Set(['OWNER', 'MANAGER', 'MEMBER']);
+const DEV_MOCK_ENABLED = import.meta.env?.DEV ?? true;
 
 // 기존 v1 데이터에 요청 id, 초대 목록, 역할이 없어도 읽을 때 안전하게 보정한다.
 const normalizeHouse = (house) => {
@@ -80,6 +93,7 @@ const normalizeHouse = (house) => {
     game: house.game || '기타',
     maxMembers: Number(house.maxMembers) || 20,
     xp: normalizeHouseXp(house.xp),
+    weeklyQuests: normalizeWeeklyQuestHistory(house.weeklyQuests),
     members: (Array.isArray(house.members) ? house.members : []).map((member) => ({
       ...member,
       id: String(member.id),
@@ -171,6 +185,8 @@ function withViewerState(house, user) {
   delete result.notices;
   // 일정도 멤버 전용 API에서 권한을 확인한 뒤 별도로 제공한다.
   delete result.schedules;
+  // 주간 퀘스트 원본은 경쟁형 House 멤버 전용 API에서만 제공한다.
+  delete result.weeklyQuests;
   if (status !== 'OWNER') {
     delete result.joinRequests;
     delete result.invitations;
@@ -234,6 +250,15 @@ function requireScheduleManager(house, user) {
   const role = currentState(house, user);
   if (!['OWNER', 'MANAGER'].includes(role)) {
     throw new Error('방장 또는 부방장만 일정을 관리할 수 있습니다.');
+  }
+  return role;
+}
+
+function requireQuestMember(house, user) {
+  const role = currentState(house, user);
+  if (!MEMBER_ROLES.has(role)) throw new Error('House 멤버만 주간 퀘스트를 볼 수 있습니다.');
+  if (house.type !== 'COMPETITIVE') {
+    throw new Error('주간 퀘스트는 경쟁형 House에서만 이용할 수 있습니다.');
   }
   return role;
 }
@@ -345,6 +370,7 @@ export async function mockCreateHouse(payload, user) {
     notices: [],
     schedules: [],
     xp: 0,
+    weeklyQuests: {},
     createdAt: new Date().toISOString(),
   };
   writeHouses([house, ...houses]);
@@ -379,6 +405,72 @@ export async function mockAddHouseXp(houseId, amount, user) {
   house.xp = nextXp;
   writeHouses(houses);
   return withViewerState(house, user);
+}
+
+export async function mockGetHouseWeeklyQuests(houseId, user, now = Date.now()) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireQuestMember(house, user);
+  const existingWeekIds = new Set(Object.keys(house.weeklyQuests));
+  const { week, state } = ensureWeeklyQuestState(house.weeklyQuests, now);
+  if (!existingWeekIds.has(week.weekId)) writeHouses(houses);
+  return clone(weeklyQuestView(state, week));
+}
+
+export async function mockRecordHouseQuestProgress(houseId, questType, payload, user, now = Date.now()) {
+  if (!DEV_MOCK_ENABLED) throw new Error('개발 환경에서만 퀘스트 진행도를 변경할 수 있습니다.');
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireOwner(house, user);
+  requireQuestMember(house, user);
+  const definition = HOUSE_WEEKLY_QUESTS.find((quest) => quest.type === questType);
+  if (!definition) throw new Error('올바르지 않은 주간 퀘스트입니다.');
+  const { week, state } = ensureWeeklyQuestState(house.weeklyQuests, now);
+  let progressChanged = false;
+
+  if (questType === HOUSE_QUEST_TYPES.ACTIVE_DAYS) {
+    const dateId = String(payload?.date ?? '');
+    if (!isDateInKstWeek(dateId, week) || dateId > getKstDateId(now)) {
+      throw new Error('현재 주에 활동한 날짜를 선택해주세요.');
+    }
+    if (!state.progress.ACTIVE_DAYS.includes(dateId)
+      && state.progress.ACTIVE_DAYS.length < definition.target) {
+      state.progress.ACTIVE_DAYS.push(dateId);
+      state.progress.ACTIVE_DAYS.sort();
+      progressChanged = true;
+    }
+  } else {
+    const amount = payload?.amount;
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+      throw new Error('진행도는 양의 정수만 기록할 수 있습니다.');
+    }
+    const current = state.progress[questType];
+    const next = Math.min(definition.target, current + amount);
+    progressChanged = next !== current;
+    state.progress[questType] = next;
+  }
+
+  const rawProgress = questType === HOUSE_QUEST_TYPES.ACTIVE_DAYS
+    ? state.progress.ACTIVE_DAYS.length : state.progress[questType];
+  let rewardGranted = 0;
+  const previousLevel = calculateHouseGrowth(house.xp).level;
+  if (rawProgress >= definition.target && !state.rewarded[questType]) {
+    const nextXp = normalizeHouseXp(house.xp) + definition.rewardXp;
+    if (!Number.isSafeInteger(nextXp)) throw new Error('적립 가능한 XP 범위를 초과했습니다.');
+    house.xp = nextXp;
+    state.rewarded[questType] = true;
+    rewardGranted = definition.rewardXp;
+  }
+
+  writeHouses(houses);
+  const updatedHouse = withViewerState(house, user);
+  return {
+    weeklyQuests: weeklyQuestView(state, week),
+    house: updatedHouse,
+    rewardGranted,
+    progressChanged,
+    leveledUp: updatedHouse.level > previousLevel,
+  };
 }
 
 export async function mockRequestHouseJoin(houseId, user) {
