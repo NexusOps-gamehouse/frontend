@@ -16,6 +16,7 @@ import {
   updateMemberRole,
 } from '../api/houses';
 import HouseInviteModal from '../components/HouseInviteModal';
+import HouseGrowthPanel from '../components/HouseGrowthPanel';
 import HouseNoticeFormModal from '../components/HouseNoticeFormModal';
 import HouseSchedulesSection from '../components/HouseSchedulesSection';
 import Modal from '../components/Modal';
@@ -325,6 +326,8 @@ export default function HouseDetailPage() {
           )}
         </aside>
       </section>
+
+      <HouseGrowthPanel house={house} user={user} onUpdate={setHouse} onNotice={setNotice} />
 
       {error && <div className="house-alert error detail-error" role="alert">{error}</div>}
       {notice && <div className="house-alert success detail-error" role="status">{notice}</div>}
