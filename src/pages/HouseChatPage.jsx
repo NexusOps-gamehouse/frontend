@@ -483,6 +483,11 @@ export default function HouseChatPage() {
   ] = useState(false);
 
   const [
+    connected,
+    setConnected,
+  ] = useState(previewMode);
+
+  const [
     sendError,
     setSendError,
   ] = useState('');
@@ -505,6 +510,10 @@ export default function HouseChatPage() {
 
         setMessages(
           [],
+        );
+
+        setConnected(
+          false,
         );
 
         setAccessDenied(
@@ -541,6 +550,10 @@ export default function HouseChatPage() {
             false,
           );
 
+          setConnected(
+            true,
+          );
+
           setError('');
 
           setAccessDenied(
@@ -552,6 +565,10 @@ export default function HouseChatPage() {
 
         setLoading(
           true,
+        );
+
+        setConnected(
+          false,
         );
 
         setError('');
@@ -574,12 +591,13 @@ export default function HouseChatPage() {
               listHouseMessages(
                 houseId,
                 user,
+                true,
               ),
             ]);
 
           if (
             !MEMBER_ROLES.includes(
-              houseData.myStatus,
+              houseData.myRole ?? houseData.myStatus,
             )
           ) {
             denyAccess(
@@ -648,6 +666,15 @@ export default function HouseChatPage() {
         return undefined;
       }
 
+      // REST history가 먼저 화면에 반영된 뒤 STOMP를 연결해 초기 메시지 유실을 막는다.
+      if (
+        loading ||
+        !house ||
+        accessDenied
+      ) {
+        return undefined;
+      }
+
       let closed =
         false;
 
@@ -689,10 +716,112 @@ export default function HouseChatPage() {
             return;
           }
 
-          setMessages(
-            nextMessages ||
-              [],
-          );
+          if (
+            typeof metadata?.connected ===
+              'boolean'
+          ) {
+            setConnected(
+              metadata.connected,
+            );
+
+            if (
+              metadata.connected
+            ) {
+              setError('');
+              setSendError('');
+            } else if (
+              metadata.reconnecting
+            ) {
+              setSendError(
+                'House 채팅 연결이 끊겼습니다. 재연결 중입니다.',
+              );
+            }
+          }
+
+          if (
+            metadata?.realtime &&
+            nextMessages
+          ) {
+            setMessages(
+              (
+                previous,
+              ) => {
+                const messageIds = new Set(
+                  previous.map(
+                    (
+                      message,
+                    ) => message.id,
+                  ),
+                );
+
+                return messageIds.has(
+                  nextMessages.id,
+                )
+                  ? previous
+                  : [
+                      ...previous,
+                      nextMessages,
+                    ].slice(-100);
+              },
+            );
+
+            return;
+          }
+
+          if (
+            Array.isArray(
+              nextMessages,
+            )
+          ) {
+            if (
+              metadata?.history
+            ) {
+              setMessages(
+                (
+                  previous,
+                ) => {
+                  const byId = new Map(
+                    previous.map(
+                      (
+                        message,
+                      ) => [
+                        message.id,
+                        message,
+                      ],
+                    ),
+                  );
+
+                  nextMessages.forEach(
+                    (
+                      message,
+                    ) => byId.set(
+                      message.id,
+                      message,
+                    ),
+                  );
+
+                  return Array.from(
+                    byId.values(),
+                  )
+                    .sort(
+                      (
+                        left,
+                        right,
+                      ) => new Date(
+                        left.createdAt,
+                      ).getTime() - new Date(
+                        right.createdAt,
+                      ).getTime(),
+                    )
+                    .slice(-100);
+                },
+              );
+            } else {
+              setMessages(
+                nextMessages,
+              );
+            }
+          }
 
           if (
             metadata
@@ -733,6 +862,7 @@ export default function HouseChatPage() {
               );
           }
         },
+        true,
       )
         .then(
           (
@@ -783,8 +913,11 @@ export default function HouseChatPage() {
       };
     },
     [
+      accessDenied,
       denyAccess,
+      house,
       houseId,
+      loading,
       previewMode,
       user,
     ],
@@ -894,31 +1027,11 @@ export default function HouseChatPage() {
       setSendError('');
 
       try {
-        const sent =
-          await sendHouseMessage(
-            houseId,
-            content,
-            user,
-          );
-
-        setMessages(
-          (
-            previous,
-          ) =>
-            previous.some(
-              (
-                message,
-              ) =>
-                message.id ===
-                sent.id,
-            )
-              ? previous
-              : [
-                  ...previous,
-                  sent,
-                ].slice(
-                  -100,
-                ),
+        await sendHouseMessage(
+          houseId,
+          content,
+          user,
+          true,
         );
 
         setInput('');
@@ -1074,13 +1187,14 @@ export default function HouseChatPage() {
         member,
       ) =>
         String(
-          member.id,
+          member.userId ?? member.id,
         ) ===
         viewerId,
     );
 
   const viewerRole =
     viewerMember?.role ??
+    house.myRole ??
     house.myStatus ??
     'MEMBER';
 
@@ -1188,10 +1302,24 @@ export default function HouseChatPage() {
                   ) ===
                   viewerId;
 
+                const authorMember =
+                  house.members.find(
+                    (
+                      member,
+                    ) => String(
+                      member.userId ??
+                        member.id,
+                    ) === String(
+                      message.senderId ??
+                        message.author?.id,
+                    ),
+                  );
+
                 const authorRole =
                   message
                     .author
                     ?.role ??
+                  authorMember?.role ??
                   'MEMBER';
 
                 const avatar = (
@@ -1317,7 +1445,8 @@ export default function HouseChatPage() {
                 2
               }
               disabled={
-                sending
+                sending ||
+                (!previewMode && !connected)
               }
               onChange={(
                 event,
@@ -1348,12 +1477,15 @@ export default function HouseChatPage() {
               type="submit"
               disabled={
                 sending ||
-                !input.trim()
+                !input.trim() ||
+                (!previewMode && !connected)
               }
             >
               {sending
                 ? '전송 중…'
-                : '전송'}
+                : connected || previewMode
+                  ? '전송'
+                  : '연결 중…'}
             </button>
 
           </div>

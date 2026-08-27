@@ -149,7 +149,7 @@ export default function HouseWeeklyQuestsPanel({ house, user, onHouseUpdate, onN
                     <div style={{ width: `${progress}%` }} />
                   </div>
 
-                  {import.meta.env.DEV && house.myStatus === 'OWNER' && (
+                  {import.meta.env.DEV && (house.myRole ?? house.myStatus) === 'OWNER' && (
                     <div className="house-quest-dev">
                       <strong>개발 전용 진행도 테스트</strong>
                       {quest.type === HOUSE_QUEST_TYPES.ACTIVE_DAYS ? (

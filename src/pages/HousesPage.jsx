@@ -5,33 +5,43 @@ import HouseCoinWallet from '../components/HouseCoinWallet';
 import { useAuth } from '../context/AuthContext';
 import './Houses.css';
 
-const TYPE_LABEL = { SOCIAL: '친목형', COMPETITIVE: '경쟁형' };
+const TYPE_LABEL = {
+  SOCIAL: '친목형',
+  COMPETITIVE: '경쟁형',
+  PUBLIC: '공개',
+  PRIVATE: '비공개',
+};
 
 function HouseCard({ house }) {
-  const mine = ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myStatus);
+  const mine = ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myRole) && house.myStatus === 'APPROVED';
+  const memberCount = house.memberCount ?? house.members?.length ?? 0;
+  const leaderName = house.owner?.nickname || (house.leaderId ? `사용자 #${house.leaderId}` : '방장');
+  const hasVisibilityType = ['PUBLIC', 'PRIVATE'].includes(house.type);
 
   return (
     <Link className="house-card" to={`/houses/${house.id}`} aria-label={`${house.name} 상세 보기`}>
       <div className="house-card-head">
         <div className="house-tags">
-          <span className="ui-tag house-game">🎯 {house.game}</span>
-          <span className={`ui-tag house-type ${house.type.toLowerCase()}`}>{TYPE_LABEL[house.type]}</span>
-          <span className="ui-tag">{house.visibility === 'PUBLIC' ? '🌐 공개' : '🔒 비공개'}</span>
+          {house.game && <span className="ui-tag house-game">🎯 {house.game}</span>}
+          <span className={`ui-tag house-type ${house.type.toLowerCase()}`}>{TYPE_LABEL[house.type] || house.type}</span>
+          {!hasVisibilityType && (
+            <span className="ui-tag">{house.visibility === 'PUBLIC' ? '🌐 공개' : '🔒 비공개'}</span>
+          )}
         </div>
         {mine && <span className="ui-tag is-online">내 House</span>}
       </div>
       <div>
         <h2>{house.name}</h2>
-        <p>{house.description}</p>
+        {house.description && <p>{house.description}</p>}
       </div>
       <div className="house-card-foot">
         <div className="ui-author">
-          <div className="ui-author-av">{house.owner.nickname?.[0] || '?'}</div>
+          <div className="ui-author-av">{leaderName[0] || '?'}</div>
           <div className="ui-author-info">
             <span className="ui-author-name">
-              {house.owner.nickname} <span className="owner-badge">방장</span>
+              {leaderName} <span className="owner-badge">방장</span>
             </span>
-            <span className="ui-time">멤버 {house.members.length}/{house.maxMembers}명</span>
+            <span className="ui-time">멤버 {memberCount}/{house.maxMembers}명</span>
           </div>
         </div>
         <span className="house-card-link">자세히 보기 →</span>
@@ -73,7 +83,9 @@ export default function HousesPage() {
     [houses],
   );
   const myHouses = useMemo(
-    () => houses.filter((house) => ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myStatus)),
+    () => houses.filter((house) => (
+      ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myRole) && house.myStatus === 'APPROVED'
+    )),
     [houses],
   );
   const visible = tab === 'public' ? publicHouses : myHouses;
