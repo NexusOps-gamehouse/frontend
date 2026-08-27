@@ -17,6 +17,7 @@ export function calculateHouseGrowth(value) {
   const spentXp = (HOUSE_XP_STEP * completedLevels * (completedLevels + 1)) / 2;
   const currentLevelXp = xp - spentXp;
   const nextLevelXp = xpRequiredForNextLevel(level);
+  const progressPercent = Math.min(100, Math.max(0, (currentLevelXp / nextLevelXp) * 100));
 
-  return { level, xp, currentLevelXp, nextLevelXp };
+  return { level, xp, currentLevelXp, nextLevelXp, progressPercent };
 }

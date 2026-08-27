@@ -441,7 +441,12 @@ export default function HouseDetailPage() {
       )}
 
       {isMember && (
-        <HouseWeeklyQuestsPanel house={house} user={user} useCrewApi={isCrewHouse} />
+        <HouseWeeklyQuestsPanel
+          house={house}
+          user={user}
+          useCrewApi={isCrewHouse}
+          onHouseUpdate={setHouse}
+        />
       )}
 
       {error && <div className="house-alert error detail-error" role="alert">{error}</div>}

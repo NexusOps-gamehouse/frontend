@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getHouseWeeklyQuests } from '../api/houses';
+import {
+  claimHouseWeeklyXpReward,
+  getHouseWeeklyQuests,
+  recordHouseQuestProgress,
+} from '../api/houses';
+import { getKstDateId, HOUSE_QUEST_TYPES } from '../utils/houseWeeklyQuests';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short',
@@ -10,10 +15,14 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? '' : DATE_FORMAT.format(date);
 };
 
-export default function HouseWeeklyQuestsPanel({ house, user, useCrewApi = false }) {
+export default function HouseWeeklyQuestsPanel({
+  house, user, useCrewApi = false, onHouseUpdate,
+}) {
   const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [claiming, setClaiming] = useState(false);
+  const [devWorking, setDevWorking] = useState('');
   const mountedRef = useRef(false);
 
   const load = useCallback(async () => {
@@ -38,6 +47,40 @@ export default function HouseWeeklyQuestsPanel({ house, user, useCrewApi = false
     load();
     return () => { mountedRef.current = false; };
   }, [load]);
+
+  const claimXpReward = async () => {
+    if (!weekly?.allCompleted || weekly.xpReward?.rewarded || claiming || useCrewApi) return;
+    setClaiming(true);
+    setError('');
+    try {
+      const result = await claimHouseWeeklyXpReward(house.id, weekly.weekId, user, useCrewApi);
+      if (!mountedRef.current) return;
+      setWeekly(result.weeklyQuests);
+      if (result.house) onHouseUpdate?.(result.house);
+    } catch (err) {
+      if (mountedRef.current) setError(err.message || 'XP 보상을 받지 못했습니다.');
+    } finally {
+      if (mountedRef.current) setClaiming(false);
+    }
+  };
+
+  const recordDevProgress = async (quest) => {
+    if (devWorking || !weekly?.isMock || useCrewApi || house.myRole !== 'OWNER') return;
+    const key = quest.type || quest.id;
+    setDevWorking(key);
+    setError('');
+    try {
+      const payload = quest.type === HOUSE_QUEST_TYPES.ACTIVE_DAYS
+        ? { date: getKstDateId(), eventId: `dev-${key}-${Date.now()}` }
+        : { amount: 1, eventId: `dev-${key}-${Date.now()}` };
+      await recordHouseQuestProgress(house.id, key, payload, user);
+      await load();
+    } catch (err) {
+      if (mountedRef.current) setError(err.message || '개발용 진행도를 기록하지 못했습니다.');
+    } finally {
+      if (mountedRef.current) setDevWorking('');
+    }
+  };
 
 
   return (
@@ -85,6 +128,24 @@ export default function HouseWeeklyQuestsPanel({ house, user, useCrewApi = false
                 : weekly.allCompleted ? '지급 확인 중' : '전체 완료 시 지급'}</span>
             </div>
           </div>
+          <div className={`house-quest-coin-reward house-quest-xp-reward ${weekly.allCompleted ? 'completed' : ''}`}>
+            <div>
+              <strong>주간 XP 보상</strong>
+              <p>네 가지 퀘스트를 모두 완료하면 한 주에 한 번 받을 수 있습니다.</p>
+            </div>
+            <div>
+              <strong>+{weekly.xpReward.amount} XP</strong>
+              {weekly.xpReward.rewarded ? (
+                <span>XP 보상 수령 완료</span>
+              ) : (
+                <button className="ui-btn-primary ui-btn-sm" type="button"
+                        disabled={!weekly.allCompleted || claiming || useCrewApi}
+                        onClick={claimXpReward}>
+                  {claiming ? '받는 중…' : useCrewApi ? 'Crew API 준비 중' : weekly.allCompleted ? 'XP 보상 받기' : '전체 완료 시 활성화'}
+                </button>
+              )}
+            </div>
+          </div>
           <div className="house-quest-list">
             {weekly.quests.map((quest) => {
               const progress = quest.target > 0
@@ -104,6 +165,15 @@ export default function HouseWeeklyQuestsPanel({ house, user, useCrewApi = false
                        aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress)}>
                     <div style={{ width: `${progress}%` }} />
                   </div>
+                  {import.meta.env.DEV && weekly.isMock && !useCrewApi && house.myRole === 'OWNER' && !quest.completed && (
+                    <div className="house-quest-dev">
+                      <strong>DEV 진행도 도구</strong>
+                      <button className="ui-btn-secondary ui-btn-sm" type="button"
+                              disabled={Boolean(devWorking)} onClick={() => recordDevProgress(quest)}>
+                        {devWorking === (quest.type || quest.id) ? '기록 중…' : '+1 기록'}
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
             })}

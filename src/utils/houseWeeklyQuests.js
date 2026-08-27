@@ -8,27 +8,28 @@ export const HOUSE_QUEST_TYPES = {
   SCHEDULE_PARTICIPATION: 'SCHEDULE_PARTICIPATION',
 };
 
+// 주간 퀘스트 전체 완료 보상은 API가 준비되기 전까지 mock/dev에서만 사용한다.
+// 실제 서비스 보상 값은 서버 계약이 확정되면 API 응답으로 대체한다.
+export const HOUSE_WEEKLY_XP_REWARD = 500;
+
 export const HOUSE_WEEKLY_QUESTS = [
   {
     type: HOUSE_QUEST_TYPES.WINS,
     name: '공동 승리',
     description: 'House 멤버들이 이번 주에 함께 7승을 달성해요.',
     target: 7,
-    rewardXp: 200,
   },
   {
     type: HOUSE_QUEST_TYPES.GROUP_GAMES,
     name: '함께 플레이',
     description: 'House 멤버 2명 이상이 함께 참여한 게임을 5회 완료해요.',
     target: 5,
-    rewardXp: 150,
   },
   {
     type: HOUSE_QUEST_TYPES.ACTIVE_DAYS,
     name: '활동 일수',
     description: '서로 다른 3일에 House 멤버들과 함께 게임해요.',
     target: 3,
-    rewardXp: 150,
   },
   {
     type: HOUSE_QUEST_TYPES.SCHEDULE_PARTICIPATION,
@@ -78,7 +79,14 @@ const safeCount = (value) => Number.isSafeInteger(value) && value >= 0 ? value :
 const emptyWeekState = () => ({
   progress: { WINS: 0, GROUP_GAMES: 0, ACTIVE_DAYS: [], SCHEDULE_PARTICIPATION: 0 },
   rewarded: { WINS: false, GROUP_GAMES: false, ACTIVE_DAYS: false, SCHEDULE_PARTICIPATION: false },
+  processedActivityIds: { WINS: [], GROUP_GAMES: [], ACTIVE_DAYS: [], SCHEDULE_PARTICIPATION: [] },
 });
+
+const normalizeActivityIds = (value) => (
+  Array.isArray(value)
+    ? [...new Set(value.filter((id) => typeof id === 'string' && id.trim()))]
+    : []
+);
 
 export function normalizeWeeklyQuestHistory(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
@@ -101,6 +109,12 @@ export function normalizeWeeklyQuestHistory(value) {
         GROUP_GAMES: state.rewarded?.GROUP_GAMES === true,
         ACTIVE_DAYS: state.rewarded?.ACTIVE_DAYS === true,
         SCHEDULE_PARTICIPATION: state.rewarded?.SCHEDULE_PARTICIPATION === true,
+      },
+      processedActivityIds: {
+        WINS: normalizeActivityIds(state.processedActivityIds?.WINS),
+        GROUP_GAMES: normalizeActivityIds(state.processedActivityIds?.GROUP_GAMES),
+        ACTIVE_DAYS: normalizeActivityIds(state.processedActivityIds?.ACTIVE_DAYS),
+        SCHEDULE_PARTICIPATION: normalizeActivityIds(state.processedActivityIds?.SCHEDULE_PARTICIPATION),
       },
     }]];
   }));
