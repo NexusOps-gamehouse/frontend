@@ -6,6 +6,7 @@ import {
   mockDeleteHouseNotice,
   mockDeleteHouseSchedule,
   mockGetHouseWeeklyQuests,
+  mockClaimHouseWeeklyXpReward,
   mockGetHouseSuggestionState,
   mockInviteFriends,
   mockListHouseNotices,
@@ -31,7 +32,12 @@ import {
 } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import api, { errMsg } from './client';
-import { getKstWeek, HOUSE_WEEKLY_QUESTS } from '../utils/houseWeeklyQuests';
+import {
+  getKstWeek,
+  HOUSE_WEEKLY_QUESTS,
+  HOUSE_WEEKLY_XP_REWARD,
+} from '../utils/houseWeeklyQuests';
+import { calculateHouseGrowth } from '../utils/houseGrowth';
 
 /**
  * House 화면이 의존하는 API 계약입니다.
@@ -114,9 +120,11 @@ const houseStompClients = new Map();
 export const normalizeHouse = (house) => {
   const members = Array.isArray(house.members) ? house.members.map(normalizeMember) : [];
   const type = house.type;
+  const growth = house.xp === undefined ? {} : calculateHouseGrowth(house.xp);
 
   return {
     ...house,
+    ...growth,
     // 기존 화면의 공개 여부 필터와 새 Crew API의 type(PUBLIC/PRIVATE)을 연결한다.
     visibility: type,
     memberCount: Number.isFinite(Number(house.memberCount))
@@ -248,18 +256,19 @@ export const updateHouse = (houseId, payload, user, useCrewApi = false) => {
   ).then(normalizeHouse);
 };
 // TODO(house-xp): 실제 서비스에서는 클라이언트가 XP 값을 결정하지 않는다.
-// 서버가 게임·일정·퀘스트 활동을 검증해 POST /houses/:houseId/xp 로 지급한다.
+// Crew backend의 검증된 XP 지급 계약이 준비되기 전까지는 mock/dev 경로만 유지한다.
 export const addHouseXp = (houseId, amount, user) => mockAddHouseXp(houseId, amount, user);
 const normalizeWeeklyQuestResponse = (value = {}) => {
   const sourceQuests = Array.isArray(value.quests) ? value.quests : [];
   const quests = sourceQuests.map((quest, index) => {
     const current = Number(quest.current ?? quest.progress);
     const target = Number(quest.target);
-    const safeCurrent = Number.isFinite(current) && current >= 0 ? current : 0;
-    const safeTarget = Number.isFinite(target) && target > 0 ? target : 0;
+    const safeCurrent = Number.isSafeInteger(current) && current >= 0 ? current : 0;
+    const safeTarget = Number.isSafeInteger(target) && target > 0 ? target : 0;
 
     return {
       id: quest.id ?? quest.type ?? `quest-${index}`,
+      type: quest.type ?? quest.id ?? `quest-${index}`,
       title: quest.title ?? quest.name ?? '주간 퀘스트',
       description: quest.description ?? '',
       current: safeCurrent,
@@ -267,29 +276,34 @@ const normalizeWeeklyQuestResponse = (value = {}) => {
       completed: quest.completed === true || (safeTarget > 0 && safeCurrent >= safeTarget),
     };
   });
-  const totalCount = Number.isInteger(Number(value.totalCount)) && Number(value.totalCount) >= 0
-    ? Number(value.totalCount) : quests.length;
-  const completedCount = Number.isInteger(Number(value.completedCount)) && Number(value.completedCount) >= 0
-    ? Math.min(totalCount, Number(value.completedCount))
-    : quests.filter((quest) => quest.completed).length;
+  const totalCount = quests.length;
+  const completedCount = quests.filter((quest) => quest.completed).length;
   const reward = value.reward ?? value.houseCoinReward ?? {};
   const amount = Number(reward.amount);
+  const xpReward = value.xpReward ?? value.rewards?.xp ?? {};
+  const xpAmount = Number(xpReward.amount);
 
   return {
     weekId: value.weekId ?? '',
     isMock: value.isMock === true,
-    startAt: value.startAt ?? null,
-    endAt: value.endAt ?? null,
-    startDate: value.startDate ?? '',
-    endDate: value.endDate ?? '',
+    startAt: value.startAt ?? value.weekStart ?? null,
+    endAt: value.endAt ?? value.weekEnd ?? null,
+    startDate: value.startDate ?? value.weekStart ?? '',
+    endDate: value.endDate ?? value.weekEnd ?? '',
     quests,
     completedCount,
     totalCount,
-    allCompleted: value.allCompleted === true || (totalCount > 0 && completedCount === totalCount),
+    allCompleted: totalCount > 0 && completedCount === totalCount,
     reward: {
       type: 'HC',
       amount: Number.isSafeInteger(amount) && amount >= 0 ? amount : 50,
       rewarded: reward.rewarded === true,
+    },
+    xpReward: {
+      type: 'XP',
+      amount: Number.isSafeInteger(xpAmount) && xpAmount >= 0
+        ? xpAmount : HOUSE_WEEKLY_XP_REWARD,
+      rewarded: xpReward.rewarded === true,
     },
   };
 };
@@ -308,6 +322,7 @@ const createCrewWeeklyQuestDevFallback = () => {
       completed: false,
     })),
     reward: { type: 'HC', amount: 50, rewarded: false },
+    xpReward: { type: 'XP', amount: HOUSE_WEEKLY_XP_REWARD, rewarded: false },
   });
 };
 
@@ -326,6 +341,19 @@ export const getHouseWeeklyQuests = (houseId, user, useCrewApi = false) => {
 export const recordHouseQuestProgress = (houseId, questType, payload, user) => (
   mockRecordHouseQuestProgress(houseId, questType, payload, user)
 );
+
+// Crew XP 보상 endpoint는 아직 존재하지 않으므로 production에서는 호출하지 않는다.
+// legacy/mock 개발 화면에서만 서버 보상 흐름을 대체하는 adapter를 사용한다.
+export const claimHouseWeeklyXpReward = (houseId, weekId, user, useCrewApi = false) => {
+  if (useCrewApi) {
+    return Promise.reject(new Error('Crew 주간 XP 보상 API가 아직 준비되지 않았습니다.'));
+  }
+  return mockClaimHouseWeeklyXpReward(houseId, weekId, user)
+    .then((result) => ({
+      ...result,
+      weeklyQuests: normalizeWeeklyQuestResponse(result.weeklyQuests),
+    }));
+};
 // 기존 페이지/호출부와의 호환을 위한 이름이다. 실제 요청은 Crew endpoint를 사용한다.
 export const requestHouseJoin = (houseId) => joinHouse(houseId);
 export const cancelJoinRequest = (houseId) => leaveHouse(houseId);

@@ -8,6 +8,7 @@ import {
   isDateInKstWeek,
   normalizeWeeklyQuestHistory,
   weeklyQuestView,
+  HOUSE_WEEKLY_XP_REWARD,
 } from '../utils/houseWeeklyQuests.js';
 import {
   getWeeklyCompletionRewardStatus,
@@ -39,6 +40,7 @@ const INITIAL_HOUSES = [
     schedules: [],
     xp: 0,
     weeklyQuests: {},
+    weeklyXpRewards: {},
     createdAt: '2026-08-18T10:00:00.000Z',
   },
   {
@@ -60,6 +62,7 @@ const INITIAL_HOUSES = [
     schedules: [],
     xp: 0,
     weeklyQuests: {},
+    weeklyXpRewards: {},
     createdAt: '2026-08-20T12:30:00.000Z',
   },
   {
@@ -78,6 +81,7 @@ const INITIAL_HOUSES = [
     schedules: [],
     xp: 0,
     weeklyQuests: {},
+    weeklyXpRewards: {},
     createdAt: '2026-08-22T15:00:00.000Z',
   },
 ];
@@ -98,6 +102,8 @@ const normalizeHouse = (house) => {
     maxMembers: Number(house.maxMembers) || 20,
     xp: normalizeHouseXp(house.xp),
     weeklyQuests: normalizeWeeklyQuestHistory(house.weeklyQuests),
+    weeklyXpRewards: house.weeklyXpRewards && typeof house.weeklyXpRewards === 'object'
+      && !Array.isArray(house.weeklyXpRewards) ? house.weeklyXpRewards : {},
     members: (Array.isArray(house.members) ? house.members : []).map((member) => ({
       ...member,
       id: String(member.id),
@@ -267,6 +273,15 @@ function requireQuestMember(house, user) {
   return role;
 }
 
+function weeklyXpRewardStatus(house, weekId) {
+  const record = house.weeklyXpRewards?.[weekId];
+  return {
+    type: 'XP',
+    amount: HOUSE_WEEKLY_XP_REWARD,
+    rewarded: record?.rewarded === true,
+  };
+}
+
 function scheduleInput(payload) {
   const title = String(payload?.title ?? '').trim();
   const game = String(payload?.game ?? '').trim();
@@ -375,6 +390,7 @@ export async function mockCreateHouse(payload, user) {
     schedules: [],
     xp: 0,
     weeklyQuests: {},
+    weeklyXpRewards: {},
     createdAt: new Date().toISOString(),
   };
   writeHouses([house, ...houses]);
@@ -436,6 +452,7 @@ export async function mockGetHouseWeeklyQuests(
   return clone({
     ...view,
     houseCoinReward: getWeeklyCompletionRewardStatus(house.id, week.weekId, user),
+    xpReward: weeklyXpRewardStatus(house, week.weekId),
   });
 }
 
@@ -448,6 +465,25 @@ export async function mockRecordHouseQuestProgress(houseId, questType, payload, 
   const definition = HOUSE_WEEKLY_QUESTS.find((quest) => quest.type === questType);
   if (!definition) throw new Error('올바르지 않은 주간 퀘스트입니다.');
   const { week, state } = ensureWeeklyQuestState(house.weeklyQuests, now);
+  const eventId = String(payload?.eventId ?? '').trim();
+  const processedIds = state.processedActivityIds[questType] || [];
+  if (eventId && processedIds.includes(eventId)) {
+    return {
+      weeklyQuests: {
+        ...weeklyQuestView(state, week),
+        houseCoinReward: getWeeklyCompletionRewardStatus(house.id, week.weekId, user),
+        xpReward: weeklyXpRewardStatus(house, week.weekId),
+      },
+      house: withViewerState(house, user),
+      rewardGranted: 0,
+      progressChanged: false,
+      duplicateEvent: true,
+      leveledUp: false,
+    };
+  }
+  if (eventId) {
+    state.processedActivityIds[questType] = [...processedIds, eventId];
+  }
   let progressChanged = false;
 
   if (questType === HOUSE_QUEST_TYPES.ACTIVE_DAYS) {
@@ -472,18 +508,6 @@ export async function mockRecordHouseQuestProgress(houseId, questType, payload, 
     state.progress[questType] = next;
   }
 
-  const rawProgress = questType === HOUSE_QUEST_TYPES.ACTIVE_DAYS
-    ? state.progress.ACTIVE_DAYS.length : state.progress[questType];
-  let rewardGranted = 0;
-  const previousLevel = calculateHouseGrowth(house.xp).level;
-  if (rawProgress >= definition.target && !state.rewarded[questType]) {
-    const nextXp = normalizeHouseXp(house.xp) + definition.rewardXp;
-    if (!Number.isSafeInteger(nextXp)) throw new Error('적립 가능한 XP 범위를 초과했습니다.');
-    house.xp = nextXp;
-    state.rewarded[questType] = true;
-    rewardGranted = definition.rewardXp;
-  }
-
   const weeklyView = weeklyQuestView(state, week);
   if (weeklyView.allCompleted) {
     grantWeeklyCompletionReward({
@@ -501,11 +525,50 @@ export async function mockRecordHouseQuestProgress(houseId, questType, payload, 
     weeklyQuests: {
       ...weeklyView,
       houseCoinReward: getWeeklyCompletionRewardStatus(house.id, week.weekId, user),
+      xpReward: weeklyXpRewardStatus(house, week.weekId),
     },
     house: updatedHouse,
-    rewardGranted,
+    rewardGranted: 0,
     progressChanged,
-    leveledUp: updatedHouse.level > previousLevel,
+    leveledUp: false,
+  };
+}
+
+// Crew 주간 XP 보상 endpoint가 생기기 전까지 legacy/mock 화면에서만 사용하는 claim adapter다.
+// 보상 ledger는 houseId + weekId로 보존하여 새로고침과 중복 클릭에도 한 번만 지급한다.
+export async function mockClaimHouseWeeklyXpReward(houseId, weekId, user, now = Date.now()) {
+  if (!DEV_MOCK_ENABLED) throw new Error('개발 환경에서만 XP 보상을 받을 수 있습니다.');
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireQuestMember(house, user);
+  const { week, state } = ensureWeeklyQuestState(house.weeklyQuests, now);
+  if (String(weekId) !== week.weekId) throw new Error('현재 주차의 보상만 받을 수 있습니다.');
+  const weeklyView = weeklyQuestView(state, week);
+  if (!weeklyView.allCompleted) throw new Error('주간 퀘스트를 모두 완료한 뒤 받을 수 있습니다.');
+  if (weeklyXpRewardStatus(house, week.weekId).rewarded) {
+    throw new Error('이번 주 XP 보상은 이미 받았습니다.');
+  }
+
+  const nextXp = normalizeHouseXp(house.xp) + HOUSE_WEEKLY_XP_REWARD;
+  if (!Number.isSafeInteger(nextXp)) throw new Error('적립 가능한 XP 범위를 초과했습니다.');
+  house.xp = nextXp;
+  house.weeklyXpRewards[week.weekId] = {
+    rewarded: true,
+    amount: HOUSE_WEEKLY_XP_REWARD,
+    rewardedAt: new Date().toISOString(),
+  };
+  writeHouses(houses);
+
+  return {
+    weekId: week.weekId,
+    amount: HOUSE_WEEKLY_XP_REWARD,
+    rewarded: true,
+    weeklyQuests: {
+      ...weeklyView,
+      houseCoinReward: getWeeklyCompletionRewardStatus(house.id, week.weekId, user),
+      xpReward: weeklyXpRewardStatus(house, week.weekId),
+    },
+    house: withViewerState(house, user),
   };
 }
 
