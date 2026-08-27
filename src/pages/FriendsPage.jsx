@@ -97,7 +97,7 @@ export default function FriendsPage() {
     setHouseLoading(true);
     try {
       const houses = await listHouses(user);
-      setOwnedHouses(houses.filter((house) => house.myStatus === 'OWNER' && house.visibility === 'PRIVATE'));
+      setOwnedHouses(houses.filter((house) => house.myRole === 'OWNER' && house.visibility === 'PRIVATE'));
     } catch (err) {
       setInviteError(err.message || 'House 목록을 불러오지 못했습니다.');
     } finally {

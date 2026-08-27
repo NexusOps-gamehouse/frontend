@@ -52,7 +52,7 @@ export default function HouseGrowthPanel({ house, user, onUpdate, onNotice }) {
         <div style={{ width: `${progress}%` }} />
       </div>
 
-      {import.meta.env.DEV && house.myStatus === 'OWNER' && (
+      {import.meta.env.DEV && (house.myRole ?? house.myStatus) === 'OWNER' && (
         <div className="house-growth-dev">
           <div><strong>개발 전용 Mock XP</strong><small>실제 게임 결과와 연결되지 않은 UI 테스트 기능입니다.</small></div>
           <div className="house-growth-dev-actions">

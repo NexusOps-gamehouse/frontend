@@ -70,7 +70,7 @@ export default function HouseSettingsPage() {
     setAccessDenied(false);
     try {
       const data = await getHouse(houseId, user);
-      if (data.myStatus !== 'OWNER') {
+      if (data.myRole !== 'OWNER') {
         setAccessDenied(true);
         setError('방장만 House 설정을 관리할 수 있습니다.');
         return;

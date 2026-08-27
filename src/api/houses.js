@@ -2,18 +2,14 @@ import {
   mockAddHouseXp,
   mockAcceptInvitation,
   mockApproveJoinRequest,
-  mockCancelJoinRequest,
-  mockCreateHouse,
   mockCreateHouseNotice,
   mockCreateHouseSchedule,
   mockDeleteHouseNotice,
   mockDeleteHouseSchedule,
-  mockGetHouse,
   mockGetHouseWeeklyQuests,
   mockGetHouseSuggestionState,
   mockInviteFriends,
   mockListJoinRequests,
-  mockListHouses,
   mockListHouseNotices,
   mockListHouseSchedules,
   mockListMyInvitations,
@@ -22,7 +18,6 @@ import {
   mockRecordHouseQuestProgress,
   mockRemoveHouseMember,
   mockResetHouseSuggestion,
-  mockRequestHouseJoin,
   mockDismissHouseSuggestion,
   mockUpdateMemberRole,
   mockUpdateHouseNotice,
@@ -35,15 +30,105 @@ import {
   mockSendHouseMessage,
   mockSubscribeHouseMessages,
 } from '../mocks/houseChatStorage';
+import api, { errMsg } from './client';
 
 /**
  * House 화면이 의존하는 API 계약입니다.
- * 백엔드 준비 후 이 파일의 구현만 Axios 호출로 교체하면 pages와 Mock 저장소는
- * 수정하지 않아도 됩니다.
+ * Crew API 응답과 기존 House 화면 모델의 차이는 이 경계에서 정규화합니다.
  */
-export const listHouses = (user) => mockListHouses(user);
-export const getHouse = (houseId, user) => mockGetHouse(houseId, user);
-export const createHouse = (payload, user) => mockCreateHouse(payload, user);
+const ROLE_MAP = {
+  LEADER: 'OWNER',
+  SUB_LEADER: 'MANAGER',
+  MEMBER: 'MEMBER',
+};
+
+const normalizeRole = (role) => ROLE_MAP[role] || null;
+
+const normalizeMember = (member) => ({
+  ...member,
+  id: member.memberId,
+  role: normalizeRole(member.role) || 'MEMBER',
+});
+
+export const normalizeHouse = (house) => {
+  const members = Array.isArray(house.members) ? house.members.map(normalizeMember) : [];
+  const type = house.type;
+
+  return {
+    ...house,
+    // 기존 화면의 공개 여부 필터와 새 Crew API의 type(PUBLIC/PRIVATE)을 연결한다.
+    visibility: type,
+    memberCount: Number.isFinite(Number(house.memberCount))
+      ? Number(house.memberCount)
+      : members.length,
+    members,
+    // 기존 화면은 owner 객체를 사용하지만 Crew API는 leaderId만 제공한다.
+    owner: { id: house.leaderId },
+    // 역할과 상태는 서로 다른 값이다. 역할만 기존 UI 값으로 변환하고,
+    // APPROVED/PENDING/REJECTED 상태는 Crew API 원문을 보존한다.
+    myRole: normalizeRole(house.myRole),
+    myStatus: house.myStatus ?? null,
+  };
+};
+
+const requestCrew = async (request) => {
+  try {
+    const { data } = await request();
+    return data;
+  } catch (error) {
+    const status = error.response?.status;
+    const responseData = error.response?.data;
+    const serverMessage = typeof responseData === 'string'
+      ? responseData
+      : responseData?.message;
+    const fallbackMessage = status === 409
+      ? '이미 가입했거나 신청 중이거나, House 정원이 가득 찼습니다.'
+      : status === 403
+        ? '이 작업을 수행할 권한이 없습니다.'
+        : errMsg(error);
+    const normalizedError = new Error(serverMessage || fallbackMessage);
+    normalizedError.code = error.code;
+    normalizedError.status = status;
+    normalizedError.response = error.response;
+    throw normalizedError;
+  }
+};
+
+export const listHouses = () => requestCrew(() => api.get('/crew/houses'))
+  .then((data) => (Array.isArray(data) ? data : []).map(normalizeHouse));
+
+export const getHouse = (houseId) => requestCrew(
+  () => api.get(`/crew/houses/${encodeURIComponent(houseId)}`),
+).then(normalizeHouse);
+
+const toCrewHouseWriteRequest = (payload = {}) => {
+  const description = payload.description == null ? null : String(payload.description).trim();
+  const request = {
+    name: String(payload.name ?? '').trim(),
+    description: description || null,
+  };
+  const type = ['PUBLIC', 'PRIVATE'].includes(payload.visibility)
+    ? payload.visibility
+    : ['PUBLIC', 'PRIVATE'].includes(payload.type) ? payload.type : undefined;
+  const maxMembers = Number(payload.maxMembers);
+
+  if (type) request.type = type;
+  if (Number.isInteger(maxMembers) && maxMembers > 0) request.maxMembers = maxMembers;
+  return request;
+};
+
+export const createHouse = (payload) => requestCrew(
+  () => api.post('/crew/houses', toCrewHouseWriteRequest(payload)),
+).then(normalizeHouse);
+
+export const joinHouse = (houseId) => requestCrew(
+  () => api.post(`/crew/houses/${encodeURIComponent(houseId)}/join`),
+).then(normalizeHouse);
+
+export const leaveHouse = (houseId) => requestCrew(
+  () => api.delete(`/crew/houses/${encodeURIComponent(houseId)}/join`),
+);
+
 // 실제 API 연결 시 PUT /houses/:houseId 로 교체한다.
 export const updateHouse = (houseId, payload, user) => mockUpdateHouse(houseId, payload, user);
 // TODO(house-xp): 실제 서비스에서는 클라이언트가 XP 값을 결정하지 않는다.
@@ -56,8 +141,9 @@ export const getHouseWeeklyQuests = (houseId, user) => mockGetHouseWeeklyQuests(
 export const recordHouseQuestProgress = (houseId, questType, payload, user) => (
   mockRecordHouseQuestProgress(houseId, questType, payload, user)
 );
-export const requestHouseJoin = (houseId, user) => mockRequestHouseJoin(houseId, user);
-export const cancelJoinRequest = (houseId, user) => mockCancelJoinRequest(houseId, user);
+// 기존 페이지/호출부와의 호환을 위한 이름이다. 실제 요청은 Crew endpoint를 사용한다.
+export const requestHouseJoin = (houseId) => joinHouse(houseId);
+export const cancelJoinRequest = (houseId) => leaveHouse(houseId);
 export const listJoinRequests = (houseId, user) => mockListJoinRequests(houseId, user);
 export const approveJoinRequest = (houseId, requestId, user) => (
   mockApproveJoinRequest(houseId, requestId, user)

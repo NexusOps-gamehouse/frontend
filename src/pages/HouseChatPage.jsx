@@ -579,7 +579,7 @@ export default function HouseChatPage() {
 
           if (
             !MEMBER_ROLES.includes(
-              houseData.myStatus,
+              houseData.myRole ?? houseData.myStatus,
             )
           ) {
             denyAccess(
@@ -1074,13 +1074,14 @@ export default function HouseChatPage() {
         member,
       ) =>
         String(
-          member.id,
+          member.userId ?? member.id,
         ) ===
         viewerId,
     );
 
   const viewerRole =
     viewerMember?.role ??
+    house.myRole ??
     house.myStatus ??
     'MEMBER';
 

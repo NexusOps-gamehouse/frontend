@@ -38,7 +38,7 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
   const [deleteError, setDeleteError] = useState('');
   const [attendanceWorking, setAttendanceWorking] = useState('');
   const [attendanceError, setAttendanceError] = useState('');
-  const canManage = MANAGER_ROLES.includes(house.myStatus);
+  const canManage = MANAGER_ROLES.includes(house.myRole ?? house.myStatus);
 
   const load = useCallback(async () => {
     setLoading(true);
