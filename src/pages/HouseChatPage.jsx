@@ -1,9 +1,15 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
+
+import {
+  createPortal,
+} from 'react-dom';
 
 import {
   Link,
@@ -12,16 +18,31 @@ import {
 
 import {
   getHouse,
+  getHouseDisplayRank,
   listHouseMessages,
   sendHouseMessage,
   subscribeHouseMessages,
 } from '../api/houses';
 
 import {
+  getCustomizationState,
+  subscribeCustomization,
+} from '../api/customization';
+
+import {
   useAuth,
 } from '../context/AuthContext';
 
 import Avatar from '../components/Avatar';
+
+import {
+  CUSTOMIZATION_CATEGORY,
+  customizationItems,
+} from '../mocks/customizationItems';
+
+import {
+  getChatThemeKey,
+} from '../mocks/customizationChatAvatars';
 
 import newMemberFrame
   from '../assets/customization/rank-frames/new-member.png';
@@ -52,7 +73,7 @@ const ROLE_LABEL = {
   OWNER: '방장',
   MANAGER: '부방장',
   MEMBER: '일반 멤버',
-  NEW_MEMBER: '신입 멤버',
+  NEW_MEMBER: '신규 회원',
 };
 
 /* =========================================================
@@ -194,7 +215,8 @@ const PREVIEW_HOUSE = {
     {
       id: 'preview-new-member',
       nickname: '신입멤버',
-      role: 'NEW_MEMBER',
+      role: 'MEMBER',
+      rank: 'NEW_MEMBER',
     },
 
     {
@@ -225,7 +247,8 @@ const PREVIEW_MESSAGES = [
     author: {
       id: 'preview-new-member',
       nickname: '신입멤버',
-      role: 'NEW_MEMBER',
+      role: 'MEMBER',
+      rank: 'NEW_MEMBER',
     },
 
     content:
@@ -350,23 +373,23 @@ const isAccessError = (
 
 function HouseRankAvatar({
   person,
-  role,
+  displayRank,
   large = false,
 }) {
   const frame =
     getHouseRankFrame(
-      role,
+      displayRank,
     );
 
   const layout =
     getHouseRankLayout(
-      role,
+      displayRank,
       large,
     );
 
   const label =
     ROLE_LABEL[
-      role
+      displayRank
     ] ??
     '일반 멤버';
 
@@ -416,6 +439,60 @@ function HouseRankAvatar({
         aria-hidden="true"
       />
     </div>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4.5 4.5" />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="currentColor"
+    >
+      <circle cx="5" cy="12" r="1.7" />
+      <circle cx="12" cy="12" r="1.7" />
+      <circle cx="19" cy="12" r="1.7" />
+    </svg>
+  );
+}
+
+function ClipIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+    >
+      <path d="m8.5 12.5 6.1-6.1a3.2 3.2 0 0 1 4.5 4.5l-8.3 8.3a5 5 0 0 1-7.1-7.1l8-8" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+    >
+      <path d="m4 5 16 7-16 7 3-7-3-7Z" />
+      <path d="M7 12h13" />
+    </svg>
   );
 }
 
@@ -492,8 +569,431 @@ export default function HouseChatPage() {
     setSendError,
   ] = useState('');
 
+  const [
+    customization,
+    setCustomization,
+  ] = useState(null);
+
+  const [
+    searchOpen,
+    setSearchOpen,
+  ] = useState(false);
+
+  const [
+    searchQuery,
+    setSearchQuery,
+  ] = useState('');
+
+  const [
+    participantsOpen,
+    setParticipantsOpen,
+  ] = useState(false);
+
+  const [
+    focusedMessageId,
+    setFocusedMessageId,
+  ] = useState(null);
+
+  const [
+    participantsPopoverPosition,
+    setParticipantsPopoverPosition,
+  ] = useState(null);
+
+  const chatThemeKey = (() => {
+    const itemId = customization?.equippedChatThemeId;
+    const item = customizationItems.find((candidate) => (
+      candidate.id === itemId
+      && candidate.category === CUSTOMIZATION_CATEGORY.CHAT_THEME
+    ));
+    return getChatThemeKey(item?.id) ?? 'default';
+  })();
+
+  const chatThemeClass = `chat-theme-${chatThemeKey}`;
+
   const bottomRef =
     useRef(null);
+
+  const headerRef =
+    useRef(null);
+
+  const searchInputRef =
+    useRef(null);
+
+  const searchButtonRef =
+    useRef(null);
+
+  const searchPopoverRef =
+    useRef(null);
+
+  const moreButtonRef =
+    useRef(null);
+
+  const participantPopoverRef =
+    useRef(null);
+
+  const messageRefs =
+    useRef(new Map());
+
+  const updateParticipantsPopoverPosition =
+    useCallback(
+      () => {
+        const anchor =
+          moreButtonRef.current;
+
+        if (!anchor) {
+          return;
+        }
+
+        const anchorRect =
+          anchor.getBoundingClientRect();
+
+        const popover =
+          participantPopoverRef.current;
+
+        const popoverWidth =
+          popover?.offsetWidth || 330;
+
+        const popoverHeight =
+          popover?.offsetHeight || 360;
+
+        const gap = 10;
+        const viewportPadding = 12;
+
+        let left =
+          anchorRect.right + gap;
+
+        if (
+          left + popoverWidth >
+          window.innerWidth - viewportPadding
+        ) {
+          const leftFallback =
+            anchorRect.left - popoverWidth - gap;
+
+          left =
+            leftFallback >= viewportPadding
+              ? leftFallback
+              : Math.max(
+                  viewportPadding,
+                  window.innerWidth -
+                    popoverWidth -
+                    viewportPadding,
+                );
+        }
+
+        const top =
+          Math.min(
+            Math.max(
+              viewportPadding,
+              anchorRect.top,
+            ),
+            Math.max(
+              viewportPadding,
+              window.innerHeight -
+                popoverHeight -
+                viewportPadding,
+            ),
+          );
+
+        setParticipantsPopoverPosition({
+          top,
+          left,
+        });
+      },
+      [],
+    );
+
+  const [
+    searchPopoverPosition,
+    setSearchPopoverPosition,
+  ] = useState(null);
+
+  const updateSearchPopoverPosition =
+    useCallback(
+      () => {
+        const anchor =
+          searchButtonRef.current;
+
+        if (!anchor) {
+          return;
+        }
+
+        const anchorRect =
+          anchor.getBoundingClientRect();
+
+        const popover =
+          searchPopoverRef.current;
+
+        const popoverWidth =
+          popover?.offsetWidth || 330;
+
+        const popoverHeight =
+          popover?.offsetHeight || 360;
+
+        const gap = 8;
+        const viewportPadding = 12;
+
+        let left =
+          anchorRect.right - popoverWidth;
+
+        if (
+          left < viewportPadding
+        ) {
+          left = viewportPadding;
+        }
+
+        if (
+          left + popoverWidth >
+          window.innerWidth - viewportPadding
+        ) {
+          left = Math.max(
+            viewportPadding,
+            window.innerWidth -
+              popoverWidth -
+              viewportPadding,
+          );
+        }
+
+        let top =
+          anchorRect.bottom + gap;
+
+        if (
+          top + popoverHeight >
+          window.innerHeight - viewportPadding
+        ) {
+          top = Math.max(
+            viewportPadding,
+            anchorRect.top -
+              popoverHeight -
+              gap,
+          );
+        }
+
+        setSearchPopoverPosition({
+          top,
+          left,
+        });
+      },
+      [],
+    );
+
+  const normalizedSearchQuery =
+    searchQuery.trim().toLowerCase();
+
+  const messageSearchResults =
+    useMemo(
+      () => {
+        if (!normalizedSearchQuery) {
+          return [];
+        }
+
+        return messages.filter(
+          (message) => [
+            message.content,
+            message.senderName,
+            message.author?.nickname,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .includes(normalizedSearchQuery),
+        );
+      },
+      [
+        messages,
+        normalizedSearchQuery,
+      ],
+    );
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCustomization = async () => {
+      if (previewMode || !user) {
+        if (active) setCustomization(null);
+        return;
+      }
+
+      try {
+        const state = await getCustomizationState(user);
+        if (active) setCustomization(state);
+      } catch {
+        if (active) setCustomization(null);
+      }
+    };
+
+    const unsubscribe = subscribeCustomization(loadCustomization);
+    const handleStorage = (event) => {
+      if (event.key === 'gamehouse.customization.v2') loadCustomization();
+    };
+
+    window.addEventListener('storage', handleStorage);
+    loadCustomization();
+
+    return () => {
+      active = false;
+      unsubscribe();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [previewMode, user]);
+
+  useEffect(
+    () => {
+      if (!searchOpen && !participantsOpen) {
+        return undefined;
+      }
+
+      const closeOnOutsideClick = (event) => {
+        const isInsideHeader =
+          headerRef.current?.contains(event.target);
+
+        const isInsideParticipantPopover =
+          participantPopoverRef.current?.contains(event.target);
+
+        const isInsideSearchPopover =
+          searchPopoverRef.current?.contains(event.target);
+
+        if (
+          !isInsideHeader &&
+          !isInsideParticipantPopover &&
+          !isInsideSearchPopover
+        ) {
+          setSearchOpen(false);
+          setParticipantsOpen(false);
+          setSearchQuery('');
+          setParticipantsPopoverPosition(null);
+          setSearchPopoverPosition(null);
+        }
+      };
+
+      const closeOnEscape = (event) => {
+        if (event.key === 'Escape') {
+          setSearchOpen(false);
+          setParticipantsOpen(false);
+          setSearchQuery('');
+          setParticipantsPopoverPosition(null);
+          setSearchPopoverPosition(null);
+        }
+      };
+
+      document.addEventListener('pointerdown', closeOnOutsideClick);
+      document.addEventListener('keydown', closeOnEscape);
+
+      return () => {
+        document.removeEventListener('pointerdown', closeOnOutsideClick);
+        document.removeEventListener('keydown', closeOnEscape);
+      };
+    },
+    [
+      participantsOpen,
+      searchOpen,
+    ],
+  );
+
+  useLayoutEffect(
+    () => {
+      if (!participantsOpen) {
+        setParticipantsPopoverPosition(null);
+        return undefined;
+      }
+
+      const updatePosition = () => {
+        updateParticipantsPopoverPosition();
+      };
+
+      const frameId =
+        window.requestAnimationFrame(
+          updatePosition,
+        );
+
+      window.addEventListener(
+        'resize',
+        updatePosition,
+      );
+
+      window.addEventListener(
+        'scroll',
+        updatePosition,
+        true,
+      );
+
+      return () => {
+        window.cancelAnimationFrame(frameId);
+        window.removeEventListener(
+          'resize',
+          updatePosition,
+        );
+        window.removeEventListener(
+          'scroll',
+          updatePosition,
+          true,
+        );
+      };
+    },
+    [
+      participantsOpen,
+      updateParticipantsPopoverPosition,
+    ],
+  );
+
+  useLayoutEffect(
+    () => {
+      if (!searchOpen) {
+        setSearchPopoverPosition(null);
+        return undefined;
+      }
+
+      const updatePosition = () => {
+        updateSearchPopoverPosition();
+      };
+
+      const frameId =
+        window.requestAnimationFrame(
+          updatePosition,
+        );
+
+      window.addEventListener(
+        'resize',
+        updatePosition,
+      );
+
+      window.addEventListener(
+        'scroll',
+        updatePosition,
+        true,
+      );
+
+      return () => {
+        window.cancelAnimationFrame(frameId);
+        window.removeEventListener(
+          'resize',
+          updatePosition,
+        );
+        window.removeEventListener(
+          'scroll',
+          updatePosition,
+          true,
+        );
+      };
+    },
+    [
+      searchOpen,
+      updateSearchPopoverPosition,
+    ],
+  );
+
+  useEffect(
+    () => {
+      if (searchOpen) {
+        window.setTimeout(
+          () => searchInputRef.current?.focus(),
+          0,
+        );
+      }
+    },
+    [
+      searchOpen,
+    ],
+  );
 
   /* =========================================================
      Access Denied
@@ -1181,29 +1681,73 @@ export default function HouseChatPage() {
           user,
         );
 
-  const viewerMember =
-    house.members.find(
-      (
-        member,
-      ) =>
-        String(
-          member.userId ?? member.id,
-        ) ===
-        viewerId,
-    );
+  const memberCount =
+    house.memberCount ??
+    house.members.length;
 
-  const viewerRole =
-    viewerMember?.role ??
-    house.myRole ??
-    house.myStatus ??
-    'MEMBER';
+  const houseAvatarFallback =
+    house.name?.trim()?.charAt(0) ||
+    '🏠';
+
+  const toggleSearch = () => {
+    const next = !searchOpen;
+    setSearchOpen(next);
+    setParticipantsOpen(false);
+    setParticipantsPopoverPosition(null);
+    setSearchPopoverPosition(null);
+
+    if (!next) {
+      setSearchQuery('');
+    }
+  };
+
+  const toggleParticipants = () => {
+    const next = !participantsOpen;
+    setParticipantsOpen(next);
+    setSearchOpen(false);
+    setParticipantsPopoverPosition(null);
+    setSearchPopoverPosition(null);
+    setSearchQuery('');
+  };
+
+  const focusMessage = (messageId) => {
+    const node = messageRefs.current.get(messageId);
+
+    if (node) {
+      node.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+
+    setFocusedMessageId(messageId);
+  };
+
+  const getMemberDisplayName = (member) => {
+    const memberUserId = member.userId ?? member.id;
+
+    return member.nickname
+      || member.name
+      || member.userName
+      || (
+        String(memberUserId) === viewerId
+          ? user?.nickname
+          : null
+      )
+      || `사용자 #${memberUserId}`;
+  };
+
+  const getMemberPerson = (member) => ({
+    ...member,
+    nickname: getMemberDisplayName(member),
+  });
 
   /* =========================================================
      Render
   ========================================================= */
 
   return (
-    <div className="page house-chat-page">
+    <div className={`page house-chat-page ${chatThemeClass}`}>
 
       <Link
         className="house-back"
@@ -1216,61 +1760,206 @@ export default function HouseChatPage() {
         ← House 상세
       </Link>
 
-      <section className="house-chat-panel">
+      <section className="house-chat-panel themed-chat-panel">
 
-        <header className="house-chat-header">
+        <header
+          className="house-chat-header themed-chat-header"
+          ref={headerRef}
+        >
 
-          <div>
-            <span className="house-eyebrow">
-              {previewMode
-                ? 'HOUSE RANK FRAME PREVIEW'
-                : 'HOUSE CHAT'}
+          <div
+            className="themed-chat-brand house-chat-room-avatar"
+            aria-label={`${house.name} 대표 이미지`}
+            title={`${house.name} 대표 이미지`}
+          >
+            <span className="house-chat-room-avatar-fallback">
+              {houseAvatarFallback}
             </span>
+          </div>
 
-            <h1>
+          <button
+            type="button"
+            className="themed-chat-count"
+            aria-label={`House 참여 인원 ${memberCount}명`}
+            aria-expanded={participantsOpen}
+            aria-controls="house-chat-participants"
+            onClick={toggleParticipants}
+            title="구성원 목록"
+          >
+            {memberCount}명
+          </button>
+
+          <div className="themed-chat-heading">
+            <h1
+              className="themed-chat-title is-static"
+              title={house.name}
+            >
               {house.name}
             </h1>
-
-            <p>
-              {previewMode
-                ? 'House 계급별 프로필 테두리 미리보기입니다.'
-                : `${house.members.length}명의 House 멤버가 함께하는 전용 채팅입니다.`}
-            </p>
           </div>
 
-          <div className="house-chat-my-rank">
+          <div className="themed-chat-header-controls">
+            <button
+              type="button"
+              className="themed-chat-icon-button themed-chat-search-button house-chat-header-icon"
+              ref={searchButtonRef}
+              aria-label="메시지 검색"
+              aria-expanded={searchOpen}
+              aria-controls="house-chat-message-search"
+              onClick={toggleSearch}
+              title="메시지 검색"
+            >
+              <SearchIcon />
+            </button>
 
-            <HouseRankAvatar
-              person={
-                viewerMember ??
-                user
-              }
-              role={
-                viewerRole
-              }
-              large
-            />
-
-            <div className="house-chat-my-rank-info">
-
-              <span>
-                {previewMode
-                  ? '미리보기 계급'
-                  : '내 House 계급'}
-              </span>
-
-              <strong>
-                {
-                  ROLE_LABEL[
-                    viewerRole
-                  ] ??
-                  '일반 멤버'
-                }
-              </strong>
-
-            </div>
-
+            <button
+              type="button"
+              className="themed-chat-icon-button themed-chat-more-button house-chat-header-icon"
+              ref={moreButtonRef}
+              aria-label="채팅방 참여자"
+              aria-expanded={participantsOpen}
+              aria-controls="house-chat-participants"
+              onClick={toggleParticipants}
+              title="채팅방 참여자"
+            >
+              <MoreIcon />
+            </button>
           </div>
+
+          {participantsOpen && (
+            createPortal(
+              <div
+                className={`house-chat-participants-portal-layer ${chatThemeClass}`}
+                style={{
+                  '--house-participants-top': `${participantsPopoverPosition?.top ?? 0}px`,
+                  '--house-participants-left': `${participantsPopoverPosition?.left ?? 0}px`,
+                  visibility: participantsPopoverPosition
+                    ? 'visible'
+                    : 'hidden',
+                }}
+              >
+                <div
+                  ref={participantPopoverRef}
+                  className="themed-chat-header-popover themed-chat-participants-popover house-chat-participants-portal"
+                  id="house-chat-participants"
+                  role="dialog"
+                  aria-label="House 참여자"
+                >
+                  <div className="themed-chat-popover-heading">
+                    <strong>House 참여자</strong>
+                    <span>{memberCount}명</span>
+                  </div>
+
+                  <div className="themed-chat-participant-list">
+                    {house.members.length === 0 ? (
+                      <div className="themed-chat-search-empty">
+                        참여자가 없습니다.
+                      </div>
+                    ) : (
+                      house.members.map((member) => {
+                        const memberPerson = getMemberPerson(member);
+
+                        return (
+                          <div
+                            className="themed-chat-participant"
+                            key={member.userId ?? member.id}
+                          >
+                            <div className="themed-chat-participant-profile house-chat-participant-profile">
+                              <Avatar
+                                user={memberPerson}
+                                size="sm"
+                              />
+                              <span>
+                                {getMemberDisplayName(member)}
+                              </span>
+                            </div>
+
+                          <span className="house-chat-participant-role">
+                            {ROLE_LABEL[getHouseDisplayRank(member)] ?? '일반 멤버'}
+                          </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>,
+              document.body,
+            )
+          )}
+
+          {searchOpen && (
+            createPortal(
+              <div
+                className={`house-chat-search-portal-layer ${chatThemeClass}`}
+                style={{
+                  '--house-search-top': `${searchPopoverPosition?.top ?? 0}px`,
+                  '--house-search-left': `${searchPopoverPosition?.left ?? 0}px`,
+                  visibility: searchPopoverPosition
+                    ? 'visible'
+                    : 'hidden',
+                }}
+              >
+                <div
+                  ref={searchPopoverRef}
+                  className="themed-chat-header-popover themed-chat-search-popover house-chat-search-portal"
+                  id="house-chat-message-search"
+                  role="dialog"
+                  aria-label="House 메시지 검색"
+                >
+                  <div className="themed-chat-popover-heading">
+                    <strong>메시지 검색</strong>
+                    <span>
+                      {normalizedSearchQuery
+                        ? `${messageSearchResults.length}건`
+                        : `${messages.length}건`}
+                    </span>
+                  </div>
+
+                  <label className="themed-chat-member-search-field">
+                    <SearchIcon />
+                    <input
+                      ref={searchInputRef}
+                      type="search"
+                      value={searchQuery}
+                      placeholder="메시지 또는 작성자 검색"
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      aria-label="메시지 검색어"
+                    />
+                  </label>
+
+                  <div className="themed-chat-participant-list">
+                    {!normalizedSearchQuery ? (
+                      <div className="themed-chat-search-empty">
+                        메시지 내용 또는 작성자를 입력하세요.
+                      </div>
+                    ) : messageSearchResults.length === 0 ? (
+                      <div className="themed-chat-search-empty">
+                        검색 결과가 없습니다.
+                      </div>
+                    ) : (
+                      messageSearchResults.slice(0, 20).map((message) => (
+                        <button
+                          type="button"
+                          className="house-chat-search-result"
+                          key={message.id}
+                          onClick={() => focusMessage(message.id)}
+                        >
+                          <strong>
+                            {message.author?.nickname
+                              || message.senderName
+                              || `사용자 #${message.senderId}`}
+                          </strong>
+                          <span>{message.content}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>,
+              document.body,
+            )
+          )}
 
         </header>
 
@@ -1322,13 +2011,22 @@ export default function HouseChatPage() {
                   authorMember?.role ??
                   'MEMBER';
 
+                const senderMember = {
+                  ...authorMember,
+                  ...message.author,
+                  role: authorRole,
+                };
+
+                const displayRank =
+                  getHouseDisplayRank(senderMember);
+
                 const avatar = (
                   <HouseRankAvatar
                     person={
                       message.author
                     }
-                    role={
-                      authorRole
+                    displayRank={
+                      displayRank
                     }
                   />
                 );
@@ -1340,8 +2038,26 @@ export default function HouseChatPage() {
                         mine
                           ? 'mine'
                           : ''
+                      } ${
+                        messageSearchResults.some(
+                          (result) => result.id === message.id,
+                        )
+                          ? 'is-search-match'
+                          : ''
+                      } ${
+                        focusedMessageId === message.id
+                          ? 'is-search-target'
+                          : ''
                       }`
                     }
+                    ref={(node) => {
+                      if (node) {
+                        messageRefs.current.set(message.id, node);
+                      } else {
+                        messageRefs.current.delete(message.id);
+                      }
+                    }}
+                    data-message-id={message.id}
                     key={
                       message.id
                     }
@@ -1371,7 +2087,7 @@ export default function HouseChatPage() {
                         >
                           {
                             ROLE_LABEL[
-                              authorRole
+                              displayRank
                             ] ??
                             '일반 멤버'
                           }
@@ -1416,84 +2132,88 @@ export default function HouseChatPage() {
 
         </div>
 
+        {sendError && (
+          <div
+            className="house-alert error house-chat-send-error"
+            role="alert"
+          >
+            {sendError}
+          </div>
+        )}
+
         <form
-          className="house-chat-composer"
+          className="house-chat-composer themed-chat-form"
           onSubmit={
             send
           }
         >
+          {/* 첨부 기능은 아직 없으므로 기존 테마 슬롯만 장식으로 유지한다. */}
+          <span
+            className="themed-chat-attach house-chat-composer-decoration"
+            aria-hidden="true"
+          >
+            <ClipIcon />
+          </span>
 
-          {sendError && (
-            <div
-              className="house-alert error"
-              role="alert"
-            >
-              {sendError}
-            </div>
-          )}
+          <input
+            className="themed-chat-input"
+            type="text"
+            value={
+              input
+            }
+            maxLength={
+              500
+            }
+            disabled={
+              sending ||
+              (!previewMode && !connected)
+            }
+            onChange={(
+              event,
+            ) => {
+              setInput(
+                event.target.value,
+              );
 
-          <div className="house-chat-input-row">
+              if (
+                sendError
+              ) {
+                setSendError('');
+              }
+            }}
+            onKeyDown={
+              handleInputKeyDown
+            }
+            aria-label="House 채팅 메시지"
+            placeholder={
+              previewMode
+                ? '미리보기 메시지를 입력하세요.'
+                : '메시지를 입력하세요.'
+            }
+          />
 
-            <textarea
-              value={
-                input
-              }
-              maxLength={
-                500
-              }
-              rows={
-                2
-              }
-              disabled={
-                sending ||
-                (!previewMode && !connected)
-              }
-              onChange={(
-                event,
-              ) => {
-                setInput(
-                  event.target.value,
-                );
-
-                if (
-                  sendError
-                ) {
-                  setSendError('');
-                }
-              }}
-              onKeyDown={
-                handleInputKeyDown
-              }
-              aria-label="House 채팅 메시지"
-              placeholder={
-                previewMode
-                  ? '미리보기 메시지를 입력하세요.'
-                  : '메시지를 입력하세요. Shift+Enter로 줄바꿈'
-              }
-            />
-
-            <button
-              className="ui-btn-primary"
-              type="submit"
-              disabled={
-                sending ||
-                !input.trim() ||
-                (!previewMode && !connected)
-              }
-            >
-              {sending
+          <button
+            className="themed-chat-send"
+            type="submit"
+            aria-label="메시지 전송"
+            title={
+              sending
                 ? '전송 중…'
                 : connected || previewMode
-                  ? '전송'
-                  : '연결 중…'}
-            </button>
-
-          </div>
-
-          <small>
-            {input.length}/500
-          </small>
-
+                  ? '메시지 전송'
+                  : 'House 채팅 연결 중…'
+            }
+            aria-busy={
+              sending
+            }
+            disabled={
+              sending ||
+              !input.trim() ||
+              (!previewMode && !connected)
+            }
+          >
+            <SendIcon />
+          </button>
         </form>
 
       </section>

@@ -68,6 +68,402 @@
   line-height: 1.5;
 }
 
+.house-chat-room-avatar-fallback {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 100%;
+
+  height: 100%;
+
+  overflow: hidden;
+
+  border-radius: 50%;
+
+  color: var(--gh-header-field-text, var(--text-main));
+
+  font-size: clamp(16px, 2vw, 24px);
+
+  font-weight: 850;
+
+  letter-spacing: 0;
+
+  line-height: 1;
+
+  text-align: center;
+}
+
+/* The default skin has no baked header artwork to provide these details. */
+.chat-theme-default .house-chat-room-avatar-fallback {
+  border: 2px solid var(--border);
+
+  background: var(--surface-hover);
+}
+
+.chat-theme-default .house-chat-header-icon svg {
+  width: 18px;
+
+  height: 18px;
+
+  color: var(--text-main);
+
+  opacity: 1 !important;
+}
+
+/* Keep the House panel in the approved 1086 x 1448 artwork ratio. */
+.house-chat-panel.themed-chat-panel {
+  display: flex;
+
+  flex-direction: column;
+
+  width: 100%;
+
+  min-height: 0;
+
+  aspect-ratio: 1086 / 1448;
+}
+
+.house-chat-panel.themed-chat-panel .house-chat-messages {
+  flex: 1 1 auto;
+
+  height: auto;
+
+  min-height: 0;
+}
+
+.house-chat-panel.themed-chat-panel .house-chat-composer.themed-chat-form {
+  flex: 0 0 10.5%;
+
+  min-height: 0;
+}
+
+/*
+ * The v9 artwork is 1086 x 1448. These House-only overrides center the
+ * transparent controls on the icons painted in each matching background.
+ * The shared ChatThemeFinal.css values remain unchanged for normal Chat.
+ */
+.house-chat-page.chat-theme-moonlight-lounge {
+  --gh-search-left: 80.2%;
+  --gh-search-top: 37.5%;
+  --gh-search-width: 6.1%;
+  --gh-search-height: 37%;
+
+  --gh-more-left: 88.6%;
+  --gh-more-top: 37.5%;
+  --gh-more-width: 6.1%;
+  --gh-more-height: 37%;
+}
+
+.house-chat-page.chat-theme-green-forest {
+  --gh-search-left: 81.0%;
+  --gh-search-top: 30.7%;
+  --gh-search-width: 6.2%;
+  --gh-search-height: 37%;
+
+  --gh-more-left: 89.2%;
+  --gh-more-top: 32.9%;
+  --gh-more-width: 6.4%;
+  --gh-more-height: 37%;
+}
+
+.house-chat-page.chat-theme-pixel-arcade {
+  --gh-search-left: 76.9%;
+  --gh-search-top: 38.3%;
+  --gh-search-width: 6.5%;
+  --gh-search-height: 31%;
+
+  --gh-more-left: 87.0%;
+  --gh-more-top: 39.5%;
+  --gh-more-width: 7.1%;
+  --gh-more-height: 31%;
+}
+
+.house-chat-page.chat-theme-cherry-garden {
+  --gh-search-left: 78.5%;
+  --gh-search-top: 37.2%;
+  --gh-search-width: 6.2%;
+  --gh-search-height: 33%;
+
+  --gh-more-left: 88.3%;
+  --gh-more-top: 37.2%;
+  --gh-more-width: 6.2%;
+  --gh-more-height: 33%;
+}
+
+.house-chat-page.chat-theme-magic-library {
+  --gh-search-left: 79.1%;
+  --gh-search-top: 35.6%;
+  --gh-search-width: 6.3%;
+  --gh-search-height: 32%;
+
+  --gh-more-left: 89.1%;
+  --gh-more-top: 35.6%;
+  --gh-more-width: 6.2%;
+  --gh-more-height: 32%;
+}
+
+.house-chat-page.chat-theme-ocean-walk {
+  --gh-search-left: 78.8%;
+  --gh-search-top: 33.6%;
+  --gh-search-width: 6.3%;
+  --gh-search-height: 33%;
+
+  --gh-more-left: 89.0%;
+  --gh-more-top: 33.6%;
+  --gh-more-width: 6.3%;
+  --gh-more-height: 33%;
+}
+
+/* Keep the overlay inert while each independently positioned button remains clickable. */
+.house-chat-page .themed-chat-header-controls {
+  z-index: 40 !important;
+
+  pointer-events: none !important;
+}
+
+.house-chat-page .themed-chat-header-controls .themed-chat-icon-button {
+  z-index: 41 !important;
+
+  pointer-events: auto !important;
+}
+
+.house-chat-page .themed-chat-header-popover {
+  z-index: 100 !important;
+}
+
+/* The House title uses the existing per-theme header ink token. */
+.house-chat-page .themed-chat-heading .themed-chat-title {
+  color:
+    var(
+      --gh-chat-header-ink,
+      var(--gh-header-field-text, var(--text-main))
+    ) !important;
+}
+
+/* Participant popover is portalled so the artwork panel cannot clip it. */
+.house-chat-participants-portal-layer {
+  position: fixed !important;
+
+  top:
+    var(
+      --house-participants-top,
+      0px
+    ) !important;
+
+  left:
+    var(
+      --house-participants-left,
+      0px
+    ) !important;
+
+  right: auto !important;
+
+  z-index: 1000 !important;
+}
+
+.house-chat-participants-portal {
+  position: static !important;
+
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+
+  z-index: inherit !important;
+}
+
+.house-chat-search-portal-layer {
+  position: fixed !important;
+
+  top:
+    var(
+      --house-search-top,
+      0px
+    ) !important;
+
+  left:
+    var(
+      --house-search-left,
+      0px
+    ) !important;
+
+  right: auto !important;
+
+  z-index: 1000 !important;
+}
+
+.house-chat-search-portal {
+  position: static !important;
+
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+
+  z-index: inherit !important;
+}
+
+/* Restore the header-relative popover size after moving it to a body portal. */
+.house-chat-participants-portal,
+.house-chat-search-portal {
+  width:
+    min(
+      330px,
+      calc(100vw - 24px)
+    ) !important;
+
+  min-width: 0 !important;
+
+  max-width:
+    calc(100vw - 24px) !important;
+
+  height: auto !important;
+
+  max-height: 360px !important;
+
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 560px) {
+  .house-chat-participants-portal,
+  .house-chat-search-portal {
+    width:
+      min(
+        300px,
+        86vw
+      ) !important;
+  }
+}
+
+.house-chat-composer-decoration {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  pointer-events: none;
+}
+
+.house-chat-composer-decoration svg {
+  width: 18px;
+
+  height: 18px;
+
+  fill: none;
+
+  stroke: currentColor;
+
+  stroke-linecap: round;
+
+  stroke-linejoin: round;
+
+  stroke-width: 1.8;
+}
+
+.chat-theme-default .house-chat-composer-decoration svg {
+  color: var(--text-muted);
+
+  stroke: var(--text-muted) !important;
+
+  opacity: 1 !important;
+}
+
+.chat-theme-default .house-chat-composer .themed-chat-send svg {
+  width: 18px;
+
+  height: 18px;
+
+  fill: none;
+
+  stroke: var(--text-main);
+
+  stroke-linecap: round;
+
+  stroke-linejoin: round;
+
+  stroke-width: 1.8;
+
+  opacity: 1 !important;
+}
+
+.house-chat-send-error {
+  margin: 10px 20px 0;
+}
+
+.house-chat-participant-profile {
+  cursor: default;
+}
+
+.house-chat-participant-role {
+  flex: 0 0 auto;
+
+  color: var(--text-muted);
+
+  font-size: 10px;
+
+  font-weight: 750;
+}
+
+.house-chat-search-result {
+  display: grid;
+
+  gap: 3px;
+
+  width: 100%;
+
+  padding: 7px 8px;
+
+  border: 0;
+
+  border-radius: 10px;
+
+  background: transparent;
+
+  color: inherit;
+
+  font: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.house-chat-search-result:hover,
+.house-chat-search-result:focus-visible {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.house-chat-search-result strong,
+.house-chat-search-result span {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.house-chat-search-result strong {
+  font-size: 11px;
+}
+
+.house-chat-search-result span {
+  color: var(--text-muted);
+
+  font-size: 10px;
+}
+
+.house-chat-message.is-search-match .house-chat-message-body > p {
+  outline: 2px solid var(--chat-accent, #246ff2);
+
+  outline-offset: 2px;
+}
+
+.house-chat-message.is-search-target .house-chat-message-body > p {
+  box-shadow: 0 0 0 4px var(--chat-accent-soft, rgba(36, 111, 242, 0.18));
+}
+
 /* =========================================================
    My Rank
 ========================================================= */
