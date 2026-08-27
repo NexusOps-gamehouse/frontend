@@ -143,6 +143,16 @@ const requestCrew = async (request) => {
 export const listHouses = () => requestCrew(() => api.get('/crew/houses'))
   .then((data) => (Array.isArray(data) ? data : []).map(normalizeHouse));
 
+// Crew는 추천 결과의 userId만 반환한다. 사용자 프로필로 변환하거나 mock을 섞지 않는다.
+export const listRecommendedPlaymates = () => requestCrew(
+  () => api.get('/crew/recommendations/playmates'),
+).then((data) => {
+  if (!Array.isArray(data)) {
+    throw new Error('플레이메이트 추천 응답 형식이 올바르지 않습니다.');
+  }
+  return data;
+});
+
 export const getHouse = (houseId) => requestCrew(
   () => api.get(`/crew/houses/${encodeURIComponent(houseId)}`),
 ).then(normalizeHouse);
