@@ -109,10 +109,10 @@ export default function HouseDetailPage() {
         setNotices([]);
         setNoticesError('');
       }
-      if (data.myRole === 'OWNER' && data.visibility === 'PUBLIC' && !isCrewHouse) {
+      if (data.myRole === 'OWNER' && (isCrewHouse || data.visibility === 'PUBLIC')) {
         setRequestsLoading(true);
         try {
-          setRequests(await listJoinRequests(houseId, user));
+          setRequests(await listJoinRequests(houseId));
         } finally {
           setRequestsLoading(false);
         }
@@ -177,23 +177,33 @@ export default function HouseDetailPage() {
     } catch { /* 화면 오류로 안내 */ }
   };
 
-  const decideRequest = async (requestId, decision) => {
+  const decideRequest = async (request, decision) => {
+    const targetUserId = request.userId;
+    if (!targetUserId) {
+      setError('가입 요청자의 userId를 확인할 수 없습니다.');
+      return;
+    }
     const task = decision === 'approve'
-      ? () => approveJoinRequest(houseId, requestId, user)
-      : () => rejectJoinRequest(houseId, requestId, user);
+      ? () => approveJoinRequest(houseId, targetUserId)
+      : () => rejectJoinRequest(houseId, targetUserId);
     try {
-      await run(`${decision}-${requestId}`, task,
+      await run(`${decision}-${request.id}`, task,
         decision === 'approve' ? '가입을 승인했습니다.' : '가입 신청을 거절했습니다.');
-      setRequests((prev) => prev.filter((request) => request.id !== requestId));
+      await load();
     } catch { /* 화면 오류로 안내 */ }
   };
 
   const changeRole = async (member) => {
+    if (!member.userId) {
+      setError('멤버의 userId를 확인할 수 없습니다.');
+      return;
+    }
     const nextRole = member.role === 'MANAGER' ? 'MEMBER' : 'MANAGER';
     try {
-      await run(`role-${member.id}`,
-        () => updateMemberRole(houseId, member.id, nextRole, user),
+      await run(`role-${member.userId}`,
+        () => updateMemberRole(houseId, member.userId, nextRole),
         nextRole === 'MANAGER' ? '부방장으로 지정했습니다.' : '부방장 지정을 해제했습니다.');
+      await load();
     } catch { /* 화면 오류로 안내 */ }
   };
 
@@ -210,16 +220,20 @@ export default function HouseDetailPage() {
 
   const confirmRemoveMember = async () => {
     if (!memberToRemove || removingMember) return;
+    if (!memberToRemove.userId) {
+      setRemoveError('멤버의 userId를 확인할 수 없습니다.');
+      return;
+    }
     setRemovingMember(true);
     setRemoveError('');
     setError('');
     setNotice('');
     try {
-      const updated = await removeHouseMember(houseId, memberToRemove.id, user);
-      const nickname = memberToRemove.nickname;
-      setHouse(updated);
+      const memberName = memberToRemove.nickname || `사용자 #${memberToRemove.userId}`;
+      await removeHouseMember(houseId, memberToRemove.userId);
+      await load();
       setMemberToRemove(null);
-      setNotice(`${nickname}님을 House에서 강퇴했습니다.`);
+      setNotice(`${memberName}님을 House에서 강퇴했습니다.`);
     } catch (err) {
       setRemoveError(err.message || '멤버를 강퇴하지 못했습니다.');
     } finally {
@@ -394,33 +408,30 @@ export default function HouseDetailPage() {
       {error && <div className="house-alert error detail-error" role="alert">{error}</div>}
       {notice && <div className="house-alert success detail-error" role="status">{notice}</div>}
 
-      {isOwner && !isPrivate && (
+      {isOwner && (isCrewHouse || !isPrivate) && (
         <section className="house-management-section">
           <div className="house-section-head">
-            <h2>가입 신청</h2><span>{isCrewHouse ? pendingCount : requests.length}건</span>
+            <h2>가입 신청</h2><span>{requestsLoading ? pendingCount : requests.length}건</span>
           </div>
           {requestsLoading && <div className="ui-empty"><p>가입 신청을 불러오는 중…</p></div>}
-          {!requestsLoading && requests.length === 0 && (!isCrewHouse || pendingCount === 0) && (
+          {!requestsLoading && requests.length === 0 && (
             <div className="ui-empty"><p>대기 중인 가입 신청이 없습니다.</p></div>
-          )}
-          {!requestsLoading && isCrewHouse && pendingCount > 0 && (
-            <div className="ui-empty"><p>가입 신청 상세는 다음 단계에서 연결됩니다.</p></div>
           )}
           {!requestsLoading && requests.length > 0 && (
             <div className="house-request-list">
               {requests.map((request) => (
                 <div className="house-request-row" key={request.id}>
                   <div className="ui-author">
-                    <div className="ui-author-av">{request.nickname?.[0] || '?'}</div>
-                    <div className="ui-author-info"><strong>{request.nickname}</strong><small>가입 승인 대기중</small></div>
+                    <div className="ui-author-av">{(request.nickname || `사용자 #${request.userId}`)[0] || '?'}</div>
+                    <div className="ui-author-info"><strong>{request.nickname || `사용자 #${request.userId}`}</strong><small>가입 승인 대기중</small></div>
                   </div>
                   <div className="house-row-actions">
                     <button className="ui-btn-primary ui-btn-sm" type="button"
                             disabled={working === `approve-${request.id}` || isFull}
-                            onClick={() => decideRequest(request.id, 'approve')}>승인</button>
+                            onClick={() => decideRequest(request, 'approve')}>승인</button>
                     <button className="ui-btn-secondary ui-btn-sm" type="button"
                             disabled={working === `reject-${request.id}`}
-                            onClick={() => decideRequest(request.id, 'reject')}>거절</button>
+                            onClick={() => decideRequest(request, 'reject')}>거절</button>
                   </div>
                 </div>
               ))}

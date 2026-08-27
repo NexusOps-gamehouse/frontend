@@ -1,7 +1,6 @@
 import {
   mockAddHouseXp,
   mockAcceptInvitation,
-  mockApproveJoinRequest,
   mockCreateHouseNotice,
   mockCreateHouseSchedule,
   mockDeleteHouseNotice,
@@ -9,17 +8,13 @@ import {
   mockGetHouseWeeklyQuests,
   mockGetHouseSuggestionState,
   mockInviteFriends,
-  mockListJoinRequests,
   mockListHouseNotices,
   mockListHouseSchedules,
   mockListMyInvitations,
   mockRejectInvitation,
-  mockRejectJoinRequest,
   mockRecordHouseQuestProgress,
-  mockRemoveHouseMember,
   mockResetHouseSuggestion,
   mockDismissHouseSuggestion,
-  mockUpdateMemberRole,
   mockUpdateHouseNotice,
   mockUpdateHouseSchedule,
   mockUpdateHouse,
@@ -129,6 +124,43 @@ export const leaveHouse = (houseId) => requestCrew(
   () => api.delete(`/crew/houses/${encodeURIComponent(houseId)}/join`),
 );
 
+export const listJoinRequests = (houseId) => requestCrew(
+  () => api.get(`/crew/houses/${encodeURIComponent(houseId)}/join-requests`),
+).then((data) => (Array.isArray(data) ? data : []).map(normalizeMember));
+
+export const approveJoinRequest = (houseId, userId) => requestCrew(
+  () => api.post(
+    `/crew/houses/${encodeURIComponent(houseId)}/members/${encodeURIComponent(userId)}/approve`,
+  ),
+).then(normalizeMember);
+
+export const rejectJoinRequest = (houseId, userId) => requestCrew(
+  () => api.post(
+    `/crew/houses/${encodeURIComponent(houseId)}/members/${encodeURIComponent(userId)}/reject`,
+  ),
+).then(normalizeMember);
+
+const CREW_ROLE_MAP = {
+  OWNER: 'LEADER',
+  MANAGER: 'SUB_LEADER',
+  MEMBER: 'MEMBER',
+  LEADER: 'LEADER',
+  SUB_LEADER: 'SUB_LEADER',
+};
+
+export const updateMemberRole = (houseId, userId, role) => requestCrew(
+  () => api.put(
+    `/crew/houses/${encodeURIComponent(houseId)}/members/${encodeURIComponent(userId)}/role`,
+    { role: CREW_ROLE_MAP[role] || role },
+  ),
+).then(normalizeMember);
+
+export const removeHouseMember = (houseId, userId) => requestCrew(
+  () => api.delete(
+    `/crew/houses/${encodeURIComponent(houseId)}/members/${encodeURIComponent(userId)}`,
+  ),
+);
+
 // 실제 API 연결 시 PUT /houses/:houseId 로 교체한다.
 export const updateHouse = (houseId, payload, user) => mockUpdateHouse(houseId, payload, user);
 // TODO(house-xp): 실제 서비스에서는 클라이언트가 XP 값을 결정하지 않는다.
@@ -144,20 +176,6 @@ export const recordHouseQuestProgress = (houseId, questType, payload, user) => (
 // 기존 페이지/호출부와의 호환을 위한 이름이다. 실제 요청은 Crew endpoint를 사용한다.
 export const requestHouseJoin = (houseId) => joinHouse(houseId);
 export const cancelJoinRequest = (houseId) => leaveHouse(houseId);
-export const listJoinRequests = (houseId, user) => mockListJoinRequests(houseId, user);
-export const approveJoinRequest = (houseId, requestId, user) => (
-  mockApproveJoinRequest(houseId, requestId, user)
-);
-export const rejectJoinRequest = (houseId, requestId, user) => (
-  mockRejectJoinRequest(houseId, requestId, user)
-);
-export const updateMemberRole = (houseId, memberId, role, user) => (
-  mockUpdateMemberRole(houseId, memberId, role, user)
-);
-// 실제 API 연결 시 DELETE /houses/:houseId/members/:memberId 로 교체한다.
-export const removeHouseMember = (houseId, memberId, user) => (
-  mockRemoveHouseMember(houseId, memberId, user)
-);
 // 실제 API 연결 시 GET /houses/:houseId/notices 로 교체한다.
 export const listHouseNotices = (houseId, user) => mockListHouseNotices(houseId, user);
 // 실제 API 연결 시 POST /houses/:houseId/notices 로 교체한다.
