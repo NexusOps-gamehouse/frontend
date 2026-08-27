@@ -58,6 +58,7 @@ export default function HousesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [working, setWorking] = useState('');
+  const [keyword, setKeyword] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,7 +89,14 @@ export default function HousesPage() {
     )),
     [houses],
   );
-  const visible = tab === 'public' ? publicHouses : myHouses;
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const filteredPublicHouses = useMemo(() => {
+    if (!normalizedKeyword) return publicHouses;
+    return publicHouses.filter((house) => [house.name, house.game, house.description]
+      .map((value) => String(value ?? '').toLowerCase())
+      .some((value) => value.includes(normalizedKeyword)));
+  }, [normalizedKeyword, publicHouses]);
+  const visible = tab === 'public' ? filteredPublicHouses : myHouses;
 
   const decideInvitation = async (invitation, decision) => {
     setWorking(`${decision}-${invitation.id}`);
@@ -136,6 +144,23 @@ export default function HousesPage() {
         </button>
       </div>
 
+      {tab === 'public' && (
+        <div className="house-search" role="search">
+          <label htmlFor="public-house-search">공개 House 검색</label>
+          <div className="house-search-control">
+            <input id="public-house-search" className="inp" type="search" value={keyword}
+                   onChange={(event) => setKeyword(event.target.value)}
+                   placeholder="House 이름이나 게임을 검색해보세요" />
+            {keyword && (
+              <button className="ui-btn-secondary ui-btn-sm" type="button" onClick={() => setKeyword('')}>
+                초기화
+              </button>
+            )}
+          </div>
+          {normalizedKeyword && <span className="house-search-result">{visible.length}개 결과</span>}
+        </div>
+      )}
+
       {loading && <div className="ui-empty"><p>House를 불러오는 중…</p></div>}
       {!loading && error && <div className="house-alert error">{error}</div>}
       {!loading && !error && (tab === 'mine' || tab === 'invitations') && !user && (
@@ -146,7 +171,9 @@ export default function HousesPage() {
       )}
       {!loading && !error && tab !== 'invitations' && visible.length === 0 && !(tab === 'mine' && !user) && (
         <div className="ui-empty">
-          <p>{tab === 'public' ? '아직 공개된 House가 없습니다.' : '아직 가입한 House가 없습니다.'}</p>
+          <p>{tab === 'public'
+            ? normalizedKeyword ? '검색 조건에 맞는 House가 없습니다.' : '아직 공개된 House가 없습니다.'
+            : '아직 가입한 House가 없습니다.'}</p>
           {tab === 'mine' && <Link className="ui-btn-secondary house-empty-link" to="/houses/new">첫 House 만들기</Link>}
         </div>
       )}

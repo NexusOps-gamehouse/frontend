@@ -5,6 +5,7 @@ export const HOUSE_QUEST_TYPES = {
   WINS: 'WINS',
   GROUP_GAMES: 'GROUP_GAMES',
   ACTIVE_DAYS: 'ACTIVE_DAYS',
+  SCHEDULE_PARTICIPATION: 'SCHEDULE_PARTICIPATION',
 };
 
 export const HOUSE_WEEKLY_QUESTS = [
@@ -28,6 +29,12 @@ export const HOUSE_WEEKLY_QUESTS = [
     description: '서로 다른 3일에 House 멤버들과 함께 게임해요.',
     target: 3,
     rewardXp: 150,
+  },
+  {
+    type: HOUSE_QUEST_TYPES.SCHEDULE_PARTICIPATION,
+    name: 'House 일정 참여',
+    description: 'House 게임 일정에 참여하고 플레이를 완료하세요.',
+    target: 3,
   },
 ];
 
@@ -69,8 +76,8 @@ export function getKstWeek(value = Date.now()) {
 const safeCount = (value) => Number.isSafeInteger(value) && value >= 0 ? value : 0;
 
 const emptyWeekState = () => ({
-  progress: { WINS: 0, GROUP_GAMES: 0, ACTIVE_DAYS: [] },
-  rewarded: { WINS: false, GROUP_GAMES: false, ACTIVE_DAYS: false },
+  progress: { WINS: 0, GROUP_GAMES: 0, ACTIVE_DAYS: [], SCHEDULE_PARTICIPATION: 0 },
+  rewarded: { WINS: false, GROUP_GAMES: false, ACTIVE_DAYS: false, SCHEDULE_PARTICIPATION: false },
 });
 
 export function normalizeWeeklyQuestHistory(value) {
@@ -87,11 +94,13 @@ export function normalizeWeeklyQuestHistory(value) {
         WINS: safeCount(state.progress?.WINS),
         GROUP_GAMES: safeCount(state.progress?.GROUP_GAMES),
         ACTIVE_DAYS: activeDays,
+        SCHEDULE_PARTICIPATION: safeCount(state.progress?.SCHEDULE_PARTICIPATION),
       },
       rewarded: {
         WINS: state.rewarded?.WINS === true,
         GROUP_GAMES: state.rewarded?.GROUP_GAMES === true,
         ACTIVE_DAYS: state.rewarded?.ACTIVE_DAYS === true,
+        SCHEDULE_PARTICIPATION: state.rewarded?.SCHEDULE_PARTICIPATION === true,
       },
     }]];
   }));
@@ -106,7 +115,7 @@ export function ensureWeeklyQuestState(history, value = Date.now()) {
 export function weeklyQuestView(state, week) {
   const quests = HOUSE_WEEKLY_QUESTS.map((quest) => {
     const rawProgress = quest.type === HOUSE_QUEST_TYPES.ACTIVE_DAYS
-      ? state.progress.ACTIVE_DAYS.length : state.progress[quest.type];
+      ? state.progress.ACTIVE_DAYS.length : state.progress[quest.type] ?? 0;
     const progress = Math.min(quest.target, Math.max(0, rawProgress));
     return {
       ...quest,
