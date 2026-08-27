@@ -411,7 +411,12 @@ export async function mockAddHouseXp(houseId, amount, user) {
   return withViewerState(house, user);
 }
 
-export async function mockGetHouseWeeklyQuests(houseId, user, now = Date.now()) {
+export async function mockGetHouseWeeklyQuests(
+  houseId,
+  user,
+  now = Date.now(),
+  { grantReward = true } = {},
+) {
   const houses = readHouses();
   const { house } = requireHouse(houses, houseId);
   requireQuestMember(house, user);
@@ -419,7 +424,7 @@ export async function mockGetHouseWeeklyQuests(houseId, user, now = Date.now()) 
   const { week, state } = ensureWeeklyQuestState(house.weeklyQuests, now);
   if (!existingWeekIds.has(week.weekId)) writeHouses(houses);
   const view = weeklyQuestView(state, week);
-  if (view.allCompleted) {
+  if (view.allCompleted && grantReward) {
     grantWeeklyCompletionReward({
       houseId: house.id,
       weekId: week.weekId,
