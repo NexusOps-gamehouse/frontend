@@ -97,7 +97,10 @@ export default function FriendsPage() {
     setHouseLoading(true);
     try {
       const houses = await listHouses(user);
-      setOwnedHouses(houses.filter((house) => house.myRole === 'OWNER' && house.visibility === 'PRIVATE'));
+      // Crew에는 초대 API가 없으므로 mock inviteFriends가 실행되지 않게 legacy House만 노출한다.
+      setOwnedHouses(houses.filter((house) => house.myRole === 'OWNER'
+        && house.visibility === 'PRIVATE'
+        && !['PUBLIC', 'PRIVATE'].includes(house.type)));
     } catch (err) {
       setInviteError(err.message || 'House 목록을 불러오지 못했습니다.');
     } finally {

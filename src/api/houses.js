@@ -402,6 +402,7 @@ export const subscribeHouseMessages = (
 
   let connectedOnce = false;
   let cleanedUp = false;
+  let subscription = null;
   const client = new Client({
     webSocketFactory: () => new SockJS('/ws-house'),
     connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
@@ -413,7 +414,7 @@ export const subscribeHouseMessages = (
       connectedOnce = true;
       callback(null, null, { connected: true });
 
-      client.subscribe(`/sub/house/${encodeURIComponent(houseId)}`, (frame) => {
+      if (!subscription) subscription = client.subscribe(`/sub/house/${encodeURIComponent(houseId)}`, (frame) => {
         try {
           callback(
             normalizeHouseMessage(JSON.parse(frame.body)),
@@ -460,6 +461,8 @@ export const subscribeHouseMessages = (
   return Promise.resolve(async () => {
     cleanedUp = true;
     if (houseStompClients.get(key) === client) houseStompClients.delete(key);
+    subscription?.unsubscribe();
+    subscription = null;
     await client.deactivate();
   });
 };
