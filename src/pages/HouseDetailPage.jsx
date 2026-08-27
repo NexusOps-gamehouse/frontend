@@ -356,7 +356,7 @@ export default function HouseDetailPage() {
               <div className="house-join-actions">
                 <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
                 {isOwner && !isCrewHouse && <button className="ui-btn-secondary" type="button" onClick={() => setInviteOpen(true)}>친구 초대</button>}
-                {isOwner && !isCrewHouse && <Link className="ui-btn-secondary" to={`/houses/${houseId}/settings`}>House 설정</Link>}
+                {isOwner && <Link className="ui-btn-secondary" to={`/houses/${houseId}/settings`}>House 설정</Link>}
                 {!isOwner && <button className="ui-btn-secondary" type="button" disabled={working === 'leave'} onClick={leaveApprovedHouse}>
                   {working === 'leave' ? '탈퇴 중…' : 'House 탈퇴'}
                 </button>}
@@ -383,7 +383,7 @@ export default function HouseDetailPage() {
               <p>{isOwner ? '이 House의 방장입니다.' : `이 House의 ${ROLE_LABEL[house.myRole]}입니다.`}</p>
               <div className="house-join-actions">
                 <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
-                {isOwner && !isCrewHouse && <Link className="ui-btn-secondary" to={`/houses/${houseId}/settings`}>House 설정</Link>}
+                {isOwner && <Link className="ui-btn-secondary" to={`/houses/${houseId}/settings`}>House 설정</Link>}
                 {!isOwner && <button className="ui-btn-secondary" type="button" disabled={working === 'leave'} onClick={leaveApprovedHouse}>
                   {working === 'leave' ? '탈퇴 중…' : 'House 탈퇴'}
                 </button>}

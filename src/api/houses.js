@@ -222,8 +222,16 @@ export const removeHouseMember = (houseId, userId) => requestCrew(
   ),
 );
 
-// 실제 API 연결 시 PUT /houses/:houseId 로 교체한다.
-export const updateHouse = (houseId, payload, user) => mockUpdateHouse(houseId, payload, user);
+// Crew House는 실제 PUT API를 사용하고, legacy House는 기존 mock 동작을 유지한다.
+export const updateHouse = (houseId, payload, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockUpdateHouse(houseId, payload, user);
+  return requestCrew(
+    () => api.put(
+      `/crew/houses/${encodeURIComponent(houseId)}`,
+      toCrewHouseWriteRequest(payload),
+    ),
+  ).then(normalizeHouse);
+};
 // TODO(house-xp): 실제 서비스에서는 클라이언트가 XP 값을 결정하지 않는다.
 // 서버가 게임·일정·퀘스트 활동을 검증해 POST /houses/:houseId/xp 로 지급한다.
 export const addHouseXp = (houseId, amount, user) => mockAddHouseXp(houseId, amount, user);
