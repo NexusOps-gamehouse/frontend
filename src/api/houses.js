@@ -45,6 +45,11 @@ const normalizeMember = (member) => ({
   role: normalizeRole(member.role) || 'MEMBER',
 });
 
+const normalizeNotice = (notice) => ({
+  ...notice,
+  author: notice.author || { id: notice.authorId },
+});
+
 export const normalizeHouse = (house) => {
   const members = Array.isArray(house.members) ? house.members.map(normalizeMember) : [];
   const type = house.type;
@@ -176,20 +181,43 @@ export const recordHouseQuestProgress = (houseId, questType, payload, user) => (
 // 기존 페이지/호출부와의 호환을 위한 이름이다. 실제 요청은 Crew endpoint를 사용한다.
 export const requestHouseJoin = (houseId) => joinHouse(houseId);
 export const cancelJoinRequest = (houseId) => leaveHouse(houseId);
-// 실제 API 연결 시 GET /houses/:houseId/notices 로 교체한다.
-export const listHouseNotices = (houseId, user) => mockListHouseNotices(houseId, user);
-// 실제 API 연결 시 POST /houses/:houseId/notices 로 교체한다.
-export const createHouseNotice = (houseId, payload, user) => (
-  mockCreateHouseNotice(houseId, payload, user)
-);
-// 실제 API 연결 시 PUT /houses/:houseId/notices/:noticeId 로 교체한다.
+export const listHouseNotices = (houseId, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockListHouseNotices(houseId, user);
+  return requestCrew(
+    () => api.get(`/crew/houses/${encodeURIComponent(houseId)}/notices`),
+  ).then((data) => (Array.isArray(data) ? data : []).map(normalizeNotice));
+};
+
+export const createHouseNotice = (houseId, payload, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockCreateHouseNotice(houseId, payload, user);
+  return requestCrew(
+    () => api.post(`/crew/houses/${encodeURIComponent(houseId)}/notices`, {
+      title: String(payload?.title ?? '').trim(),
+      content: payload?.content == null ? null : String(payload.content).trim(),
+      pinned: Boolean(payload?.pinned),
+    }),
+  ).then(normalizeNotice);
+};
+
+export const setHouseNoticePinned = (houseId, noticeId, pinned) => requestCrew(
+  () => api.put(
+    `/crew/houses/${encodeURIComponent(houseId)}/notices/${encodeURIComponent(noticeId)}/pin`,
+    { pinned: Boolean(pinned) },
+  ),
+).then(normalizeNotice);
+
+// Crew API는 제목/본문 수정 endpoint를 제공하지 않는다.
 export const updateHouseNotice = (houseId, noticeId, payload, user) => (
   mockUpdateHouseNotice(houseId, noticeId, payload, user)
 );
-// 실제 API 연결 시 DELETE /houses/:houseId/notices/:noticeId 로 교체한다.
-export const deleteHouseNotice = (houseId, noticeId, user) => (
-  mockDeleteHouseNotice(houseId, noticeId, user)
-);
+export const deleteHouseNotice = (houseId, noticeId, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockDeleteHouseNotice(houseId, noticeId, user);
+  return requestCrew(
+    () => api.delete(
+      `/crew/houses/${encodeURIComponent(houseId)}/notices/${encodeURIComponent(noticeId)}`,
+    ),
+  );
+};
 // 실제 API 연결 시 GET /houses/:houseId/schedules 로 교체한다.
 export const listHouseSchedules = (houseId, user) => mockListHouseSchedules(houseId, user);
 // 실제 API 연결 시 POST /houses/:houseId/schedules 로 교체한다.

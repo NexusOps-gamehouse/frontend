@@ -82,14 +82,17 @@ export default function HouseDetailPage() {
     setCoinWalletVersion((value) => value + 1);
   }, []);
 
-  const loadNotices = useCallback(async () => {
+  const loadNotices = useCallback(async (isCrewHouse = false) => {
     setNoticesLoading(true);
     setNoticesError('');
     try {
-      setNotices(newestFirst(await listHouseNotices(houseId, user)));
+      const loaded = await listHouseNotices(houseId, user, isCrewHouse);
+      setNotices(isCrewHouse ? loaded : newestFirst(loaded));
+      return true;
     } catch (err) {
       setNotices([]);
       setNoticesError(err.message || '공지를 불러오지 못했습니다.');
+      return false;
     } finally {
       setNoticesLoading(false);
     }
@@ -103,8 +106,8 @@ export default function HouseDetailPage() {
       setHouse(data);
       setPendingCount(Number(data.pendingCount) || 0);
       const isCrewHouse = CREW_HOUSE_TYPES.includes(data.type);
-      if (MEMBER_ROLES.includes(data.myRole) && !isCrewHouse) {
-        await loadNotices();
+      if (MEMBER_ROLES.includes(data.myRole)) {
+        await loadNotices(isCrewHouse);
       } else {
         setNotices([]);
         setNoticesError('');
@@ -242,12 +245,17 @@ export default function HouseDetailPage() {
   };
 
   const saveNotice = async (values) => {
-    const saved = noticeEditor?.notice
-      ? await updateHouseNotice(houseId, noticeEditor.notice.id, values, user)
-      : await createHouseNotice(houseId, values, user);
-    setNotices((prev) => newestFirst(noticeEditor?.notice
-      ? prev.map((item) => (item.id === saved.id ? saved : item))
-      : [saved, ...prev]));
+    const isCrewHouse = CREW_HOUSE_TYPES.includes(house?.type);
+    if (isCrewHouse && noticeEditor?.notice) {
+      throw new Error('Crew API는 공지 제목과 내용 수정을 지원하지 않습니다.');
+    }
+    if (noticeEditor?.notice) {
+      await updateHouseNotice(houseId, noticeEditor.notice.id, values, user);
+    } else {
+      await createHouseNotice(houseId, values, user, isCrewHouse);
+    }
+    const reloaded = await loadNotices(isCrewHouse);
+    if (!reloaded) throw new Error('공지 목록을 새로고침하지 못했습니다.');
     setNoticeEditor(null);
     setNotice(noticeEditor?.notice ? '공지를 수정했습니다.' : '공지를 등록했습니다.');
   };
@@ -268,8 +276,10 @@ export default function HouseDetailPage() {
     setDeletingNotice(true);
     setDeleteNoticeError('');
     try {
-      await deleteHouseNotice(houseId, noticeToDelete.id, user);
-      setNotices((prev) => prev.filter((item) => item.id !== noticeToDelete.id));
+      const isCrewHouse = CREW_HOUSE_TYPES.includes(house?.type);
+      await deleteHouseNotice(houseId, noticeToDelete.id, user, isCrewHouse);
+      const reloaded = await loadNotices(isCrewHouse);
+      if (!reloaded) throw new Error('공지 목록을 새로고침하지 못했습니다.');
       setNoticeToDelete(null);
       setNotice('공지를 삭제했습니다.');
     } catch (err) {
@@ -440,7 +450,7 @@ export default function HouseDetailPage() {
         </section>
       )}
 
-      {isMember && !isCrewHouse && (
+      {isMember && (
         <section className="house-notices-section">
           <div className="house-section-head">
             <h2>House 공지</h2><span>{notices.length}건</span>
@@ -453,7 +463,7 @@ export default function HouseDetailPage() {
           {!noticesLoading && noticesError && (
             <div className="house-notice-error" role="alert">
               <p>{noticesError}</p>
-              <button className="ui-btn-secondary ui-btn-sm" type="button" onClick={loadNotices}>다시 시도</button>
+              <button className="ui-btn-secondary ui-btn-sm" type="button" onClick={() => loadNotices(isCrewHouse)}>다시 시도</button>
             </div>
           )}
           {!noticesLoading && !noticesError && notices.length === 0 && (
@@ -467,7 +477,7 @@ export default function HouseDetailPage() {
                     <div>
                       <h3>{houseNotice.title}</h3>
                       <div className="house-notice-meta">
-                        <span>{houseNotice.author?.nickname || 'House 멤버'}</span>
+                        <span>{houseNotice.author?.nickname || (houseNotice.authorId ? `사용자 #${houseNotice.authorId}` : 'House 멤버')}</span>
                         <span>{ROLE_LABEL[houseNotice.author?.role] || '일반 멤버'}</span>
                         <time dateTime={houseNotice.createdAt}>{formatNoticeDate(houseNotice.createdAt)}</time>
                         {houseNotice.updatedAt && <span className="house-notice-edited">수정됨</span>}
@@ -475,8 +485,10 @@ export default function HouseDetailPage() {
                     </div>
                     {canManageNotices && (
                       <div className="house-notice-actions">
-                        <button className="house-role-btn" type="button"
-                                onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
+                        {!isCrewHouse && (
+                          <button className="house-role-btn" type="button"
+                                  onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
+                        )}
                         <button className="house-remove-btn" type="button"
                                 onClick={() => openDeleteNotice(houseNotice)}>삭제</button>
                       </div>
