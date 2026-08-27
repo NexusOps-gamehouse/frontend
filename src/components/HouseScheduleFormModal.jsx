@@ -3,36 +3,44 @@ import Modal from './Modal';
 
 const toLocalDateTime = (isoValue) => {
   if (!isoValue) return '';
+  const rawValue = String(isoValue);
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(rawValue)
+      && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(rawValue)) {
+    return rawValue.slice(0, 16);
+  }
   const date = new Date(isoValue);
   if (Number.isNaN(date.getTime())) return '';
-  const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return localTime.toISOString().slice(0, 16);
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    + `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 const emptyForm = (game) => ({
   title: '', game: game || '', gameMode: '', startAt: '', description: '', maxParticipants: '5',
 });
 
-export default function HouseScheduleFormModal({ open, schedule, defaultGame, onClose, onSubmit }) {
+export default function HouseScheduleFormModal({
+  open, schedule, defaultGame, isCrewHouse = false, onClose, onSubmit,
+}) {
   const formId = useId();
   const [form, setForm] = useState(() => emptyForm(defaultGame));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const editing = Boolean(schedule);
+  const editing = Boolean(schedule) && !isCrewHouse;
 
   useEffect(() => {
     if (!open) return;
     setForm(schedule ? {
       title: schedule.title,
-      game: schedule.game,
-      gameMode: schedule.gameMode,
-      startAt: toLocalDateTime(schedule.startAt),
+      game: schedule.game || '',
+      gameMode: schedule.gameMode || '',
+      startAt: toLocalDateTime(schedule.startAt || schedule.scheduledAt),
       description: schedule.description || '',
       maxParticipants: String(schedule.maxParticipants),
     } : emptyForm(defaultGame));
     setSubmitting(false);
     setError('');
-  }, [defaultGame, open, schedule]);
+  }, [defaultGame, isCrewHouse, open, schedule]);
 
   const close = () => {
     if (!submitting) onClose();
@@ -47,16 +55,23 @@ export default function HouseScheduleFormModal({ open, schedule, defaultGame, on
     if (submitting) return;
     const startDate = new Date(form.startAt);
     const maxParticipants = Number(form.maxParticipants);
-    const values = {
+    const values = isCrewHouse ? {
+      title: form.title.trim(),
+      scheduledAt: Number.isNaN(startDate.getTime()) ? '' : form.startAt,
+      maxParticipants,
+    } : {
       title: form.title.trim(),
       game: form.game.trim(),
       gameMode: form.gameMode.trim(),
-      startAt: Number.isNaN(startDate.getTime()) ? '' : startDate.toISOString(),
+      startAt: Number.isNaN(startDate.getTime()) ? '' : form.startAt,
       description: form.description.trim(),
       maxParticipants,
     };
-    if (!values.title || !values.game || !values.gameMode || !values.startAt) {
-      setError('제목, 게임, 게임 모드, 시작 일시를 모두 입력해주세요.');
+    if (!values.title || !(isCrewHouse ? values.scheduledAt : values.startAt)
+        || (!isCrewHouse && (!values.game || !values.gameMode))) {
+      setError(isCrewHouse
+        ? '제목과 시작 일시를 입력해주세요.'
+        : '제목, 게임, 게임 모드, 시작 일시를 모두 입력해주세요.');
       return;
     }
     if (!Number.isInteger(maxParticipants) || maxParticipants < 1) {
@@ -90,16 +105,20 @@ export default function HouseScheduleFormModal({ open, schedule, defaultGame, on
           <small>{form.title.length}/50</small>
         </label>
         <div className="house-schedule-form-grid">
-          <label className="house-field">
-            <span>게임 <b>*</b></span>
-            <input className="inp" type="text" maxLength={30} required value={form.game}
-                   onChange={update('game')} placeholder="게임 이름" />
-          </label>
-          <label className="house-field">
-            <span>게임 모드 <b>*</b></span>
-            <input className="inp" type="text" maxLength={30} required value={form.gameMode}
-                   onChange={update('gameMode')} placeholder="예: 솔로 랭크" />
-          </label>
+          {!isCrewHouse && (
+            <>
+              <label className="house-field">
+                <span>게임 <b>*</b></span>
+                <input className="inp" type="text" maxLength={30} required value={form.game}
+                       onChange={update('game')} placeholder="게임 이름" />
+              </label>
+              <label className="house-field">
+                <span>게임 모드 <b>*</b></span>
+                <input className="inp" type="text" maxLength={30} required value={form.gameMode}
+                       onChange={update('gameMode')} placeholder="예: 솔로 랭크" />
+              </label>
+            </>
+          )}
           <label className="house-field">
             <span>시작 일시 <b>*</b></span>
             <input className="inp" type="datetime-local" required value={form.startAt}
@@ -111,12 +130,14 @@ export default function HouseScheduleFormModal({ open, schedule, defaultGame, on
                    onChange={update('maxParticipants')} />
           </label>
         </div>
-        <label className="house-field">
-          <span>설명</span>
-          <textarea className="inp" maxLength={500} value={form.description}
-                    onChange={update('description')} placeholder="멤버들이 알아야 할 내용을 입력해주세요" />
-          <small>{form.description.length}/500</small>
-        </label>
+        {!isCrewHouse && (
+          <label className="house-field">
+            <span>설명</span>
+            <textarea className="inp" maxLength={500} value={form.description}
+                      onChange={update('description')} placeholder="멤버들이 알아야 할 내용을 입력해주세요" />
+            <small>{form.description.length}/500</small>
+          </label>
+        )}
         {error && <div className="house-alert error" role="alert">{error}</div>}
       </form>
     </Modal>

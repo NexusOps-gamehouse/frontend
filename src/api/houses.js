@@ -50,6 +50,18 @@ const normalizeNotice = (notice) => ({
   author: notice.author || { id: notice.authorId },
 });
 
+const normalizeSchedule = (schedule) => ({
+  ...schedule,
+  // 기존 일정 UI는 startAt을 사용하고, Crew API는 timezone 없는 scheduledAt을 사용한다.
+  startAt: schedule.scheduledAt,
+  participantUserIds: Array.isArray(schedule.participantUserIds)
+    ? schedule.participantUserIds
+    : [],
+  participantCount: Number(schedule.participantCount) || 0,
+  maxParticipants: Number(schedule.maxParticipants) || 5,
+  joined: Boolean(schedule.joined),
+});
+
 export const normalizeHouse = (house) => {
   const members = Array.isArray(house.members) ? house.members.map(normalizeMember) : [];
   const type = house.type;
@@ -218,21 +230,64 @@ export const deleteHouseNotice = (houseId, noticeId, user, useCrewApi = false) =
     ),
   );
 };
-// 실제 API 연결 시 GET /houses/:houseId/schedules 로 교체한다.
-export const listHouseSchedules = (houseId, user) => mockListHouseSchedules(houseId, user);
-// 실제 API 연결 시 POST /houses/:houseId/schedules 로 교체한다.
-export const createHouseSchedule = (houseId, payload, user) => (
-  mockCreateHouseSchedule(houseId, payload, user)
-);
-// 실제 API 연결 시 PUT /houses/:houseId/schedules/:scheduleId 로 교체한다.
+
+const toCrewScheduleWriteRequest = (payload = {}) => {
+  const rawScheduledAt = String(payload.scheduledAt ?? payload.startAt ?? '').trim();
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(rawScheduledAt)) {
+    throw new Error('일정 시각에는 timezone을 포함할 수 없습니다.');
+  }
+  const scheduledAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(rawScheduledAt)
+    ? `${rawScheduledAt}:00`
+    : rawScheduledAt;
+  const request = {
+    title: String(payload.title ?? '').trim(),
+    scheduledAt,
+  };
+  const maxParticipants = Number(payload.maxParticipants);
+  if (Number.isInteger(maxParticipants) && maxParticipants > 0) {
+    request.maxParticipants = maxParticipants;
+  }
+  return request;
+};
+
+export const listHouseSchedules = (houseId, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockListHouseSchedules(houseId, user);
+  return requestCrew(
+    () => api.get(`/crew/houses/${encodeURIComponent(houseId)}/schedules`),
+  ).then((data) => (Array.isArray(data) ? data : []).map(normalizeSchedule));
+};
+
+export const createHouseSchedule = (houseId, payload, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockCreateHouseSchedule(houseId, payload, user);
+  return requestCrew(
+    () => api.post(
+      `/crew/houses/${encodeURIComponent(houseId)}/schedules`,
+      toCrewScheduleWriteRequest(payload),
+    ),
+  ).then(normalizeSchedule);
+};
+
+export const joinHouseSchedule = (houseId, scheduleId) => requestCrew(
+  () => api.post(
+    `/crew/houses/${encodeURIComponent(houseId)}/schedules/${encodeURIComponent(scheduleId)}/participants`,
+  ),
+).then(normalizeSchedule);
+
+export const leaveHouseSchedule = (houseId, scheduleId) => requestCrew(
+  () => api.delete(
+    `/crew/houses/${encodeURIComponent(houseId)}/schedules/${encodeURIComponent(scheduleId)}/participants`,
+  ),
+).then(normalizeSchedule);
+
+// Crew API는 일정 수정 endpoint를 제공하지 않는다.
 export const updateHouseSchedule = (houseId, scheduleId, payload, user) => (
   mockUpdateHouseSchedule(houseId, scheduleId, payload, user)
 );
-// 실제 API 연결 시 DELETE /houses/:houseId/schedules/:scheduleId 로 교체한다.
+// Crew API는 일정 삭제 endpoint를 제공하지 않는다.
 export const deleteHouseSchedule = (houseId, scheduleId, user) => (
   mockDeleteHouseSchedule(houseId, scheduleId, user)
 );
-// 실제 API 연결 시 PUT /houses/:houseId/schedules/:scheduleId/attendance 로 교체한다.
+// Crew API는 JOINED/DECLINED attendance 저장 endpoint를 제공하지 않는다.
 export const updateScheduleAttendance = (houseId, scheduleId, status, user) => (
   mockUpdateScheduleAttendance(houseId, scheduleId, status, user)
 );

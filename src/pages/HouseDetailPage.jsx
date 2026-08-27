@@ -502,7 +502,7 @@ export default function HouseDetailPage() {
         </section>
       )}
 
-      {isMember && !isCrewHouse && (
+      {isMember && (
         <HouseSchedulesSection house={house} user={user} onSuccess={setNotice} />
       )}
 

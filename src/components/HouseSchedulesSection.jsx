@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   createHouseSchedule,
   deleteHouseSchedule,
+  joinHouseSchedule,
+  leaveHouseSchedule,
   listHouseSchedules,
   updateHouseSchedule,
   updateScheduleAttendance,
@@ -38,20 +40,23 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
   const [deleteError, setDeleteError] = useState('');
   const [attendanceWorking, setAttendanceWorking] = useState('');
   const [attendanceError, setAttendanceError] = useState('');
+  const isCrewHouse = ['PUBLIC', 'PRIVATE'].includes(house.type);
   const canManage = MANAGER_ROLES.includes(house.myRole ?? house.myStatus);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      setSchedules(await listHouseSchedules(house.id, user));
+      setSchedules(await listHouseSchedules(house.id, user, isCrewHouse));
+      return true;
     } catch (err) {
       setSchedules([]);
       setError(err.message || '게임 일정을 불러오지 못했습니다.');
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [house.id, user]);
+  }, [house.id, house.type, isCrewHouse, user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -66,12 +71,21 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
   }, [schedules]);
 
   const save = async (values) => {
-    const saved = editor?.schedule
-      ? await updateHouseSchedule(house.id, editor.schedule.id, values, user)
-      : await createHouseSchedule(house.id, values, user);
-    setSchedules((prev) => editor?.schedule
-      ? prev.map((item) => (item.id === saved.id ? saved : item))
-      : [...prev, saved]);
+    if (isCrewHouse && editor?.schedule) {
+      throw new Error('Crew API는 일정 수정을 지원하지 않습니다.');
+    }
+    if (editor?.schedule) {
+      const saved = await updateHouseSchedule(house.id, editor.schedule.id, values, user);
+      setSchedules((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+    } else {
+      const saved = await createHouseSchedule(house.id, values, user, isCrewHouse);
+      if (isCrewHouse) {
+        const reloaded = await load();
+        if (!reloaded) throw new Error('일정 목록을 새로고침하지 못했습니다.');
+      } else {
+        setSchedules((prev) => [...prev, saved]);
+      }
+    }
     setEditor(null);
     onSuccess(editor?.schedule ? '게임 일정을 수정했습니다.' : '게임 일정을 등록했습니다.');
   };
@@ -103,6 +117,20 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
     setAttendanceWorking(schedule.id);
     setAttendanceError('');
     try {
+      if (isCrewHouse) {
+        if (schedule.joined) {
+          await leaveHouseSchedule(house.id, schedule.id);
+          const reloaded = await load();
+          if (!reloaded) throw new Error('일정 목록을 새로고침하지 못했습니다.');
+          onSuccess('일정 참여를 취소했습니다.');
+        } else {
+          await joinHouseSchedule(house.id, schedule.id);
+          const reloaded = await load();
+          if (!reloaded) throw new Error('일정 목록을 새로고침하지 못했습니다.');
+          onSuccess('일정에 참여했습니다.');
+        }
+        return;
+      }
       const updated = await updateScheduleAttendance(house.id, schedule.id, status, user);
       setSchedules((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
       const selectedAgain = schedule.myAttendance === status;
@@ -116,7 +144,9 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
   };
 
   const renderSchedule = (schedule, isPast) => {
-    const full = schedule.participants.length >= schedule.maxParticipants;
+    const participantCount = isCrewHouse ? schedule.participantCount : schedule.participants.length;
+    const joined = isCrewHouse ? schedule.joined : schedule.myAttendance === 'JOINED';
+    const full = participantCount >= schedule.maxParticipants;
     const working = attendanceWorking === schedule.id;
     return (
       <article className="house-schedule-card" key={schedule.id}>
@@ -124,13 +154,13 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
           <div>
             <div className="house-schedule-tags">
               <span className="ui-tag">{isPast ? '지난 일정' : '예정 일정'}</span>
-              <span className="ui-tag house-game">🎯 {schedule.game}</span>
-              <span className="ui-tag">{schedule.gameMode}</span>
+              {!isCrewHouse && <span className="ui-tag house-game">🎯 {schedule.game}</span>}
+              {!isCrewHouse && <span className="ui-tag">{schedule.gameMode}</span>}
             </div>
             <h4>{schedule.title}</h4>
             <time dateTime={schedule.startAt}>{formatDate(schedule.startAt)}</time>
           </div>
-          {canManage && (
+          {canManage && !isCrewHouse && (
             <div className="house-notice-actions">
               <button className="house-role-btn" type="button"
                       onClick={() => setEditor({ schedule })}>수정</button>
@@ -141,32 +171,48 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
             </div>
           )}
         </div>
-        {schedule.description && <p className="house-schedule-description">{schedule.description}</p>}
-        <div className="house-schedule-info">
-          <span>생성자 <strong>{schedule.creator?.nickname || 'House 멤버'}</strong> ({ROLE_LABEL[schedule.creator?.role] || '일반 멤버'})</span>
-          <span>생성 {formatDate(schedule.createdAt, CREATED_DATE_FORMAT)}</span>
-          {schedule.updatedAt && (
-            <span className="house-notice-edited">수정 {formatDate(schedule.updatedAt, CREATED_DATE_FORMAT)}</span>
-          )}
-        </div>
+        {!isCrewHouse && schedule.description && <p className="house-schedule-description">{schedule.description}</p>}
+        {!isCrewHouse && (
+          <div className="house-schedule-info">
+            <span>생성자 <strong>{schedule.creator?.nickname || 'House 멤버'}</strong> ({ROLE_LABEL[schedule.creator?.role] || '일반 멤버'})</span>
+            <span>생성 {formatDate(schedule.createdAt, CREATED_DATE_FORMAT)}</span>
+            {schedule.updatedAt && (
+              <span className="house-notice-edited">수정 {formatDate(schedule.updatedAt, CREATED_DATE_FORMAT)}</span>
+            )}
+          </div>
+        )}
         <div className="house-schedule-attendees">
-          <strong>참여 예정 {schedule.participants.length}/{schedule.maxParticipants}명</strong>
-          {schedule.participants.length > 0 ? (
+          <strong>참여 예정 {participantCount}/{schedule.maxParticipants}명</strong>
+          {isCrewHouse ? (
+            schedule.participantUserIds.length > 0 ? (
+              <div>{schedule.participantUserIds.map((userId) => <span key={userId}>사용자 #{userId}</span>)}</div>
+            ) : <small>아직 참여 예정인 멤버가 없습니다.</small>
+          ) : schedule.participants.length > 0 ? (
             <div>{schedule.participants.map((participant) => <span key={participant.id}>{participant.nickname}</span>)}</div>
           ) : <small>아직 참여 예정인 멤버가 없습니다.</small>}
         </div>
         <div className="house-schedule-attendance-actions" aria-label={`${schedule.title} 참여 여부`}>
-          <button className={schedule.myAttendance === 'JOINED' ? 'ui-btn-primary' : 'ui-btn-secondary'}
-                  type="button" disabled={Boolean(attendanceWorking) || (full && schedule.myAttendance !== 'JOINED')}
-                  aria-pressed={schedule.myAttendance === 'JOINED'}
-                  onClick={() => changeAttendance(schedule, 'JOINED')}>
-            {working ? '처리 중…' : schedule.myAttendance === 'JOINED' ? '참여 취소' : full ? '참여 마감' : '참여'}
-          </button>
-          <button className={schedule.myAttendance === 'DECLINED' ? 'ui-btn-primary' : 'ui-btn-secondary'}
-                  type="button" disabled={Boolean(attendanceWorking)} aria-pressed={schedule.myAttendance === 'DECLINED'}
-                  onClick={() => changeAttendance(schedule, 'DECLINED')}>
-            {working ? '처리 중…' : schedule.myAttendance === 'DECLINED' ? '불참 취소' : '불참'}
-          </button>
+          {isCrewHouse ? (
+            <button className={joined ? 'ui-btn-primary' : 'ui-btn-secondary'}
+                    type="button" disabled={Boolean(attendanceWorking) || (full && !joined)}
+                    aria-pressed={joined} onClick={() => changeAttendance(schedule)}>
+              {working ? '처리 중…' : joined ? '참여 취소' : full ? '참여 마감' : '참여'}
+            </button>
+          ) : (
+            <>
+              <button className={schedule.myAttendance === 'JOINED' ? 'ui-btn-primary' : 'ui-btn-secondary'}
+                      type="button" disabled={Boolean(attendanceWorking) || (full && schedule.myAttendance !== 'JOINED')}
+                      aria-pressed={schedule.myAttendance === 'JOINED'}
+                      onClick={() => changeAttendance(schedule, 'JOINED')}>
+                {working ? '처리 중…' : schedule.myAttendance === 'JOINED' ? '참여 취소' : full ? '참여 마감' : '참여'}
+              </button>
+              <button className={schedule.myAttendance === 'DECLINED' ? 'ui-btn-primary' : 'ui-btn-secondary'}
+                      type="button" disabled={Boolean(attendanceWorking)} aria-pressed={schedule.myAttendance === 'DECLINED'}
+                      onClick={() => changeAttendance(schedule, 'DECLINED')}>
+                {working ? '처리 중…' : schedule.myAttendance === 'DECLINED' ? '불참 취소' : '불참'}
+              </button>
+            </>
+          )}
         </div>
       </article>
     );
@@ -210,6 +256,7 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
       )}
 
       <HouseScheduleFormModal open={Boolean(editor)} schedule={editor?.schedule} defaultGame={house.game}
+                              isCrewHouse={isCrewHouse}
                               onClose={() => setEditor(null)} onSubmit={save} />
       <Modal open={Boolean(scheduleToDelete)} title="게임 일정 삭제" size="sm"
              onClose={closeDelete} footer={<>
