@@ -18,6 +18,7 @@ import {
 
 import {
   getHouse,
+  getHouseDisplayRank,
   listHouseMessages,
   sendHouseMessage,
   subscribeHouseMessages,
@@ -72,7 +73,7 @@ const ROLE_LABEL = {
   OWNER: '방장',
   MANAGER: '부방장',
   MEMBER: '일반 멤버',
-  NEW_MEMBER: '신입 멤버',
+  NEW_MEMBER: '신규 회원',
 };
 
 /* =========================================================
@@ -214,7 +215,8 @@ const PREVIEW_HOUSE = {
     {
       id: 'preview-new-member',
       nickname: '신입멤버',
-      role: 'NEW_MEMBER',
+      role: 'MEMBER',
+      rank: 'NEW_MEMBER',
     },
 
     {
@@ -245,7 +247,8 @@ const PREVIEW_MESSAGES = [
     author: {
       id: 'preview-new-member',
       nickname: '신입멤버',
-      role: 'NEW_MEMBER',
+      role: 'MEMBER',
+      rank: 'NEW_MEMBER',
     },
 
     content:
@@ -370,23 +373,23 @@ const isAccessError = (
 
 function HouseRankAvatar({
   person,
-  role,
+  displayRank,
   large = false,
 }) {
   const frame =
     getHouseRankFrame(
-      role,
+      displayRank,
     );
 
   const layout =
     getHouseRankLayout(
-      role,
+      displayRank,
       large,
     );
 
   const label =
     ROLE_LABEL[
-      role
+      displayRank
     ] ??
     '일반 멤버';
 
@@ -1871,9 +1874,9 @@ export default function HouseChatPage() {
                               </span>
                             </div>
 
-                            <span className="house-chat-participant-role">
-                              {ROLE_LABEL[member.role] ?? '일반 멤버'}
-                            </span>
+                          <span className="house-chat-participant-role">
+                            {ROLE_LABEL[getHouseDisplayRank(member)] ?? '일반 멤버'}
+                          </span>
                           </div>
                         );
                       })
@@ -2008,13 +2011,22 @@ export default function HouseChatPage() {
                   authorMember?.role ??
                   'MEMBER';
 
+                const senderMember = {
+                  ...authorMember,
+                  ...message.author,
+                  role: authorRole,
+                };
+
+                const displayRank =
+                  getHouseDisplayRank(senderMember);
+
                 const avatar = (
                   <HouseRankAvatar
                     person={
                       message.author
                     }
-                    role={
-                      authorRole
+                    displayRank={
+                      displayRank
                     }
                   />
                 );
@@ -2075,7 +2087,7 @@ export default function HouseChatPage() {
                         >
                           {
                             ROLE_LABEL[
-                              authorRole
+                              displayRank
                             ] ??
                             '일반 멤버'
                           }

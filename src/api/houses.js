@@ -43,6 +43,18 @@ const ROLE_MAP = {
 
 const normalizeRole = (role) => ROLE_MAP[role] || null;
 
+// 권한 role과 화면에 보이는 House rank는 별도 계약으로 유지한다.
+// Crew rank가 응답되면 NEW_MEMBER만 표시 rank로 사용하고,
+// 누락되거나 MEMBER인 경우에는 일반 회원으로 보정한다.
+export const getHouseDisplayRank = (member = {}) => {
+  const permissionRole = normalizeRole(member.role) || member.role;
+
+  if (permissionRole === 'OWNER') return 'OWNER';
+  if (permissionRole === 'MANAGER') return 'MANAGER';
+  if (member.rank === 'NEW_MEMBER') return 'NEW_MEMBER';
+  return 'MEMBER';
+};
+
 const normalizeMember = (member) => ({
   ...member,
   id: member.memberId,

@@ -5,6 +5,7 @@ import {
   createHouseNotice,
   deleteHouseNotice,
   getHouse,
+  getHouseDisplayRank,
   inviteFriends,
   joinHouse,
   leaveHouse,
@@ -33,6 +34,12 @@ const TYPE_LABEL = {
   PRIVATE: '비공개',
 };
 const ROLE_LABEL = { OWNER: '방장', MANAGER: '부방장', MEMBER: '일반 멤버' };
+const DISPLAY_RANK_LABEL = {
+  OWNER: '방장',
+  MANAGER: '부방장',
+  MEMBER: '일반 멤버',
+  NEW_MEMBER: '신규 회원',
+};
 const MEMBER_ROLES = ['OWNER', 'MANAGER', 'MEMBER'];
 const NOTICE_MANAGER_ROLES = ['OWNER', 'MANAGER'];
 const CREW_HOUSE_TYPES = ['PUBLIC', 'PRIVATE'];
@@ -516,11 +523,14 @@ export default function HouseDetailPage() {
           )}
         </div>
         <div className="house-members-list">
-          {house.members.map((member) => (
+          {house.members.map((member) => {
+            const displayRank = getHouseDisplayRank(member);
+
+            return (
             <div className="house-member" key={member.id}>
               <div className="ui-author-av">{(member.nickname || `사용자 #${member.userId}`)[0] || '?'}</div>
               <span className="house-member-name">{member.nickname || `사용자 #${member.userId}`}</span>
-              <span className={`role-badge ${member.role.toLowerCase()}`}>{ROLE_LABEL[member.role]}</span>
+              <span className={`role-badge ${member.role.toLowerCase()}`}>{DISPLAY_RANK_LABEL[displayRank]}</span>
               {member.role !== 'OWNER'
                 && (isOwner || (house.myRole === 'MANAGER' && member.role === 'MEMBER')) && (
                 <div className="house-member-actions">
@@ -536,7 +546,8 @@ export default function HouseDetailPage() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
