@@ -418,9 +418,8 @@ export default function HouseDetailPage() {
         <HouseGrowthPanel house={house} user={user} onUpdate={setHouse} onNotice={setNotice} />
       )}
 
-      {house.type === 'COMPETITIVE' && isMember && (
-        <HouseWeeklyQuestsPanel house={house} user={user} onHouseUpdate={setHouse} onNotice={setNotice}
-                                onCoinReward={refreshCoinWallet} />
+      {isMember && (
+        <HouseWeeklyQuestsPanel house={house} user={user} useCrewApi={isCrewHouse} />
       )}
 
       {error && <div className="house-alert error detail-error" role="alert">{error}</div>}

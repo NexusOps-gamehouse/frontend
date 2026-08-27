@@ -30,6 +30,7 @@ import {
 } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import api, { errMsg } from './client';
+import { getKstWeek, HOUSE_WEEKLY_QUESTS } from '../utils/houseWeeklyQuests';
 
 /**
  * House 화면이 의존하는 API 계약입니다.
@@ -247,10 +248,79 @@ export const updateHouse = (houseId, payload, user, useCrewApi = false) => {
 // TODO(house-xp): 실제 서비스에서는 클라이언트가 XP 값을 결정하지 않는다.
 // 서버가 게임·일정·퀘스트 활동을 검증해 POST /houses/:houseId/xp 로 지급한다.
 export const addHouseXp = (houseId, amount, user) => mockAddHouseXp(houseId, amount, user);
-// 실제 API 연결 시 GET /houses/:houseId/weekly-quests 로 교체한다.
-export const getHouseWeeklyQuests = (houseId, user) => mockGetHouseWeeklyQuests(houseId, user);
-// TODO(house-quests): 실서비스에서는 프론트가 진행도를 임의로 올리지 않는다.
-// 서버가 게임 결과와 참여자를 검증해 POST /houses/:houseId/weekly-quests/progress 로 기록한다.
+const normalizeWeeklyQuestResponse = (value = {}) => {
+  const sourceQuests = Array.isArray(value.quests) ? value.quests : [];
+  const quests = sourceQuests.map((quest, index) => {
+    const current = Number(quest.current ?? quest.progress);
+    const target = Number(quest.target);
+    const safeCurrent = Number.isFinite(current) && current >= 0 ? current : 0;
+    const safeTarget = Number.isFinite(target) && target > 0 ? target : 0;
+
+    return {
+      id: quest.id ?? quest.type ?? `quest-${index}`,
+      title: quest.title ?? quest.name ?? '주간 퀘스트',
+      description: quest.description ?? '',
+      current: safeCurrent,
+      target: safeTarget,
+      completed: quest.completed === true || (safeTarget > 0 && safeCurrent >= safeTarget),
+    };
+  });
+  const totalCount = Number.isInteger(Number(value.totalCount)) && Number(value.totalCount) >= 0
+    ? Number(value.totalCount) : quests.length;
+  const completedCount = Number.isInteger(Number(value.completedCount)) && Number(value.completedCount) >= 0
+    ? Math.min(totalCount, Number(value.completedCount))
+    : quests.filter((quest) => quest.completed).length;
+  const reward = value.reward ?? value.houseCoinReward ?? {};
+  const amount = Number(reward.amount);
+
+  return {
+    weekId: value.weekId ?? '',
+    isMock: value.isMock === true,
+    startAt: value.startAt ?? null,
+    endAt: value.endAt ?? null,
+    startDate: value.startDate ?? '',
+    endDate: value.endDate ?? '',
+    quests,
+    completedCount,
+    totalCount,
+    allCompleted: value.allCompleted === true || (totalCount > 0 && completedCount === totalCount),
+    reward: {
+      type: 'HC',
+      amount: Number.isSafeInteger(amount) && amount >= 0 ? amount : 50,
+      rewarded: reward.rewarded === true,
+    },
+  };
+};
+
+const createCrewWeeklyQuestDevFallback = () => {
+  const week = getKstWeek();
+  return normalizeWeeklyQuestResponse({
+    ...week,
+    isMock: true,
+    quests: HOUSE_WEEKLY_QUESTS.map((quest) => ({
+      id: quest.type,
+      title: quest.name,
+      description: quest.description,
+      current: 0,
+      target: quest.target,
+      completed: false,
+    })),
+    reward: { type: 'HC', amount: 50, rewarded: false },
+  });
+};
+
+// Crew 주간 퀘스트 endpoint가 아직 없어, 실제 Crew House에는 임의의 URL을 호출하지 않는다.
+// 개발 모드에서는 서버 연동 전 화면 확인을 위한 read-only fixture를 사용한다.
+export const getHouseWeeklyQuests = (houseId, user, useCrewApi = false) => {
+  if (useCrewApi) {
+    if (import.meta.env.DEV) return Promise.resolve(createCrewWeeklyQuestDevFallback());
+    return Promise.reject(new Error('Crew 주간 퀘스트 API가 아직 준비되지 않았습니다.'));
+  }
+  return mockGetHouseWeeklyQuests(houseId, user, Date.now(), { grantReward: false })
+    .then(normalizeWeeklyQuestResponse);
+};
+
+// 기존 개발용 mock 진행도 함수는 보존하되, House 주간 퀘스트 UI에서는 호출하지 않는다.
 export const recordHouseQuestProgress = (houseId, questType, payload, user) => (
   mockRecordHouseQuestProgress(houseId, questType, payload, user)
 );
