@@ -15,6 +15,7 @@ import {
   mockRecordHouseQuestProgress,
   mockResetHouseSuggestion,
   mockDismissHouseSuggestion,
+  mockSetHouseNoticePinned,
   mockUpdateHouseNotice,
   mockUpdateHouseSchedule,
   mockUpdateHouse,
@@ -64,6 +65,7 @@ const normalizeMember = (member) => ({
 
 const normalizeNotice = (notice) => ({
   ...notice,
+  pinned: Boolean(notice.pinned ?? notice.isPinned ?? notice.pinnedAt),
   author: notice.author || { id: notice.authorId },
 });
 
@@ -328,7 +330,10 @@ export const recordHouseQuestProgress = (houseId, questType, payload, user) => (
 export const requestHouseJoin = (houseId) => joinHouse(houseId);
 export const cancelJoinRequest = (houseId) => leaveHouse(houseId);
 export const listHouseNotices = (houseId, user, useCrewApi = false) => {
-  if (!useCrewApi) return mockListHouseNotices(houseId, user);
+  if (!useCrewApi) {
+    return mockListHouseNotices(houseId, user)
+      .then((data) => (Array.isArray(data) ? data : []).map(normalizeNotice));
+  }
   return requestCrew(
     () => api.get(`/crew/houses/${encodeURIComponent(houseId)}/notices`),
   ).then((data) => (Array.isArray(data) ? data : []).map(normalizeNotice));
@@ -345,12 +350,15 @@ export const createHouseNotice = (houseId, payload, user, useCrewApi = false) =>
   ).then(normalizeNotice);
 };
 
-export const setHouseNoticePinned = (houseId, noticeId, pinned) => requestCrew(
-  () => api.put(
-    `/crew/houses/${encodeURIComponent(houseId)}/notices/${encodeURIComponent(noticeId)}/pin`,
-    { pinned: Boolean(pinned) },
-  ),
-).then(normalizeNotice);
+export const setHouseNoticePinned = (houseId, noticeId, pinned, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockSetHouseNoticePinned(houseId, noticeId, pinned, user);
+  return requestCrew(
+    () => api.put(
+      `/crew/houses/${encodeURIComponent(houseId)}/notices/${encodeURIComponent(noticeId)}/pin`,
+      { pinned: Boolean(pinned) },
+    ),
+  ).then((data) => (data ? normalizeNotice(data) : null));
+};
 
 // Crew API는 제목/본문 수정 endpoint를 제공하지 않는다.
 export const updateHouseNotice = (houseId, noticeId, payload, user) => (

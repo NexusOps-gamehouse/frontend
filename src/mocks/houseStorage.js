@@ -610,7 +610,8 @@ export async function mockListHouseNotices(houseId, user) {
   const { house } = requireHouse(houses, houseId);
   requireMember(house, user);
   return clone(house.notices).sort((a, b) => (
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    Number(Boolean(b.pinned)) - Number(Boolean(a.pinned))
+      || new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
   ));
 }
 
@@ -630,8 +631,21 @@ export async function mockCreateHouseNotice(houseId, payload, user) {
     },
     createdAt: new Date().toISOString(),
     updatedAt: null,
+    pinned: false,
   };
   house.notices.push(notice);
+  writeHouses(houses);
+  return clone(notice);
+}
+
+export async function mockSetHouseNoticePinned(houseId, noticeId, pinned, user) {
+  const houses = readHouses();
+  const { house } = requireHouse(houses, houseId);
+  requireNoticeManager(house, user);
+  const notice = house.notices.find((item) => String(item.id) === String(noticeId));
+  if (!notice) throw new Error('공지를 찾을 수 없습니다.');
+  notice.pinned = Boolean(pinned);
+  notice.updatedAt = new Date().toISOString();
   writeHouses(houses);
   return clone(notice);
 }
