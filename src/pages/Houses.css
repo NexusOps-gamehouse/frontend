@@ -33,6 +33,14 @@
   min-width: 20px; padding: 2px 6px; border-radius: 99px;
   background: rgba(148,163,184,.15); font-size: 11px; text-align: center;
 }
+.house-search {
+  display: flex; align-items: flex-end; gap: 14px; margin: -4px 0 22px; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.house-search > label { flex-shrink: 0; color: var(--text-main); font-size: 13px; font-weight: 800; }
+.house-search-control { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; }
+.house-search-control .inp { min-width: 0; flex: 1; height: 40px; margin: 0; padding: 0 12px; font-size: 13px; }
+.house-search-result { flex-shrink: 0; color: var(--text-muted); font-size: 12px; font-weight: 700; }
 
 .house-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .house-card {
@@ -406,6 +414,8 @@
   .house-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
   .house-tabs::-webkit-scrollbar { display: none; }
   .house-tabs button { flex-shrink: 0; }
+  .house-search { align-items: stretch; flex-direction: column; gap: 9px; margin-top: -8px; }
+  .house-search-control { width: 100%; }
   .house-create-link { width: 100%; }
   .house-grid, .house-choice-grid, .house-select-grid, .house-members-list,
   .suggestion-preview-grid { grid-template-columns: 1fr; }
