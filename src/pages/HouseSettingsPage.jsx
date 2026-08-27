@@ -70,6 +70,11 @@ export default function HouseSettingsPage() {
     setAccessDenied(false);
     try {
       const data = await getHouse(houseId, user);
+      if (['PUBLIC', 'PRIVATE'].includes(data.type)) {
+        setAccessDenied(true);
+        setError('Crew House 설정은 아직 실제 API에 연결되지 않았습니다.');
+        return;
+      }
       if (data.myRole !== 'OWNER') {
         setAccessDenied(true);
         setError('방장만 House 설정을 관리할 수 있습니다.');

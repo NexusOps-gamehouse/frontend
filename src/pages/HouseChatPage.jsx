@@ -727,6 +727,7 @@ export default function HouseChatPage() {
             if (
               metadata.connected
             ) {
+              setError('');
               setSendError('');
             } else if (
               metadata.reconnecting

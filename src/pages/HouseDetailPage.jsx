@@ -112,7 +112,8 @@ export default function HouseDetailPage() {
         setNotices([]);
         setNoticesError('');
       }
-      if (data.myRole === 'OWNER' && (isCrewHouse || data.visibility === 'PUBLIC')) {
+      if (NOTICE_MANAGER_ROLES.includes(data.myRole)
+        && (isCrewHouse || data.visibility === 'PUBLIC')) {
         setRequestsLoading(true);
         try {
           setRequests(await listJoinRequests(houseId));
@@ -418,7 +419,7 @@ export default function HouseDetailPage() {
       {error && <div className="house-alert error detail-error" role="alert">{error}</div>}
       {notice && <div className="house-alert success detail-error" role="status">{notice}</div>}
 
-      {isOwner && (isCrewHouse || !isPrivate) && (
+      {NOTICE_MANAGER_ROLES.includes(house.myRole) && (isCrewHouse || !isPrivate) && (
         <section className="house-management-section">
           <div className="house-section-head">
             <h2>가입 신청</h2><span>{requestsLoading ? pendingCount : requests.length}건</span>
@@ -520,12 +521,15 @@ export default function HouseDetailPage() {
               <div className="ui-author-av">{(member.nickname || `사용자 #${member.userId}`)[0] || '?'}</div>
               <span className="house-member-name">{member.nickname || `사용자 #${member.userId}`}</span>
               <span className={`role-badge ${member.role.toLowerCase()}`}>{ROLE_LABEL[member.role]}</span>
-              {isOwner && member.role !== 'OWNER' && (
+              {member.role !== 'OWNER'
+                && (isOwner || (house.myRole === 'MANAGER' && member.role === 'MEMBER')) && (
                 <div className="house-member-actions">
-                  <button className="house-role-btn" type="button" disabled={working === `role-${member.id}`}
-                          onClick={() => changeRole(member)}>
-                    {member.role === 'MANAGER' ? '부방장 해제' : '부방장 지정'}
-                  </button>
+                  {isOwner && (
+                    <button className="house-role-btn" type="button" disabled={working === `role-${member.id}`}
+                            onClick={() => changeRole(member)}>
+                      {member.role === 'MANAGER' ? '부방장 해제' : '부방장 지정'}
+                    </button>
+                  )}
                   <button className="house-remove-btn" type="button" onClick={() => openRemoveMember(member)}>
                     강퇴
                   </button>
