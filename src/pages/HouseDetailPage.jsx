@@ -13,6 +13,7 @@ import {
   listHouseNotices,
   removeHouseMember,
   rejectJoinRequest,
+  setHouseNoticePinned,
   updateHouseNotice,
   updateMemberRole,
 } from '../api/houses';
@@ -48,7 +49,8 @@ const NOTICE_DATE_FORMAT = new Intl.DateTimeFormat('ko-KR', {
 });
 
 const newestFirst = (items) => [...items].sort((a, b) => (
-  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  Number(Boolean(b.pinned)) - Number(Boolean(a.pinned))
+    || new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
 ));
 
 const formatNoticeDate = (value) => {
@@ -80,6 +82,7 @@ export default function HouseDetailPage() {
   const [notices, setNotices] = useState([]);
   const [noticesLoading, setNoticesLoading] = useState(false);
   const [noticesError, setNoticesError] = useState('');
+  const [pinningNoticeId, setPinningNoticeId] = useState(null);
   const [noticeEditor, setNoticeEditor] = useState(null);
   const [noticeToDelete, setNoticeToDelete] = useState(null);
   const [deletingNotice, setDeletingNotice] = useState(false);
@@ -94,7 +97,7 @@ export default function HouseDetailPage() {
     setNoticesError('');
     try {
       const loaded = await listHouseNotices(houseId, user, isCrewHouse);
-      setNotices(isCrewHouse ? loaded : newestFirst(loaded));
+      setNotices(newestFirst(loaded));
       return true;
     } catch (err) {
       setNotices([]);
@@ -271,6 +274,25 @@ export default function HouseDetailPage() {
   const openDeleteNotice = (houseNotice) => {
     setNoticeToDelete(houseNotice);
     setDeleteNoticeError('');
+  };
+
+  const toggleNoticePinned = async (houseNotice) => {
+    if (pinningNoticeId) return;
+    const isCrewHouse = CREW_HOUSE_TYPES.includes(house?.type);
+    const nextPinned = !houseNotice.pinned;
+    setPinningNoticeId(houseNotice.id);
+    setError('');
+    setNotice('');
+    try {
+      await setHouseNoticePinned(houseId, houseNotice.id, nextPinned, user, isCrewHouse);
+      const reloaded = await loadNotices(isCrewHouse);
+      if (!reloaded) throw new Error('공지 목록을 새로고침하지 못했습니다.');
+      setNotice(nextPinned ? '공지를 상단에 고정했습니다.' : '공지 고정을 해제했습니다.');
+    } catch (err) {
+      setError(err.message || '공지 고정 상태를 변경하지 못했습니다.');
+    } finally {
+      setPinningNoticeId(null);
+    }
   };
 
   const closeDeleteNotice = () => {
@@ -479,10 +501,15 @@ export default function HouseDetailPage() {
           {!noticesLoading && !noticesError && notices.length > 0 && (
             <div className="house-notice-list">
               {notices.map((houseNotice) => (
-                <article className="house-notice-card" key={houseNotice.id}>
+                <article className={`house-notice-card ${houseNotice.pinned ? 'pinned' : ''}`} key={houseNotice.id}>
                   <div className="house-notice-head">
                     <div>
-                      <h3>{houseNotice.title}</h3>
+                      <div className="house-notice-title-row">
+                        <h3>{houseNotice.title}</h3>
+                        {houseNotice.pinned && (
+                          <span className="house-notice-pin"><span aria-hidden="true">📌</span> 고정</span>
+                        )}
+                      </div>
                       <div className="house-notice-meta">
                         <span>{houseNotice.author?.nickname || (houseNotice.authorId ? `사용자 #${houseNotice.authorId}` : 'House 멤버')}</span>
                         <span>{ROLE_LABEL[houseNotice.author?.role] || '일반 멤버'}</span>
@@ -492,10 +519,14 @@ export default function HouseDetailPage() {
                     </div>
                     {canManageNotices && (
                       <div className="house-notice-actions">
-                        {!isCrewHouse && (
-                          <button className="house-role-btn" type="button"
-                                  onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
-                        )}
+                        <button className="house-role-btn" type="button"
+                                disabled={pinningNoticeId === houseNotice.id}
+                                onClick={() => toggleNoticePinned(houseNotice)}>
+                          {pinningNoticeId === houseNotice.id
+                            ? '처리 중…' : houseNotice.pinned ? '고정 해제' : '상단 고정'}
+                        </button>
+                        <button className="house-role-btn" type="button"
+                                onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
                         <button className="house-remove-btn" type="button"
                                 onClick={() => openDeleteNotice(houseNotice)}>삭제</button>
                       </div>

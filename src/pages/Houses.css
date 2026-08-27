@@ -297,8 +297,15 @@
   padding: 20px; background: var(--surface-hover); border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
+.house-notice-card.pinned { border-color: rgba(245,158,11,.45); }
 .house-notice-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.house-notice-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .house-notice-head h3 { color: var(--text-main); font-size: 16px; line-height: 1.45; overflow-wrap: anywhere; }
+.house-notice-pin {
+  display: inline-flex; align-items: center; gap: 3px; padding: 3px 7px; border-radius: 99px;
+  color: #9a6200; background: rgba(245,158,11,.14); font-size: 10px; font-weight: 800; white-space: nowrap;
+}
+[data-theme='dark'] .house-notice-pin { color: #fbbf24; }
 .house-notice-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 10px; margin-top: 7px; }
 .house-notice-meta span, .house-notice-meta time { color: var(--text-muted); font-size: 11px; }
 .house-notice-meta span + span::before, .house-notice-meta time::before {
