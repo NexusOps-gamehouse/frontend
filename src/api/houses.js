@@ -25,6 +25,10 @@ import {
   mockSendHouseMessage,
   mockSubscribeHouseMessages,
 } from '../mocks/houseChatStorage';
+import {
+  Client,
+} from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import api, { errMsg } from './client';
 
 /**
@@ -61,6 +65,36 @@ const normalizeSchedule = (schedule) => ({
   maxParticipants: Number(schedule.maxParticipants) || 5,
   joined: Boolean(schedule.joined),
 });
+
+const normalizeHouseMessage = (message) => {
+  const houseId = message?.houseId;
+  const senderId = message?.senderId;
+  const content = message?.message ?? message?.content ?? '';
+  const createdAt = message?.timestamp ?? message?.createdAt;
+  const senderName = String(message?.senderName ?? '').trim();
+  const id = message?.id
+    ?? `crew-house-message-${houseId}-${senderId}-${createdAt}-${content}`;
+
+  return {
+    ...message,
+    id,
+    houseId,
+    senderId,
+    senderName,
+    message: content,
+    timestamp: createdAt,
+    content,
+    author: {
+      id: senderId,
+      nickname: senderName || `사용자 #${senderId}`,
+      // Crew chat payload에는 role이 없으므로 House 상세 멤버 정보로 보완한다.
+      role: null,
+    },
+    createdAt,
+  };
+};
+
+const houseStompClients = new Map();
 
 export const normalizeHouse = (house) => {
   const members = Array.isArray(house.members) ? house.members.map(normalizeMember) : [];
@@ -291,16 +325,126 @@ export const deleteHouseSchedule = (houseId, scheduleId, user) => (
 export const updateScheduleAttendance = (houseId, scheduleId, status, user) => (
   mockUpdateScheduleAttendance(houseId, scheduleId, status, user)
 );
-// 실제 API 연결 시 GET /houses/:houseId/messages 로 교체한다.
-export const listHouseMessages = (houseId, user) => mockListHouseMessages(houseId, user);
-// 실제 API 연결 시 POST /houses/:houseId/messages 또는 STOMP SEND로 교체한다.
-export const sendHouseMessage = (houseId, content, user) => (
-  mockSendHouseMessage(houseId, content, user)
-);
-// 실제 연결 시 STOMP SUBSCRIBE /topic/houses/:houseId 로 교체한다.
-export const subscribeHouseMessages = (houseId, user, callback) => (
-  mockSubscribeHouseMessages(houseId, user, callback)
-);
+const crewHouseId = (houseId) => {
+  const numericHouseId = Number(houseId);
+  return Number.isSafeInteger(numericHouseId) ? numericHouseId : houseId;
+};
+
+const crewMessageError = (message) => {
+  const error = new Error(message);
+  error.status = undefined;
+  return error;
+};
+
+// 기존 mock House 호출부를 보존하면서 Crew House만 실제 history API를 사용한다.
+export const listHouseMessages = (houseId, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockListHouseMessages(houseId, user);
+  return requestCrew(
+    () => api.get(`/crew/houses/${encodeURIComponent(houseId)}/chat/messages`),
+  ).then((data) => (Array.isArray(data) ? data : []).map(normalizeHouseMessage));
+};
+
+export const sendHouseMessage = (houseId, content, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockSendHouseMessage(houseId, content, user);
+
+  const message = String(content ?? '').trim();
+  if (!message) return Promise.reject(crewMessageError('메시지를 입력해주세요.'));
+  if (message.length > 500) {
+    return Promise.reject(crewMessageError('메시지는 500자 이하로 입력해주세요.'));
+  }
+
+  const client = houseStompClients.get(String(houseId));
+  if (!client?.connected) {
+    return Promise.reject(crewMessageError('House 채팅 연결을 기다려주세요.'));
+  }
+
+  // senderId/senderName은 보내지 않는다. Crew가 CONNECT Principal로 결정한다.
+  client.publish({
+    destination: '/pub/house/chat',
+    body: JSON.stringify({
+      houseId: crewHouseId(houseId),
+      message,
+    }),
+  });
+  return Promise.resolve();
+};
+
+export const subscribeHouseMessages = (
+  houseId,
+  user,
+  callback,
+  useCrewApi = false,
+) => {
+  if (!useCrewApi) return mockSubscribeHouseMessages(houseId, user, callback);
+
+  const token = localStorage.getItem('token');
+  const key = String(houseId);
+  const previousClient = houseStompClients.get(key);
+  if (previousClient) previousClient.deactivate();
+
+  let connectedOnce = false;
+  let cleanedUp = false;
+  const client = new Client({
+    webSocketFactory: () => new SockJS('/ws-house'),
+    connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+    reconnectDelay: 3000,
+    onConnect: async () => {
+      if (cleanedUp) return;
+
+      const reconnecting = connectedOnce;
+      connectedOnce = true;
+      callback(null, null, { connected: true });
+
+      client.subscribe(`/sub/house/${encodeURIComponent(houseId)}`, (frame) => {
+        try {
+          callback(
+            normalizeHouseMessage(JSON.parse(frame.body)),
+            null,
+            { realtime: true },
+          );
+        } catch {
+          callback(null, crewMessageError('House 채팅 메시지를 읽지 못했습니다.'));
+        }
+      });
+
+      // 재연결 사이에 놓친 메시지를 보완하되, 최초 history 조회와 중복 호출하지 않는다.
+      if (reconnecting) {
+        try {
+          const history = await listHouseMessages(houseId, user, true);
+          if (!cleanedUp) callback(history, null, { history: true, connected: true });
+        } catch (error) {
+          if (!cleanedUp) callback(null, error, { connected: true });
+        }
+      }
+    },
+    onDisconnect: () => {
+      if (!cleanedUp) callback(null, null, { connected: false });
+    },
+    onStompError: (frame) => {
+      if (cleanedUp) return;
+      callback(
+        null,
+        crewMessageError(frame.headers?.message || 'House 채팅 서버 오류가 발생했습니다.'),
+        { connected: false },
+      );
+    },
+    onWebSocketError: () => {
+      if (!cleanedUp) callback(null, crewMessageError('House 채팅 연결에 실패했습니다. 재연결 중입니다.'));
+    },
+    onWebSocketClose: () => {
+      if (!cleanedUp) callback(null, null, { connected: false, reconnecting: true });
+    },
+  });
+
+  houseStompClients.set(key, client);
+  client.activate();
+
+  return Promise.resolve(async () => {
+    cleanedUp = true;
+    if (houseStompClients.get(key) === client) houseStompClients.delete(key);
+    await client.deactivate();
+  });
+};
 export const inviteFriends = (houseId, friends, user) => mockInviteFriends(houseId, friends, user);
 export const listMyInvitations = (user) => mockListMyInvitations(user);
 export const acceptInvitation = (invitationId, user) => mockAcceptInvitation(invitationId, user);
