@@ -218,6 +218,8 @@
   flex-shrink: 0; padding: 7px 10px; color: var(--primary); background: var(--surface-hover);
   border: 1px solid var(--border); border-radius: 99px; font-size: 12px;
 }
+.house-weekly-currency { display: flex; flex-shrink: 0; align-items: center; gap: 8px; color: var(--text-muted); font-size: 11px; font-weight: 700; }
+.house-weekly-currency span { padding: 7px 9px; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 99px; }
 [data-theme='dark'] .house-weekly-head > strong { color: #60a5fa; }
 .house-quest-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .house-quest-card {
@@ -234,6 +236,14 @@
 .house-quest-progress-copy strong { color: var(--text-main); font-size: 13px; }
 .house-quest-progress-copy span { color: var(--text-muted); font-size: 10px; text-align: right; }
 .house-quest-card .house-growth-track { height: 9px; margin-top: 7px; }
+.house-quest-reward {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 15px; padding-top: 13px;
+  border-top: 1px dashed var(--border);
+}
+.house-quest-reward > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.house-quest-reward strong { color: var(--text-muted); font-size: 10px; }
+.house-quest-reward > div > span, .house-quest-reward-status { color: var(--primary); font-size: 11px; font-weight: 700; }
+.house-quest-reward-status { flex-shrink: 0; }
 .house-quest-dev { margin-top: 15px; padding-top: 13px; border-top: 1px dashed var(--border); }
 .house-quest-dev > strong { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 10px; }
 .house-quest-dev > button, .house-quest-dev > div { width: 100%; }
