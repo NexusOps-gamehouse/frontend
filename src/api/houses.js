@@ -33,8 +33,6 @@ import {
 import SockJS from 'sockjs-client';
 import api, { errMsg } from './client';
 import {
-  getKstWeek,
-  HOUSE_WEEKLY_QUESTS,
   HOUSE_WEEKLY_XP_REWARD,
 } from '../utils/houseWeeklyQuests';
 import { calculateHouseGrowth } from '../utils/houseGrowth';
@@ -258,8 +256,121 @@ export const updateHouse = (houseId, payload, user, useCrewApi = false) => {
 // TODO(house-xp): 실제 서비스에서는 클라이언트가 XP 값을 결정하지 않는다.
 // Crew backend의 검증된 XP 지급 계약이 준비되기 전까지는 mock/dev 경로만 유지한다.
 export const addHouseXp = (houseId, amount, user) => mockAddHouseXp(houseId, amount, user);
+const CREW_WEEKLY_QUEST_TYPES = new Set([
+  'COMMUNITY_VICTORY',
+  'TOGETHER_PLAY',
+  'SCHEDULE_COMPLETE',
+  'ACTIVE_DAYS',
+]);
+
+const normalizeCrewWeeklyQuest = (quest) => {
+  if (!quest || typeof quest !== 'object' || Array.isArray(quest)) {
+    throw new Error('주간 퀘스트 응답 형식이 올바르지 않습니다.');
+  }
+
+  const {
+    id,
+    houseId,
+    questType,
+    title,
+    currentProgress,
+    targetProgress,
+    completed,
+    rewardClaimed,
+    rewardHc,
+    rewardXp,
+  } = quest;
+
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw new Error('주간 퀘스트 응답의 id가 올바르지 않습니다.');
+  }
+
+  if (!Number.isSafeInteger(houseId) || houseId <= 0) {
+    throw new Error('주간 퀘스트 응답의 houseId가 올바르지 않습니다.');
+  }
+
+  if (!CREW_WEEKLY_QUEST_TYPES.has(questType)) {
+    throw new Error(`지원하지 않는 주간 퀘스트 타입입니다: ${questType ?? ''}`);
+  }
+
+  if (typeof title !== 'string' || !title.trim()) {
+    throw new Error('주간 퀘스트 응답의 title이 올바르지 않습니다.');
+  }
+
+  if (!Number.isSafeInteger(currentProgress) || currentProgress < 0) {
+    throw new Error('주간 퀘스트 진행도가 올바르지 않습니다.');
+  }
+
+  if (!Number.isSafeInteger(targetProgress) || targetProgress <= 0) {
+    throw new Error('주간 퀘스트 목표 진행도가 올바르지 않습니다.');
+  }
+
+  if (typeof completed !== 'boolean') {
+    throw new Error('주간 퀘스트 완료 상태가 올바르지 않습니다.');
+  }
+
+  if (typeof rewardClaimed !== 'boolean') {
+    throw new Error('주간 퀘스트 보상 수령 상태가 올바르지 않습니다.');
+  }
+
+  if (!Number.isSafeInteger(rewardHc) || rewardHc < 0) {
+    throw new Error('주간 퀘스트 HC 보상이 올바르지 않습니다.');
+  }
+
+  if (!Number.isSafeInteger(rewardXp) || rewardXp < 0) {
+    throw new Error('주간 퀘스트 XP 보상이 올바르지 않습니다.');
+  }
+
+  return {
+    id,
+    houseId,
+    type: questType,
+    title,
+    description: '',
+    current: currentProgress,
+    target: targetProgress,
+    completed,
+    rewardClaimed,
+    rewardHc,
+    rewardXp,
+  };
+};
+
 const normalizeWeeklyQuestResponse = (value = {}) => {
+  const isCrewResponse = Array.isArray(value);
+
+  if (isCrewResponse) {
+    const quests = value.map(normalizeCrewWeeklyQuest);
+    const totalCount = quests.length;
+    const completedCount = quests.filter((quest) => quest.completed).length;
+
+    return {
+      weekId: '',
+      isMock: false,
+      startAt: null,
+      endAt: null,
+      startDate: '',
+      endDate: '',
+      quests,
+      completedCount,
+      totalCount,
+      allCompleted: totalCount > 0 && completedCount === totalCount,
+      reward: {
+        type: 'HC',
+        amount: null,
+        rewarded: false,
+      },
+      xpReward: {
+        type: 'XP',
+        amount: null,
+        rewarded: false,
+      },
+    };
+  }
+
+  // 기존 mock/legacy House 경로는 기존 호환성을 유지한다.
   const sourceQuests = Array.isArray(value.quests) ? value.quests : [];
+
   const quests = sourceQuests.map((quest, index) => {
     const current = Number(quest.current ?? quest.progress);
     const target = Number(quest.target);
@@ -274,12 +385,18 @@ const normalizeWeeklyQuestResponse = (value = {}) => {
       current: safeCurrent,
       target: safeTarget,
       completed: quest.completed === true || (safeTarget > 0 && safeCurrent >= safeTarget),
+      rewardClaimed: quest.rewardClaimed === true || quest.rewarded === true,
+      rewardHc: 0,
+      rewardXp: 0,
     };
   });
+
   const totalCount = quests.length;
   const completedCount = quests.filter((quest) => quest.completed).length;
+
   const reward = value.reward ?? value.houseCoinReward ?? {};
   const amount = Number(reward.amount);
+
   const xpReward = value.xpReward ?? value.rewards?.xp ?? {};
   const xpAmount = Number(xpReward.amount);
 
@@ -302,36 +419,18 @@ const normalizeWeeklyQuestResponse = (value = {}) => {
     xpReward: {
       type: 'XP',
       amount: Number.isSafeInteger(xpAmount) && xpAmount >= 0
-        ? xpAmount : HOUSE_WEEKLY_XP_REWARD,
+        ? xpAmount
+        : HOUSE_WEEKLY_XP_REWARD,
       rewarded: xpReward.rewarded === true,
     },
   };
 };
 
-const createCrewWeeklyQuestDevFallback = () => {
-  const week = getKstWeek();
-  return normalizeWeeklyQuestResponse({
-    ...week,
-    isMock: true,
-    quests: HOUSE_WEEKLY_QUESTS.map((quest) => ({
-      id: quest.type,
-      title: quest.name,
-      description: quest.description,
-      current: 0,
-      target: quest.target,
-      completed: false,
-    })),
-    reward: { type: 'HC', amount: 50, rewarded: false },
-    xpReward: { type: 'XP', amount: HOUSE_WEEKLY_XP_REWARD, rewarded: false },
-  });
-};
-
-// Crew 주간 퀘스트 endpoint가 아직 없어, 실제 Crew House에는 임의의 URL을 호출하지 않는다.
-// 개발 모드에서는 서버 연동 전 화면 확인을 위한 read-only fixture를 사용한다.
 export const getHouseWeeklyQuests = (houseId, user, useCrewApi = false) => {
   if (useCrewApi) {
-    if (import.meta.env.DEV) return Promise.resolve(createCrewWeeklyQuestDevFallback());
-    return Promise.reject(new Error('Crew 주간 퀘스트 API가 아직 준비되지 않았습니다.'));
+    return requestCrew(
+      () => api.get(`/houses/${encodeURIComponent(houseId)}/quests`),
+    ).then(normalizeWeeklyQuestResponse);
   }
   return mockGetHouseWeeklyQuests(houseId, user, Date.now(), { grantReward: false })
     .then(normalizeWeeklyQuestResponse);
@@ -354,6 +453,12 @@ export const claimHouseWeeklyXpReward = (houseId, weekId, user, useCrewApi = fal
       weeklyQuests: normalizeWeeklyQuestResponse(result.weeklyQuests),
     }));
 };
+
+export const claimHouseWeeklyQuestReward = (houseId, questId) => requestCrew(
+  () => api.post(
+    `/houses/${encodeURIComponent(houseId)}/quests/${encodeURIComponent(questId)}/claim`,
+  ),
+);
 // 기존 페이지/호출부와의 호환을 위한 이름이다. 실제 요청은 Crew endpoint를 사용한다.
 export const requestHouseJoin = (houseId) => joinHouse(houseId);
 export const cancelJoinRequest = (houseId) => leaveHouse(houseId);

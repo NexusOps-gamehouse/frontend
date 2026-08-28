@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
 
         // ── crew : House 목록·상세 ────────────────────────────────
         '/api/crew': crewOrigin,
+        '/api/houses': crewOrigin,
         '/ws-house': {
           target: crewOrigin,
           ws: true,
