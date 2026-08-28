@@ -532,7 +532,7 @@ export const subscribeHouseMessages = (
       connectedOnce = true;
       callback(null, null, { connected: true });
 
-      if (!subscription) subscription = client.subscribe(`/sub/house/${encodeURIComponent(houseId)}`, (frame) => {
+      if (!subscription) subscription = client.subscribe(`/topic/crew.houses.${encodeURIComponent(houseId)}`, (frame) => {
         try {
           callback(
             normalizeHouseMessage(JSON.parse(frame.body)),
