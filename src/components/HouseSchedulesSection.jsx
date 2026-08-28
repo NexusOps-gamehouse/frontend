@@ -42,6 +42,11 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
   const [attendanceError, setAttendanceError] = useState('');
   const isCrewHouse = ['PUBLIC', 'PRIVATE'].includes(house.type);
   const canManage = MANAGER_ROLES.includes(house.myRole ?? house.myStatus);
+  // Crew API는 승인된 멤버 누구나 일정을 만들 수 있다. 기존 mock House의
+  // 수정/삭제 권한과는 분리해, legacy 화면의 관리자 정책은 그대로 유지한다.
+  const isApprovedMember = ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myRole)
+    && house.myStatus === 'APPROVED';
+  const canCreate = isCrewHouse ? isApprovedMember : canManage;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -222,7 +227,7 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
     <section className="house-schedules-section">
       <div className="house-section-head">
         <h2>게임 일정</h2><span>{schedules.length}건</span>
-        {canManage && (
+        {canCreate && (
           <button className="ui-btn-primary ui-btn-sm house-section-action" type="button"
                   onClick={() => setEditor({ schedule: null })}>+ 일정 만들기</button>
         )}

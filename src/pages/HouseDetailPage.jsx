@@ -538,8 +538,10 @@ export default function HouseDetailPage() {
                           {pinningNoticeId === houseNotice.id
                             ? '처리 중…' : houseNotice.pinned ? '고정 해제' : '상단 고정'}
                         </button>
-                        <button className="house-role-btn" type="button"
-                                onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
+                        {!isCrewHouse && (
+                          <button className="house-role-btn" type="button"
+                                  onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
+                        )}
                         <button className="house-remove-btn" type="button"
                                 onClick={() => openDeleteNotice(houseNotice)}>삭제</button>
                       </div>
