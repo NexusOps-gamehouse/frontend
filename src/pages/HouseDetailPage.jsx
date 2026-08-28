@@ -172,7 +172,7 @@ export default function HouseDetailPage() {
       return;
     }
     try {
-      await run('join', () => joinHouse(houseId), '가입 신청을 처리했습니다.');
+      await run('join', () => joinHouse(houseId), isPrivate ? '가입 신청을 처리했습니다.' : 'House에 가입했습니다.');
       await load();
     } catch { /* 화면 오류로 안내 */ }
   };
@@ -391,10 +391,16 @@ export default function HouseDetailPage() {
                 </button>}
               </div>
             </>
+            ) : isFull ? (
+              <>
+                <div className="house-lock" aria-hidden="true">🔒</div>
+                <p>House 정원이 가득 찼습니다.<br />자리가 생기면 가입을 신청할 수 있어요.</p>
+                <button className="ui-btn-secondary" type="button" disabled>정원 마감</button>
+              </>
             ) : (
               <>
                 <div className="house-lock" aria-hidden="true">🔒</div>
-                <p>비공개 House는 가입 신청 후 승인이 필요합니다.</p>
+                <p>비공개 House는 가입 신청 후 방장의 승인이 필요합니다.</p>
                 <button className="ui-btn-primary" type="button" disabled={working === 'join'} onClick={requestJoin}>
                   {working === 'join' ? '신청 중…' : user ? '가입 신청하기' : '로그인하고 가입 신청'}
                 </button>
@@ -409,7 +415,9 @@ export default function HouseDetailPage() {
             </>
           ) : isMember ? (
             <>
-              <p>{isOwner ? '이 House의 방장입니다.' : `이 House의 ${ROLE_LABEL[house.myRole]}입니다.`}</p>
+              <p>{isOwner
+                ? '이 House의 방장입니다. 방장은 탈퇴할 수 없으며 방장 위임이 필요합니다.'
+                : `이 House의 ${ROLE_LABEL[house.myRole]}입니다.`}</p>
               <div className="house-join-actions">
                 <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
                 {isOwner && <Link className="ui-btn-secondary" to={`/houses/${houseId}/settings`}>House 설정</Link>}
@@ -425,9 +433,9 @@ export default function HouseDetailPage() {
             </>
           ) : (
             <>
-              <p>공개 House는 누구나 가입을 신청할 수 있습니다.</p>
+              <p>공개 House는 누구나 바로 가입할 수 있습니다.</p>
               <button className="ui-btn-primary" type="button" disabled={working === 'join'} onClick={requestJoin}>
-                {working === 'join' ? '신청 중…' : user ? '가입 신청하기' : '로그인하고 가입 신청'}
+                {working === 'join' ? '가입 중…' : user ? '바로 가입하기' : '로그인하고 가입'}
               </button>
             </>
           )}

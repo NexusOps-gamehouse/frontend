@@ -11,8 +11,8 @@ const OPTIONS = {
     { value: 'COMPETITIVE', icon: '🏆', title: '경쟁형', description: '목표를 세우고 실력을 함께 키워요.' },
   ],
   visibility: [
-    { value: 'PUBLIC', icon: '🌐', title: '공개', description: '누구나 찾을 수 있고 가입을 신청할 수 있어요.' },
-    { value: 'PRIVATE', icon: '🔒', title: '비공개', description: '검색에 노출되지 않으며 초대로만 가입할 수 있어요.' },
+    { value: 'PUBLIC', icon: '🌐', title: '공개', description: '누구나 찾을 수 있고 바로 가입할 수 있어요.' },
+    { value: 'PRIVATE', icon: '🔒', title: '비공개', description: '가입 신청 후 방장의 승인이 필요해요.' },
   ],
 };
 
@@ -224,7 +224,7 @@ export default function HouseSettingsPage() {
                        options={OPTIONS.visibility} onChange={(value) => update('visibility', value)} />
 
           {form.visibility === 'PRIVATE' && (
-            <div className="house-alert">🔒 비공개 House는 가입 신청을 받지 않으며 방장의 초대로만 가입할 수 있습니다.</div>
+            <div className="house-alert">🔒 비공개 House는 가입 신청 후 방장의 승인이 필요합니다.</div>
           )}
           {pendingPrivateChange && (
             <div className="house-alert error" role="alert">대기 중인 가입 신청을 먼저 승인하거나 거절해주세요.</div>
