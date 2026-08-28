@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  claimHouseQuestReward,
   claimHouseWeeklyXpReward,
+  getHouseCurrency,
   getHouseWeeklyQuests,
   recordHouseQuestProgress,
 } from '../api/houses';
 import { getKstDateId, HOUSE_QUEST_TYPES } from '../utils/houseWeeklyQuests';
+import { calculateHouseGrowth } from '../utils/houseGrowth';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short',
@@ -19,38 +22,81 @@ export default function HouseWeeklyQuestsPanel({
   house, user, useCrewApi = false, onHouseUpdate,
 }) {
   const [weekly, setWeekly] = useState(null);
+  const [currency, setCurrency] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [claiming, setClaiming] = useState(false);
+  const [currencyError, setCurrencyError] = useState('');
+  const [claimError, setClaimError] = useState('');
+  const [claimNotice, setClaimNotice] = useState('');
+  const [claimingXp, setClaimingXp] = useState(false);
+  const [claimingQuestIds, setClaimingQuestIds] = useState(() => new Set());
   const [devWorking, setDevWorking] = useState('');
   const mountedRef = useRef(false);
+  const loadVersionRef = useRef(0);
+  const houseRef = useRef(house);
+  houseRef.current = house;
 
   const load = useCallback(async () => {
     if (!mountedRef.current) return;
+    const version = loadVersionRef.current + 1;
+    loadVersionRef.current = version;
+    const isCurrentLoad = () => mountedRef.current && version === loadVersionRef.current;
     setLoading(true);
     setError('');
+    setCurrencyError('');
+    setClaimError('');
+    setClaimNotice('');
     try {
-      const data = await getHouseWeeklyQuests(house.id, user, useCrewApi);
-      if (!mountedRef.current) return;
-      setWeekly(data);
+      const [questResult, currencyResult] = await Promise.allSettled([
+        getHouseWeeklyQuests(house.id, user, useCrewApi),
+        useCrewApi ? getHouseCurrency(house.id) : Promise.resolve(null),
+      ]);
+      if (!isCurrentLoad()) return;
+      if (questResult.status === 'fulfilled') {
+        setWeekly(questResult.value);
+      } else {
+        setWeekly(null);
+        setError(questResult.reason?.message || '주간 퀘스트를 불러오지 못했습니다.');
+      }
+      if (useCrewApi && currencyResult.status === 'fulfilled' && currencyResult.value) {
+        setCurrency(currencyResult.value);
+        onHouseUpdate?.({
+          ...houseRef.current,
+          ...calculateHouseGrowth(currencyResult.value.xp),
+          hc: currencyResult.value.hc,
+        });
+      } else if (useCrewApi) {
+        setCurrency(null);
+        setCurrencyError(currencyResult.reason?.message || 'House XP·HC 잔액을 불러오지 못했습니다.');
+      } else {
+        setCurrency(null);
+      }
     } catch (err) {
-      if (!mountedRef.current) return;
+      if (!isCurrentLoad()) return;
       setWeekly(null);
       setError(err.message || '주간 퀘스트를 불러오지 못했습니다.');
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (isCurrentLoad()) setLoading(false);
     }
-  }, [house.id, useCrewApi, user]);
+  }, [house.id, useCrewApi, user, onHouseUpdate]);
 
   useEffect(() => {
     mountedRef.current = true;
+    setWeekly(null);
+    setCurrency(null);
+    setCurrencyError('');
+    setClaimError('');
+    setClaimNotice('');
     load();
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      loadVersionRef.current += 1;
+    };
   }, [load]);
 
   const claimXpReward = async () => {
-    if (!weekly?.allCompleted || weekly.xpReward?.rewarded || claiming || useCrewApi) return;
-    setClaiming(true);
+    if (!weekly?.allCompleted || weekly.xpReward?.rewarded || claimingXp || useCrewApi) return;
+    setClaimingXp(true);
     setError('');
     try {
       const result = await claimHouseWeeklyXpReward(house.id, weekly.weekId, user, useCrewApi);
@@ -60,7 +106,31 @@ export default function HouseWeeklyQuestsPanel({
     } catch (err) {
       if (mountedRef.current) setError(err.message || 'XP 보상을 받지 못했습니다.');
     } finally {
-      if (mountedRef.current) setClaiming(false);
+      if (mountedRef.current) setClaimingXp(false);
+    }
+  };
+
+  const claimQuestReward = async (quest) => {
+    if (!useCrewApi || !quest.completed || quest.rewardClaimed || claimingQuestIds.has(quest.id)) return;
+    const claimHouseId = house.id;
+    setClaimingQuestIds((current) => new Set(current).add(quest.id));
+    setClaimError('');
+    try {
+      const result = await claimHouseQuestReward(house.id, quest.id);
+      await load();
+      if (mountedRef.current && houseRef.current.id === claimHouseId && result?.message) {
+        setClaimNotice(result.message);
+      }
+    } catch (err) {
+      if (mountedRef.current) setClaimError(err.message || '퀘스트 보상을 받지 못했습니다.');
+    } finally {
+      if (mountedRef.current) {
+        setClaimingQuestIds((current) => {
+          const next = new Set(current);
+          next.delete(quest.id);
+          return next;
+        });
+      }
     }
   };
 
@@ -99,6 +169,12 @@ export default function HouseWeeklyQuestsPanel({
           )}
         </div>
         {weekly && <strong>{weekly.completedCount} / {weekly.totalCount} 완료</strong>}
+        {useCrewApi && currency && (
+          <div className="house-weekly-currency" aria-label="House XP 및 HC 잔액">
+            <span>House XP {currency.xp}</span>
+            <span>HC {currency.hc}</span>
+          </div>
+        )}
       </div>
 
       {loading && <div className="ui-empty"><p>주간 퀘스트를 불러오는 중…</p></div>}
@@ -108,6 +184,18 @@ export default function HouseWeeklyQuestsPanel({
           <button className="ui-btn-secondary ui-btn-sm" type="button" onClick={load}>다시 시도</button>
         </div>
       )}
+      {!loading && !error && currencyError && (
+        <div className="house-notice-error" role="alert">
+          <p>{currencyError}</p>
+          <button className="ui-btn-secondary ui-btn-sm" type="button" onClick={load}>다시 시도</button>
+        </div>
+      )}
+      {!loading && !error && claimError && (
+        <div className="house-notice-error" role="alert"><p>{claimError}</p></div>
+      )}
+      {!loading && !error && claimNotice && (
+        <div className="house-alert success" role="status"><p>{claimNotice}</p></div>
+      )}
       {!loading && !error && weekly?.quests.length === 0 && (
         <div className="ui-empty"><p>이번 주에 제공되는 퀘스트가 없습니다.</p></div>
       )}
@@ -116,36 +204,40 @@ export default function HouseWeeklyQuestsPanel({
           {weekly.allCompleted && (
             <div className="house-alert success" role="status">이번 주 퀘스트를 모두 완료했습니다!</div>
           )}
-          <div className={`house-quest-coin-reward ${weekly.allCompleted ? 'completed' : ''}`}>
-            <div>
-              <strong>전체 완료 보상</strong>
-              <p>전체 퀘스트 완료 후 서버가 제공한 보상 상태를 표시합니다.</p>
-            </div>
-            <div>
-              <strong>HC {weekly.reward.amount}</strong>
-              <span>{weekly.reward.rewarded
-                ? '지급 완료'
-                : weekly.allCompleted ? '지급 확인 중' : '전체 완료 시 지급'}</span>
-            </div>
-          </div>
-          <div className={`house-quest-coin-reward house-quest-xp-reward ${weekly.allCompleted ? 'completed' : ''}`}>
-            <div>
-              <strong>주간 XP 보상</strong>
-              <p>네 가지 퀘스트를 모두 완료하면 한 주에 한 번 받을 수 있습니다.</p>
-            </div>
-            <div>
-              <strong>+{weekly.xpReward.amount} XP</strong>
-              {weekly.xpReward.rewarded ? (
-                <span>XP 보상 수령 완료</span>
-              ) : (
-                <button className="ui-btn-primary ui-btn-sm" type="button"
-                        disabled={!weekly.allCompleted || claiming || useCrewApi}
-                        onClick={claimXpReward}>
-                  {claiming ? '받는 중…' : useCrewApi ? 'Crew API 준비 중' : weekly.allCompleted ? 'XP 보상 받기' : '전체 완료 시 활성화'}
-                </button>
-              )}
-            </div>
-          </div>
+          {!useCrewApi && (
+            <>
+              <div className={`house-quest-coin-reward ${weekly.allCompleted ? 'completed' : ''}`}>
+                <div>
+                  <strong>전체 완료 보상</strong>
+                  <p>전체 퀘스트 완료 후 서버가 제공한 보상 상태를 표시합니다.</p>
+                </div>
+                <div>
+                  <strong>HC {weekly.reward.amount}</strong>
+                  <span>{weekly.reward.rewarded
+                    ? '지급 완료'
+                    : weekly.allCompleted ? '지급 확인 중' : '전체 완료 시 지급'}</span>
+                </div>
+              </div>
+              <div className={`house-quest-coin-reward house-quest-xp-reward ${weekly.allCompleted ? 'completed' : ''}`}>
+                <div>
+                  <strong>주간 XP 보상</strong>
+                  <p>네 가지 퀘스트를 모두 완료하면 한 주에 한 번 받을 수 있습니다.</p>
+                </div>
+                <div>
+                  <strong>+{weekly.xpReward.amount} XP</strong>
+                  {weekly.xpReward.rewarded ? (
+                    <span>XP 보상 수령 완료</span>
+                  ) : (
+                    <button className="ui-btn-primary ui-btn-sm" type="button"
+                            disabled={!weekly.allCompleted || claimingXp}
+                            onClick={claimXpReward}>
+                      {claimingXp ? '받는 중…' : weekly.allCompleted ? 'XP 보상 받기' : '전체 완료 시 활성화'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
           <div className="house-quest-list">
             {weekly.quests.map((quest) => {
               const progress = quest.target > 0
@@ -165,6 +257,24 @@ export default function HouseWeeklyQuestsPanel({
                        aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress)}>
                     <div style={{ width: `${progress}%` }} />
                   </div>
+                  {useCrewApi && (
+                    <div className="house-quest-reward">
+                      <div>
+                        <strong>보상</strong>
+                        <span>HC {quest.rewardHc} · +{quest.rewardXp} XP</span>
+                      </div>
+                      {quest.rewardClaimed ? (
+                        <span className="house-quest-reward-status">수령 완료</span>
+                      ) : (
+                        <button className="ui-btn-primary ui-btn-sm" type="button"
+                                disabled={!quest.completed || claimingQuestIds.has(quest.id)}
+                                onClick={() => claimQuestReward(quest)}>
+                          {claimingQuestIds.has(quest.id)
+                            ? '수령 중…' : quest.completed ? '보상 받기' : '진행 중'}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {import.meta.env.DEV && weekly.isMock && !useCrewApi && house.myRole === 'OWNER' && !quest.completed && (
                     <div className="house-quest-dev">
                       <strong>DEV 진행도 도구</strong>
