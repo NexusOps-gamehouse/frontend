@@ -120,11 +120,14 @@ export default function HousesPage() {
           <h1>House</h1>
           <p>게임 취향과 목표가 맞는 멤버들과 우리만의 공간을 만들어보세요.</p>
         </div>
-        {user ? (
-          <Link className="ui-btn-primary house-create-link" to="/houses/new">+ House 만들기</Link>
-        ) : (
-          <Link className="ui-btn-primary house-create-link" to="/login">로그인하고 시작하기</Link>
-        )}
+        <div className="house-page-actions">
+          <Link className="ui-btn-secondary" to="/houses/rankings">House 랭킹</Link>
+          {user ? (
+            <Link className="ui-btn-primary house-create-link" to="/houses/new">+ House 만들기</Link>
+          ) : (
+            <Link className="ui-btn-primary house-create-link" to="/login">로그인하고 시작하기</Link>
+          )}
+        </div>
       </div>
 
       <HouseCoinWallet user={user} />

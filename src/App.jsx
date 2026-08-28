@@ -40,6 +40,7 @@ import HouseDetailPage from './pages/HouseDetailPage';
 import HouseChatPage from './pages/HouseChatPage';
 import HouseSettingsPage from './pages/HouseSettingsPage';
 import HouseSuggestionPreviewPage from './pages/HouseSuggestionPreviewPage';
+import HouseRankingsPage from './pages/HouseRankingsPage';
 
 import CustomizationShopPage from './pages/CustomizationShopPage';
 import MyCustomizationPage from './pages/MyCustomizationPage';
@@ -222,6 +223,11 @@ export default function App() {
               <HouseCreatePage />
             </Private>
           }
+        />
+
+        <Route
+          path="/houses/rankings"
+          element={<HouseRankingsPage />}
         />
 
         <Route
