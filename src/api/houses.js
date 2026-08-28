@@ -154,7 +154,15 @@ const requestCrew = async (request) => {
       ? '이미 가입했거나 신청 중이거나, House 정원이 가득 찼습니다.'
       : status === 403
         ? '이 작업을 수행할 권한이 없습니다.'
-        : errMsg(error);
+        : status === 400
+          ? '입력값을 확인해주세요.'
+          : status === 401
+            ? '로그인이 필요합니다.'
+            : status === 404
+              ? 'House 또는 대상을 찾을 수 없습니다.'
+              : status === 503 || !status
+                ? '서버에 연결할 수 없습니다.'
+                : errMsg(error);
     const normalizedError = new Error(serverMessage || fallbackMessage);
     normalizedError.code = error.code;
     normalizedError.status = status;
@@ -165,6 +173,9 @@ const requestCrew = async (request) => {
 
 export const listHouses = () => requestCrew(() => api.get('/crew/houses'))
   .then((data) => (Array.isArray(data) ? data : []).map(normalizeHouse));
+
+export const listMyHouses = () => listHouses()
+  .then((houses) => houses.filter((house) => house.myStatus === 'APPROVED'));
 
 // Crew는 추천 결과의 userId만 반환한다. 사용자 프로필로 변환하거나 mock을 섞지 않는다.
 export const listRecommendedPlaymates = () => requestCrew(
