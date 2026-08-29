@@ -48,6 +48,16 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
     && house.myStatus === 'APPROVED';
   const canCreate = isCrewHouse ? isApprovedMember : canManage;
 
+  const memberNameByUserId = useMemo(
+    () => new Map(
+      (house.members ?? []).map((member) => [
+        String(member.userId ?? member.id),
+        member.nickname || `사용자 #${member.userId ?? member.id}`,
+      ]),
+    ),
+    [house.members],
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -197,7 +207,13 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
           <strong>참여 예정 {participantCount}/{schedule.maxParticipants}명</strong>
           {isCrewHouse ? (
             schedule.participantUserIds.length > 0 ? (
-              <div>{schedule.participantUserIds.map((userId) => <span key={userId}>사용자 #{userId}</span>)}</div>
+              <div>
+                {schedule.participantUserIds.map((userId) => (
+                  <span key={userId}>
+                    {memberNameByUserId.get(String(userId)) || `사용자 #${userId}`}
+                  </span>
+                ))}
+              </div>
             ) : <small>아직 참여 예정인 멤버가 없습니다.</small>
           ) : schedule.participants.length > 0 ? (
             <div>{schedule.participants.map((participant) => <span key={participant.id}>{participant.nickname}</span>)}</div>
