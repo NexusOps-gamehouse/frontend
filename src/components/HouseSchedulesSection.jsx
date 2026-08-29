@@ -76,12 +76,14 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
   }, [schedules]);
 
   const save = async (values) => {
-    if (isCrewHouse && editor?.schedule) {
-      throw new Error('Crew API는 일정 수정을 지원하지 않습니다.');
-    }
     if (editor?.schedule) {
-      const saved = await updateHouseSchedule(house.id, editor.schedule.id, values, user);
-      setSchedules((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+      const saved = await updateHouseSchedule(house.id, editor.schedule.id, values, user, isCrewHouse);
+      if (isCrewHouse) {
+        const reloaded = await load();
+        if (!reloaded) throw new Error('일정 목록을 새로고침하지 못했습니다.');
+      } else {
+        setSchedules((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+      }
     } else {
       const saved = await createHouseSchedule(house.id, values, user, isCrewHouse);
       if (isCrewHouse) {
@@ -106,8 +108,13 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
     setDeleting(true);
     setDeleteError('');
     try {
-      await deleteHouseSchedule(house.id, scheduleToDelete.id, user);
-      setSchedules((prev) => prev.filter((item) => item.id !== scheduleToDelete.id));
+      await deleteHouseSchedule(house.id, scheduleToDelete.id, user, isCrewHouse);
+      if (isCrewHouse) {
+        const reloaded = await load();
+        if (!reloaded) throw new Error('일정 목록을 새로고침하지 못했습니다.');
+      } else {
+        setSchedules((prev) => prev.filter((item) => item.id !== scheduleToDelete.id));
+      }
       setScheduleToDelete(null);
       onSuccess('게임 일정을 삭제했습니다.');
     } catch (err) {
@@ -165,7 +172,7 @@ export default function HouseSchedulesSection({ house, user, onSuccess }) {
             <h4>{schedule.title}</h4>
             <time dateTime={schedule.startAt}>{formatDate(schedule.startAt)}</time>
           </div>
-          {canManage && !isCrewHouse && (
+          {canManage && (
             <div className="house-notice-actions">
               <button className="house-role-btn" type="button"
                       onClick={() => setEditor({ schedule })}>수정</button>

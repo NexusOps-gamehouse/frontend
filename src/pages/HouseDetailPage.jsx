@@ -257,11 +257,8 @@ export default function HouseDetailPage() {
 
   const saveNotice = async (values) => {
     const isCrewHouse = CREW_HOUSE_TYPES.includes(house?.type);
-    if (isCrewHouse && noticeEditor?.notice) {
-      throw new Error('Crew API는 공지 제목과 내용 수정을 지원하지 않습니다.');
-    }
     if (noticeEditor?.notice) {
-      await updateHouseNotice(houseId, noticeEditor.notice.id, values, user);
+      await updateHouseNotice(houseId, noticeEditor.notice.id, values, user, isCrewHouse);
     } else {
       await createHouseNotice(houseId, values, user, isCrewHouse);
     }
@@ -538,10 +535,8 @@ export default function HouseDetailPage() {
                           {pinningNoticeId === houseNotice.id
                             ? '처리 중…' : houseNotice.pinned ? '고정 해제' : '상단 고정'}
                         </button>
-                        {!isCrewHouse && (
-                          <button className="house-role-btn" type="button"
-                                  onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
-                        )}
+                        <button className="house-role-btn" type="button"
+                                onClick={() => setNoticeEditor({ notice: houseNotice })}>수정</button>
                         <button className="house-remove-btn" type="button"
                                 onClick={() => openDeleteNotice(houseNotice)}>삭제</button>
                       </div>
