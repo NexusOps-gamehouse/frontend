@@ -79,138 +79,161 @@ export const customizationItems = [
   // ─────────────────────────────
   {
     id: 'frame-adventurers-spring',
+    code: 'FRAME_ADVENTURERS_SPRING',
     name: '모험자의 봄',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: adventurersSpringFrame,
   },
   {
     id: 'frame-forest-friend',
+    code: 'FRAME_FOREST_FRIEND',
     name: '숲 속 친구',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: forestFriendFrame,
   },
   {
     id: 'frame-shining-butter',
+    code: 'FRAME_SHINING_BUTTER',
     name: '샤이닝 버터',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: shiningButterFrame,
   },
   {
     id: 'frame-night-firefly',
+    code: 'FRAME_NIGHT_FIREFLY',
     name: '밤빛 반디',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: nightFireflyFrame,
   },
   {
     id: 'frame-apprentice-mage',
+    code: 'FRAME_APPRENTICE_MAGE',
     name: '견습 마법사',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: apprenticeMageFrame,
   },
   {
     id: 'frame-amethyst',
+    code: 'FRAME_AMETHYST',
     name: '자수정',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: amethystFrame,
   },
   {
     id: 'frame-ink-wash',
+    code: 'FRAME_INK_WASH',
     name: '수묵화',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: inkWashFrame,
   },
   {
     id: 'frame-lantern',
+    code: 'FRAME_LANTERN',
     name: '연등',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: lanternFrame,
   },
   {
     id: 'frame-coin-rush',
+    code: 'FRAME_COIN_RUSH',
     name: '코인 러시',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: coinRushFrame,
   },
   {
     id: 'frame-mini-arcade',
+    code: 'FRAME_MINI_ARCADE',
     name: '미니 아케이드',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: miniArcadeFrame,
   },
   {
     id: 'frame-space',
+    code: 'FRAME_SPACE',
     name: '스페이스',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: spaceFrame,
   },
   {
     id: 'frame-sunset-match',
+    code: 'FRAME_SUNSET_MATCH',
     name: '선셋 매치',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: sunsetMatchFrame,
   },
   {
     id: 'frame-starlight-galaxy',
+    code: 'FRAME_STARLIGHT_GALAXY',
     name: '별빛 은하',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: starlightGalaxyFrame,
   },
   {
     id: 'frame-cherry-blossom',
+    code: 'FRAME_CHERRY_BLOSSOM',
     name: '체리 블러썸',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: cherryBlossomFrame,
   },
   {
     id: 'frame-flame-play',
+    code: 'FRAME_FLAME_PLAY',
     name: '플레임 플레이',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: flamePlayFrame,
   },
   {
     id: 'frame-dice-party',
+    code: 'FRAME_DICE_PARTY',
     name: '다이스 파티',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: dicePartyFrame,
   },
   {
     id: 'frame-royal-house',
+    code: 'FRAME_ROYAL_HOUSE',
     name: '로열 하우스',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: royalHouseFrame,
   },
   {
     id: 'frame-moon-dream',
+    code: 'FRAME_MOON_DREAM',
     name: '달의 꿈',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: moonDreamFrame,
   },
   {
     id: 'frame-olympia',
+    code: 'FRAME_OLYMPIA',
     name: '올림피아',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: olympiaFrame,
   },
   {
     id: 'frame-ocean-wave',
+    code: 'FRAME_OCEAN_WAVE',
     name: '오션 웨이브',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: oceanWaveFrame,
   },
   {
     id: 'frame-snow-town',
+    code: 'FRAME_SNOW_TOWN',
     name: '스노우 타운',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: snowTownFrame,
   },
   {
     id: 'frame-arcade-pixel',
+    code: 'FRAME_ARCADE_PIXEL',
     name: '아케이드 픽셀',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: arcadePixelFrame,
   },
   {
     id: 'frame-music-night',
+    code: 'FRAME_MUSIC_NIGHT',
     name: '뮤직 나이트',
     category: CUSTOMIZATION_CATEGORY.FRAME,
     asset: musicNightFrame,
@@ -403,4 +426,9 @@ export const getCustomizationItemsByCategory = (category) => (
 
 export const getCustomizationItemById = (itemId) => (
   customizationItems.find((item) => item.id === itemId) ?? null
+);
+
+// 실제 Shop API의 영구 code와 기존 로컬 asset을 연결하는 정확한 registry 조회.
+export const getCustomizationItemByCode = (code) => (
+  customizationItems.find((item) => item.code === code) ?? null
 );
