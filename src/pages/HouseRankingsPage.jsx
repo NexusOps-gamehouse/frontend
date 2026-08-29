@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listHouseRankings } from '../api/houseRankings';
+import { listHouseRankings, listMyHouseRankings } from '../api/houseRankings';
 import { useAuth } from '../context/AuthContext';
 import './HouseRankingsPage.css';
 
@@ -15,7 +15,8 @@ function RankingCard({ house, showMine = false }) {
   const memberCount = Number.isFinite(Number(house.memberCount))
     ? Number(house.memberCount)
     : Array.isArray(house.members) ? house.members.length : 0;
-  const hasGame = house.game && house.game !== '기타';
+  const game = house.representativeGame ?? house.game;
+  const hasGame = game && game !== '기타';
 
   return (
     <article className={`house-ranking-card ${showMine ? 'is-mine' : ''}`}>
@@ -29,7 +30,7 @@ function RankingCard({ house, showMine = false }) {
           {showMine && <span className="ui-tag is-online">내 House</span>}
         </div>
         <div className="house-ranking-meta">
-          {hasGame && <span>🎯 {house.game}</span>}
+          {hasGame && <span>🎯 {game}</span>}
           <span>멤버 {memberCount}/{house.maxMembers ?? '-'}</span>
         </div>
       </div>
@@ -51,6 +52,9 @@ export default function HouseRankingsPage() {
   const [ranking, setRanking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [myError, setMyError] = useState('');
+  const [page, setPage] = useState(0);
+  const [size] = useState(20);
   const requestId = useRef(0);
 
   const load = useCallback(async () => {
@@ -58,9 +62,23 @@ export default function HouseRankingsPage() {
     requestId.current = currentRequestId;
     setLoading(true);
     setError('');
+    setMyError('');
     try {
-      const nextRanking = await listHouseRankings(user);
-      if (requestId.current === currentRequestId) setRanking(nextRanking);
+      const [publicResult, myResult] = await Promise.allSettled([
+        listHouseRankings({ page, size, user }),
+        user ? listMyHouseRankings(user) : Promise.resolve([]),
+      ]);
+      if (requestId.current !== currentRequestId) return;
+      if (publicResult.status === 'rejected') throw publicResult.reason;
+      setRanking({
+        ...publicResult.value,
+        myHouses: myResult.status === 'fulfilled'
+          ? myResult.value
+          : publicResult.value.myHouses || [],
+      });
+      if (myResult.status === 'rejected') {
+        setMyError(myResult.reason?.message || '내 House 랭킹을 불러오지 못했습니다.');
+      }
     } catch (err) {
       if (requestId.current === currentRequestId) {
         setRanking(null);
@@ -69,7 +87,7 @@ export default function HouseRankingsPage() {
     } finally {
       if (requestId.current === currentRequestId) setLoading(false);
     }
-  }, [user]);
+  }, [page, size, user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -109,7 +127,7 @@ export default function HouseRankingsPage() {
           <div className="house-ranking-period">
             <strong>{ranking.weekId} 주차</strong>
             <span>{ranking.startDate} ~ {ranking.endDate}</span>
-            <small>현재 순위와 주차 시작 스냅샷을 비교합니다.</small>
+            <small>현재 순위와 KST 주차 시작 스냅샷을 비교합니다.</small>
           </div>
 
           <section className="house-ranking-section">
@@ -119,7 +137,12 @@ export default function HouseRankingsPage() {
 
           <section className="house-ranking-section">
             <div className="house-section-head"><h2>내 House</h2><span>{ranking.myHouses.length}개</span></div>
-            {ranking.myHouses.length ? (
+            {myError ? (
+              <div className="house-alert error" role="alert">
+                <p>{myError}</p>
+                <button className="ui-btn-secondary ui-btn-sm" type="button" onClick={load}>다시 시도</button>
+              </div>
+            ) : ranking.myHouses.length ? (
               <div className="house-ranking-list">{ranking.myHouses.map((house) => (
                 <RankingCard key={house.id} house={house} showMine />
               ))}</div>
@@ -131,6 +154,16 @@ export default function HouseRankingsPage() {
           <section className="house-ranking-section">
             <div className="house-section-head"><h2>전체 랭킹</h2><span>{ranking.totalElements}개</span></div>
             <RankingList houses={ranking.items} emptyMessage="랭킹 대상 House가 없습니다." />
+            {ranking.totalPages > 1 && (
+              <div className="house-ranking-pagination" aria-label="전체 랭킹 페이지 이동">
+                <button className="ui-btn-secondary ui-btn-sm" type="button" disabled={loading || page === 0}
+                        onClick={() => setPage((current) => Math.max(0, current - 1))}>이전</button>
+                <span>{page + 1} / {ranking.totalPages}</span>
+                <button className="ui-btn-secondary ui-btn-sm" type="button"
+                        disabled={loading || page + 1 >= ranking.totalPages}
+                        onClick={() => setPage((current) => Math.min(ranking.totalPages - 1, current + 1))}>다음</button>
+              </div>
+            )}
           </section>
         </>
       )}
