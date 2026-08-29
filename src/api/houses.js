@@ -445,12 +445,10 @@ export const listHouseQuests = (houseId) => requestCrew(
   QUEST_ERROR_MESSAGES,
 ).then((data) => normalizeWeeklyQuestResponse(data, houseId));
 
-export const updateHouseQuestProgress = (houseId, questId, increment) => requestCrew(
-  () => api.patch(
-    `/houses/${encodeURIComponent(houseId)}/quests/${encodeURIComponent(questId)}/progress`,
-    { increment },
-  ),
-  QUEST_ERROR_MESSAGES,
+// Crew develop에는 진행도 PATCH Controller가 없으므로 일반 화면에서 호출하지 않는다.
+// TODO(house-quest): 실제 활동 이벤트가 연결되면 backend Controller 계약에 맞춰 추가한다.
+export const updateHouseQuestProgress = () => Promise.reject(
+  new Error('현재 Crew에서는 퀘스트 진행도 변경 API를 지원하지 않습니다.'),
 );
 
 // 기존 개발용 mock 진행도 함수는 보존하되, House 주간 퀘스트 UI에서는 호출하지 않는다.
@@ -485,22 +483,24 @@ export const claimHouseWeeklyQuestReward = claimHouseQuestReward;
 
 const normalizeHouseCurrency = (currency = {}) => {
   const source = currency && typeof currency === 'object' ? currency : {};
+  const hc = source.hc ?? source.currentHc;
+  const xp = source.xp ?? source.currentXp;
   return {
     ...source,
-    hc: safeQuestCount(source.hc),
-    xp: safeQuestCount(source.xp),
+    hc: safeQuestCount(hc),
+    xp: safeQuestCount(xp),
   };
 };
 
 export const getHouseCurrency = (houseId) => requestCrew(
-  () => api.get(`/houses/${encodeURIComponent(houseId)}/currency`),
+  () => api.get(`/crew/houses/${encodeURIComponent(houseId)}/currency`),
   QUEST_ERROR_MESSAGES,
 ).then(normalizeHouseCurrency);
 
-export const getHouseCurrencies = (houseIds = []) => requestCrew(
-  () => api.post('/houses/currency/batch', { houseIds }),
-  QUEST_ERROR_MESSAGES,
-).then((data) => (Array.isArray(data) ? data.map(normalizeHouseCurrency) : []));
+// Crew develop에는 batch currency Controller가 없으므로 존재하지 않는 endpoint를 호출하지 않는다.
+export const getHouseCurrencies = () => Promise.reject(
+  new Error('현재 Crew에서는 House currency 일괄 조회 API를 지원하지 않습니다.'),
+);
 // 기존 페이지/호출부와의 호환을 위한 이름이다. 실제 요청은 Crew endpoint를 사용한다.
 export const requestHouseJoin = (houseId) => joinHouse(houseId);
 export const cancelJoinRequest = (houseId) => leaveHouse(houseId);

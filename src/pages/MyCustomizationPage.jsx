@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +11,11 @@ import {
   getCustomizationState,
   saveEquippedCustomization,
 } from '../api/customization';
+import { listMyHouses } from '../api/houses';
+import {
+  listShopInventory,
+  updateInventoryItemApplication,
+} from '../api/shop';
 import {
   CUSTOMIZATION_CATEGORY,
   CUSTOMIZATION_CATEGORY_LABEL,
@@ -20,6 +26,7 @@ import {
   getChatThemeAvatars,
   getDefaultChatThemeAvatar,
 } from '../mocks/customizationChatAvatars';
+import ShopItemImage from '../components/ShopItemImage';
 import './MyCustomizationPage.css';
 import './ChatThemeFinal.css';
 
@@ -116,7 +123,7 @@ const stateToSelection = (
   };
 };
 
-export default function MyCustomizationPage() {
+function LegacyMyCustomizationPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -1125,4 +1132,231 @@ export default function MyCustomizationPage() {
       </div>
     </main>
   );
+}
+
+const CREW_CUSTOMIZATION_CATEGORY = {
+  BORDER: CUSTOMIZATION_CATEGORY.FRAME,
+  BANNER: CUSTOMIZATION_CATEGORY.PROFILE_BANNER,
+  HOUSE_ICON: CUSTOMIZATION_CATEGORY.EMBLEM,
+  CHAT_SKIN: CUSTOMIZATION_CATEGORY.CHAT_THEME,
+};
+
+const crewCategory = (category) => CREW_CUSTOMIZATION_CATEGORY[category] || null;
+
+const crewItemFromInventory = (entry) => {
+  const item = entry?.item;
+  const category = crewCategory(item?.category);
+  if (!item || !category || entry.quantity <= 0) return null;
+  return {
+    ...item,
+    id: item.id,
+    category,
+    imageUrl: item.imageUrl || null,
+    inventoryId: entry.id,
+    isApplied: entry.isApplied === true,
+  };
+};
+
+const emptyCrewSelection = () => ({
+  [CUSTOMIZATION_CATEGORY.FRAME]: null,
+  [CUSTOMIZATION_CATEGORY.PROFILE_BANNER]: null,
+  [CUSTOMIZATION_CATEGORY.EMBLEM]: null,
+  [CUSTOMIZATION_CATEGORY.CHAT_THEME]: null,
+  equippedChatAvatarId: null,
+});
+
+function CrewMyCustomizationPage({ user, houses }) {
+  const [selectedHouseId, setSelectedHouseId] = useState(houses[0]?.id ?? '');
+  const [inventory, setInventory] = useState([]);
+  const [activeSection, setActiveSection] = useState('PROFILE');
+  const [activeProfileCategory, setActiveProfileCategory] = useState(CUSTOMIZATION_CATEGORY.FRAME);
+  const [selectedItems, setSelectedItems] = useState(emptyCrewSelection);
+  const [appliedItems, setAppliedItems] = useState(emptyCrewSelection);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const mountedRef = useRef(false);
+  const loadVersionRef = useRef(0);
+  const selectedHouse = houses.find((house) => String(house.id) === String(selectedHouseId));
+
+  const loadInventory = async () => {
+    if (!selectedHouseId) return;
+    const version = loadVersionRef.current + 1;
+    loadVersionRef.current = version;
+    const isCurrentLoad = () => mountedRef.current && version === loadVersionRef.current;
+    setLoading(true);
+    setError('');
+    try {
+      const entries = await listShopInventory({ houseId: selectedHouseId });
+      if (!isCurrentLoad()) return;
+      const nextApplied = emptyCrewSelection();
+      entries.forEach((entry) => {
+        const item = crewItemFromInventory(entry);
+        if (item?.isApplied) nextApplied[item.category] = item.id;
+      });
+      setInventory(entries);
+      setAppliedItems(nextApplied);
+      setSelectedItems(nextApplied);
+    } catch (requestError) {
+      if (isCurrentLoad()) {
+        setInventory([]);
+        setError(requestError.message || 'Inventory를 불러오지 못했습니다.');
+      }
+    } finally {
+      if (isCurrentLoad()) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    mountedRef.current = true;
+    setInventory([]);
+    setSelectedItems(emptyCrewSelection());
+    setAppliedItems(emptyCrewSelection());
+    loadInventory();
+    return () => { mountedRef.current = false; };
+    // House 선택 변경마다 서버 Inventory를 다시 조회한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHouseId]);
+
+  const items = useMemo(() => inventory.map(crewItemFromInventory).filter(Boolean), [inventory]);
+  const activeCategory = activeSection === 'PROFILE' ? activeProfileCategory : CUSTOMIZATION_CATEGORY.CHAT_THEME;
+  const visibleItems = useMemo(() => items.filter((item) => item.category === activeCategory), [activeCategory, items]);
+  const selectedItemId = selectedItems[activeCategory];
+  const findItem = (itemId) => items.find((item) => String(item.id) === String(itemId)) || null;
+  const previewFrame = findItem(selectedItems[CUSTOMIZATION_CATEGORY.FRAME]);
+  const previewBanner = findItem(selectedItems[CUSTOMIZATION_CATEGORY.PROFILE_BANNER]);
+  const previewEmblem = findItem(selectedItems[CUSTOMIZATION_CATEGORY.EMBLEM]);
+  const previewChatTheme = findItem(selectedItems[CUSTOMIZATION_CATEGORY.CHAT_THEME]);
+  const hasAnyChanges = Object.keys(selectedItems).some((key) => selectedItems[key] !== appliedItems[key]);
+
+  const handleApply = async () => {
+    if (!hasAnyChanges || saving || !selectedHouse) return;
+    setSaving(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      for (const category of Object.values(CUSTOMIZATION_CATEGORY)) {
+        const categoryEntries = inventory.filter((entry) => (
+          entry.quantity > 0 && crewCategory(entry.item?.category) === category
+        ));
+        const desiredId = selectedItems[category];
+        const currentApplied = categoryEntries.filter((entry) => entry.isApplied === true);
+        for (const entry of currentApplied) {
+          if (String(entry.item?.id) !== String(desiredId)) {
+            await updateInventoryItemApplication(entry.id, { houseId: selectedHouse.id, action: 'UNAPPLY' });
+          }
+        }
+        const desired = categoryEntries.find((entry) => String(entry.item?.id) === String(desiredId));
+        if (desired && !desired.isApplied) {
+          await updateInventoryItemApplication(desired.id, { houseId: selectedHouse.id, action: 'APPLY' });
+        }
+      }
+      await loadInventory();
+      if (mountedRef.current) setSuccessMessage('선택한 꾸미기 아이템을 적용했습니다.');
+    } catch (requestError) {
+      if (mountedRef.current) setError(requestError.message || '꾸미기 아이템을 적용하지 못했습니다.');
+    } finally {
+      if (mountedRef.current) setSaving(false);
+    }
+  };
+
+  return (
+    <main className="my-customization-page">
+      <div className="my-customization-container">
+        <header className="my-customization-header">
+          <div><h1>내 꾸미기</h1><p>선택한 House에서 보유한 아이템을 적용합니다.</p></div>
+          <div className="my-customization-house-control">
+            <label htmlFor="my-customization-house">House</label>
+            <select id="my-customization-house" value={selectedHouseId} onChange={(event) => setSelectedHouseId(event.target.value)}>
+              {houses.map((house) => <option key={house.id} value={house.id}>{house.name}</option>)}
+            </select>
+          </div>
+        </header>
+
+        {error && <div className="house-alert error" role="alert">{error}</div>}
+        {successMessage && <div className="house-alert success" role="status">{successMessage}</div>}
+
+        <nav className="my-customization-main-tabs" aria-label="꾸미기 종류">
+          <button type="button" className={activeSection === 'PROFILE' ? 'my-customization-main-tab is-active' : 'my-customization-main-tab'} onClick={() => setActiveSection('PROFILE')}>프로필</button>
+          <button type="button" className={activeSection === 'CHAT' ? 'my-customization-main-tab is-active' : 'my-customization-main-tab'} onClick={() => setActiveSection('CHAT')}>채팅방</button>
+        </nav>
+
+        {activeSection === 'PROFILE' && (
+          <nav className="my-customization-profile-tabs" aria-label="프로필 꾸미기 카테고리">
+            {[CUSTOMIZATION_CATEGORY.FRAME, CUSTOMIZATION_CATEGORY.PROFILE_BANNER, CUSTOMIZATION_CATEGORY.EMBLEM].map((category) => (
+              <button key={category} type="button" className={activeProfileCategory === category ? 'my-customization-profile-tab is-active' : 'my-customization-profile-tab'} onClick={() => setActiveProfileCategory(category)}>
+                {category === CUSTOMIZATION_CATEGORY.FRAME ? '테두리' : category === CUSTOMIZATION_CATEGORY.PROFILE_BANNER ? '프로필 배너' : '휘장'}
+              </button>
+            ))}
+          </nav>
+        )}
+
+        <div className="my-customization-content">
+          <section className="my-customization-preview-column">
+            <h2 className="my-customization-section-title">{activeSection === 'PROFILE' ? '프로필 미리보기' : '채팅방 미리보기'}</h2>
+            {activeSection === 'PROFILE' ? (
+              <div className="custom-profile-preview">
+                {previewBanner && <ShopItemImage item={previewBanner} className="custom-profile-banner" alt="" />}
+                <div className="custom-profile-overlay">
+                  <div className="custom-profile-avatar-slot"><div className="custom-profile-avatar-stage"><div className="custom-profile-avatar"><Avatar user={user} size="lg" /></div>{previewFrame && <ShopItemImage item={previewFrame} className="custom-profile-frame" alt="" />}</div></div>
+                  <div className="custom-profile-info"><strong className="custom-profile-nickname">{user.nickname || user.name || 'GAME HOUSE USER'}</strong><span className="custom-profile-subtext">{user.riotId || user.gameName || 'GAME HOUSE PLAYER'}</span></div>
+                  <div className="custom-profile-emblem-slot"><div className="custom-profile-emblem">{previewEmblem ? <ShopItemImage item={previewEmblem} alt={previewEmblem.name} /> : <span>휘장 없음</span>}</div></div>
+                </div>
+              </div>
+            ) : <div className="my-customization-chat-preview">{previewChatTheme ? <ShopItemImage item={previewChatTheme} className="my-customization-chat-theme-image" alt={`${previewChatTheme.name} 채팅 테마`} /> : <div className="my-customization-chat-empty">적용할 채팅 테마를 선택해주세요.</div>}</div>}
+          </section>
+
+          <section className="my-customization-inventory-column">
+            <div className="my-customization-inventory-header">
+              <div><h2>보유 아이템</h2><p>{visibleItems.length}개</p></div>
+              {selectedItems[activeCategory] && (
+                <button type="button" className="ui-btn-secondary ui-btn-sm" disabled={saving} onClick={() => setSelectedItems((current) => ({ ...current, [activeCategory]: null }))}>
+                  적용 해제
+                </button>
+              )}
+            </div>
+            {loading && <div className="ui-empty"><p>Inventory를 불러오는 중…</p></div>}
+            {!loading && visibleItems.length === 0 && <div className="ui-empty"><p>이 House에 보유한 아이템이 없습니다.</p></div>}
+            {!loading && visibleItems.length > 0 && <div className="my-customization-item-grid">{visibleItems.map((item) => {
+              const applied = appliedItems[activeCategory] === item.id;
+              const selected = selectedItemId === item.id;
+              return <button key={item.id} type="button" className={['my-customization-item-card', selected ? 'is-selected' : '', applied ? 'is-applied' : ''].filter(Boolean).join(' ')} onClick={() => setSelectedItems((current) => ({ ...current, [activeCategory]: item.id }))}>
+                <span className="my-customization-item-name">{item.name}</span>
+                <div className={`my-customization-item-image ${activeCategory.toLowerCase()}`}><ShopItemImage item={item} alt={item.name} />{applied && <span className="my-customization-applied-badge">적용 중</span>}</div>
+              </button>;
+            })}</div>}
+          </section>
+        </div>
+      </div>
+
+      <div className="my-customization-action-bar"><div className="my-customization-action-inner">
+        <button type="button" className="ui-btn-secondary my-customization-cancel-button" disabled={!hasAnyChanges || saving} onClick={() => setSelectedItems({ ...appliedItems })}>취소</button>
+        <button type="button" className="ui-btn-primary my-customization-apply-button" disabled={!hasAnyChanges || saving} onClick={handleApply}>{saving ? '적용 중…' : '선택 항목 적용'}</button>
+        <p className="my-customization-action-help">ⓘ 적용 결과는 선택한 House의 서버 Inventory에 반영됩니다.</p>
+      </div></div>
+    </main>
+  );
+}
+
+export default function MyCustomizationPage() {
+  const { user } = useAuth();
+  const [state, setState] = useState({ loading: true, error: '', houses: [] });
+  const useMock = import.meta.env.VITE_USE_CUSTOMIZATION_MOCK === 'true';
+
+  useEffect(() => {
+    let alive = true;
+    if (useMock || !user) return () => { alive = false; };
+    listMyHouses().then((houses) => {
+      if (alive) setState({ loading: false, error: '', houses });
+    }).catch((requestError) => {
+      if (alive) setState({ loading: false, error: requestError.message || 'House 정보를 불러오지 못했습니다.', houses: [] });
+    });
+    return () => { alive = false; };
+  }, [user, useMock]);
+
+  if (useMock || (!state.loading && !state.error && state.houses.length === 0)) return <LegacyMyCustomizationPage />;
+  if (state.loading) return <main className="my-customization-page"><div className="my-customization-container"><div className="ui-empty"><p>House 정보를 불러오는 중…</p></div></div></main>;
+  if (state.error) return <main className="my-customization-page"><div className="my-customization-container"><div className="house-alert error" role="alert">{state.error}</div><button type="button" className="ui-btn-secondary" onClick={() => window.location.reload()}>다시 시도</button></div></main>;
+  return <CrewMyCustomizationPage user={user} houses={state.houses} />;
 }

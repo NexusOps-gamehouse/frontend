@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -19,6 +20,15 @@ import {
   getCustomizationState,
   purchaseCustomizationItem,
 } from '../api/customization';
+import {
+  listMyHouses,
+  getHouseCurrency,
+} from '../api/houses';
+import {
+  buyShopItem,
+  listShopInventory,
+  listShopItems,
+} from '../api/shop';
 
 import {
   CUSTOMIZATION_CATEGORY,
@@ -29,6 +39,8 @@ import {
 import {
   getCustomizationItemPrice,
 } from '../mocks/customizationShopCatalog';
+import Modal from '../components/Modal';
+import ShopItemImage from '../components/ShopItemImage';
 
 import './CustomizationShopPage.css';
 import './ChatThemeFinal.css';
@@ -330,7 +342,7 @@ const modalStyle = {
    Page
 ========================= */
 
-export default function CustomizationShopPage() {
+function LegacyCustomizationShopPage() {
   const navigate =
     useNavigate();
 
@@ -1657,4 +1669,320 @@ export default function CustomizationShopPage() {
         )}
     </main>
   );
+}
+
+const SHOP_CATEGORY_ORDER = [
+  'BORDER',
+  'BANNER',
+  'HOUSE_ICON',
+  'CHAT_SKIN',
+  'OTHER',
+];
+
+const SHOP_CATEGORY_LABEL = {
+  BORDER: '프로필 테두리',
+  BANNER: '프로필 배너',
+  HOUSE_ICON: '휘장',
+  CHAT_SKIN: '채팅방 테마',
+  OTHER: '기타',
+};
+
+const toShopCategory = (category) => {
+  if (SHOP_CATEGORY_ORDER.includes(category)) return category;
+  return 'OTHER';
+};
+
+const getSafeShopPrice = (item) => {
+  const price = Number(item?.priceHc);
+  return Number.isSafeInteger(price) && price >= 0 ? price : 0;
+};
+
+function CrewCustomizationShopPage({ user, houses, items }) {
+  const [selectedHouseId, setSelectedHouseId] = useState(() => houses[0]?.id ?? '');
+  const [activeCategory, setActiveCategory] = useState('BORDER');
+  const [selectedItemId, setSelectedItemId] = useState(null);
+  const [inventory, setInventory] = useState([]);
+  const [currency, setCurrency] = useState(null);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [currencyLoading, setCurrencyLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState('');
+  const [currencyError, setCurrencyError] = useState('');
+  const [purchaseItem, setPurchaseItem] = useState(null);
+  const [purchasing, setPurchasing] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const mountedRef = useRef(false);
+  const loadVersionRef = useRef(0);
+  const navigate = useNavigate();
+  const selectedHouse = houses.find((house) => String(house.id) === String(selectedHouseId));
+
+  const loadHouseData = async () => {
+    if (!selectedHouseId) {
+      setInventory([]);
+      setCurrency(null);
+      return;
+    }
+
+    const version = loadVersionRef.current + 1;
+    loadVersionRef.current = version;
+    const isCurrentLoad = () => mountedRef.current && version === loadVersionRef.current;
+    setInventoryLoading(true);
+    setCurrencyLoading(true);
+    setInventoryError('');
+    setCurrencyError('');
+
+    const [inventoryResult, currencyResult] = await Promise.allSettled([
+      listShopInventory({ houseId: selectedHouseId }),
+      getHouseCurrency(selectedHouseId),
+    ]);
+
+    if (!isCurrentLoad()) return;
+    if (inventoryResult.status === 'fulfilled') {
+      setInventory(inventoryResult.value);
+    } else {
+      setInventory([]);
+      setInventoryError(inventoryResult.reason?.message || '보유 아이템을 불러오지 못했습니다.');
+    }
+    if (currencyResult.status === 'fulfilled') {
+      setCurrency(currencyResult.value);
+    } else {
+      setCurrency(null);
+      setCurrencyError(currencyResult.reason?.message || 'House HC를 불러오지 못했습니다.');
+    }
+    setInventoryLoading(false);
+    setCurrencyLoading(false);
+  };
+
+  useEffect(() => {
+    mountedRef.current = true;
+    setSelectedItemId(null);
+    setMessage('');
+    setError('');
+    loadHouseData();
+    return () => {
+      mountedRef.current = false;
+      loadVersionRef.current += 1;
+    };
+    // selectedHouseId는 실제 선택 변경 시에만 House별 데이터를 다시 조회한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHouseId]);
+
+  const visibleItems = useMemo(() => items.filter((item) => (
+    toShopCategory(item.category) === activeCategory
+  )), [activeCategory, items]);
+
+  const selectedItem = items.find((item) => String(item.id) === String(selectedItemId)) ?? null;
+  const ownedItemIds = useMemo(() => new Set(
+    inventory
+      .filter((entry) => entry.quantity > 0)
+      .map((entry) => String(entry.itemId)),
+  ), [inventory]);
+  const selectedOwned = selectedItem ? ownedItemIds.has(String(selectedItem.id)) : false;
+
+  const openPurchase = (item) => {
+    setMessage('');
+    setError('');
+    if (!selectedHouse) {
+      setError('구매할 APPROVED House를 선택해주세요.');
+      return;
+    }
+    if (ownedItemIds.has(String(item.id))) {
+      setMessage('이미 보유 중인 상품입니다. 내 꾸미기에서 적용할 수 있습니다.');
+      return;
+    }
+    setPurchaseItem(item);
+  };
+
+  const confirmPurchase = async () => {
+    if (!purchaseItem || !selectedHouse || purchasing) return;
+    const price = getSafeShopPrice(purchaseItem);
+    if (!currency || currency.hc < price) {
+      setError('HC가 부족합니다.');
+      return;
+    }
+
+    setPurchasing(true);
+    setError('');
+    setMessage('');
+    try {
+      await buyShopItem({
+        houseId: selectedHouse.id,
+        itemId: purchaseItem.id,
+        quantity: 1,
+      });
+      await loadHouseData();
+      setPurchaseItem(null);
+      setMessage('상품을 구매했습니다. 최신 보유 상품과 House HC를 불러왔습니다.');
+    } catch (requestError) {
+      setError(requestError.message || '상품을 구매하지 못했습니다.');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  return (
+    <main className="customization-shop-page">
+      <div className="customization-shop-container">
+        <header className="customization-shop-header">
+          <div>
+            <span className="customization-shop-eyebrow">GAME HOUSE CUSTOMIZATION</span>
+            <h1>꾸미기 상점</h1>
+            <p>선택한 House의 HC로 실제 상점 상품을 구매할 수 있습니다.</p>
+          </div>
+          <button type="button" className="ui-btn-secondary" onClick={() => navigate('/customization')}>
+            내 꾸미기
+          </button>
+        </header>
+
+        <section className="customization-shop-house-controls" aria-label="구매 House 선택">
+          <label htmlFor="customization-shop-house">구매할 House</label>
+          <select
+            id="customization-shop-house"
+            value={selectedHouseId}
+            onChange={(event) => setSelectedHouseId(event.target.value)}
+            disabled={houses.length === 0}
+          >
+            {houses.length === 0 && <option value="">승인된 House가 없습니다</option>}
+            {houses.map((house) => <option key={house.id} value={house.id}>{house.name}</option>)}
+          </select>
+          <span className="customization-shop-house-currency" aria-live="polite">
+            {currencyLoading ? 'HC 불러오는 중…' : currency ? `House HC ${currency.hc}` : 'House HC 확인 필요'}
+          </span>
+        </section>
+
+        {currencyError && <div className="house-alert error" role="alert">{currencyError}</div>}
+        {inventoryError && <div className="house-alert error" role="alert">{inventoryError}</div>}
+        {error && <div className="house-alert error" role="alert">{error}</div>}
+        {message && <div className="house-alert success" role="status">{message}</div>}
+
+        <section className="customization-category-tabs" aria-label="꾸미기 상점 카테고리">
+          {SHOP_CATEGORY_ORDER.map((category) => (
+            <button
+              key={category}
+              type="button"
+              className={activeCategory === category ? 'customization-category-tab is-active' : 'customization-category-tab'}
+              onClick={() => { setActiveCategory(category); setSelectedItemId(null); }}
+            >
+              {SHOP_CATEGORY_LABEL[category]}
+            </button>
+          ))}
+        </section>
+
+        <div className="customization-shop-content">
+          <section className="customization-shop-list">
+            <div className="customization-shop-section-head">
+              <div><h2>{SHOP_CATEGORY_LABEL[activeCategory]}</h2><p>총 {visibleItems.length}개의 아이템</p></div>
+            </div>
+            {inventoryLoading && <div className="ui-empty"><p>보유 상태를 불러오는 중…</p></div>}
+            {!inventoryLoading && visibleItems.length === 0 && <div className="ui-empty"><p>현재 카테고리에 상품이 없습니다.</p></div>}
+            {!inventoryLoading && visibleItems.length > 0 && (
+              <div className="customization-item-grid">
+                {visibleItems.map((item) => {
+                  const owned = ownedItemIds.has(String(item.id));
+                  const price = getSafeShopPrice(item);
+                  return (
+                    <article key={item.id} className={selectedItemId === item.id ? 'customization-item-card is-selected' : 'customization-item-card'}>
+                      <button type="button" className="customization-item-select" onClick={() => setSelectedItemId(item.id)} aria-pressed={selectedItemId === item.id}>
+                        <div className={`customization-item-image ${toShopCategory(item.category).toLowerCase()}`}>
+                          <ShopItemImage item={item} alt={item.name} />
+                        </div>
+                        <strong>{item.name}</strong>
+                      </button>
+                      <div className="customization-item-footer">
+                        <span className="customization-item-status">{owned ? '보유 중' : `HC ${price}`}</span>
+                        <button type="button" className="ui-btn-primary ui-btn-sm" disabled={owned || !selectedHouse || !currency || currency.hc < price} onClick={() => openPurchase(item)}>
+                          {owned ? '보유 중' : !selectedHouse ? 'House 선택' : !currency ? 'HC 확인 필요' : currency.hc < price ? 'HC 부족' : '구매'}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <aside className="customization-shop-preview">
+            <span className="customization-shop-preview-label">PREVIEW</span>
+            {selectedItem ? (
+              <>
+                <div className={`customization-preview-image ${toShopCategory(selectedItem.category).toLowerCase()}`}>
+                  <ShopItemImage item={selectedItem} alt={`${selectedItem.name} 미리보기`} />
+                </div>
+                <div className="customization-preview-info">
+                  <span>{SHOP_CATEGORY_LABEL[toShopCategory(selectedItem.category)]}</span>
+                  <strong>{selectedItem.name}</strong>
+                  <p>{selectedOwned ? '보유 중인 상품입니다. 내 꾸미기에서 적용할 수 있습니다.' : `HC ${getSafeShopPrice(selectedItem)}로 구매할 수 있습니다.`}</p>
+                </div>
+              </>
+            ) : <div className="customization-preview-empty"><strong>상품을 선택해보세요.</strong><p>선택한 상품을 크게 미리볼 수 있습니다.</p></div>}
+          </aside>
+        </div>
+      </div>
+
+      <Modal
+        open={Boolean(purchaseItem)}
+        title="상품을 구매하시겠습니까?"
+        onClose={() => { if (!purchasing) setPurchaseItem(null); }}
+        footer={(
+          <>
+            <button type="button" className="ui-btn-secondary" disabled={purchasing} onClick={() => setPurchaseItem(null)}>취소</button>
+            <button type="button" className="ui-btn-primary" disabled={purchasing} onClick={confirmPurchase}>{purchasing ? '구매 중…' : '구매 확인'}</button>
+          </>
+        )}
+      >
+        {purchaseItem && (
+          <div className="customization-purchase-summary">
+            <div className="customization-purchase-image"><ShopItemImage item={purchaseItem} alt="" /></div>
+            <strong>{purchaseItem.name}</strong>
+            <p>House: {selectedHouse?.name}</p>
+            <p>구매 전 HC {currency?.hc ?? 0}</p>
+            <p>구매 후 예상 HC {Math.max(0, (currency?.hc ?? 0) - getSafeShopPrice(purchaseItem))}</p>
+            <p>가격 HC {getSafeShopPrice(purchaseItem)}</p>
+          </div>
+        )}
+      </Modal>
+    </main>
+  );
+}
+
+export default function CustomizationShopPage() {
+  const { user } = useAuth();
+  const [state, setState] = useState({ loading: true, error: '', houses: [], items: [] });
+  const useMock = import.meta.env.VITE_USE_CUSTOMIZATION_MOCK === 'true';
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      if (useMock) return;
+      if (!user) return;
+      const [housesResult, itemsResult] = await Promise.allSettled([listMyHouses(), listShopItems()]);
+      if (!alive) return;
+      const errors = [housesResult, itemsResult]
+        .filter((result) => result.status === 'rejected')
+        .map((result) => result.reason?.message)
+        .filter(Boolean);
+      setState({
+        loading: false,
+        error: errors[0] || '',
+        houses: housesResult.status === 'fulfilled' ? housesResult.value : [],
+        items: itemsResult.status === 'fulfilled' ? itemsResult.value : [],
+      });
+    };
+    load();
+    return () => { alive = false; };
+  }, [user, useMock]);
+
+  if (useMock) {
+    return <LegacyCustomizationShopPage />;
+  }
+
+  if (state.loading) {
+    return <main className="customization-shop-page"><div className="customization-shop-container"><div className="ui-empty"><p>상점 정보를 불러오는 중…</p></div></div></main>;
+  }
+
+  if (state.error) {
+    return <main className="customization-shop-page"><div className="customization-shop-container"><div className="house-alert error" role="alert">{state.error}</div><button type="button" className="ui-btn-secondary" onClick={() => window.location.reload()}>다시 시도</button></div></main>;
+  }
+
+  return <CrewCustomizationShopPage user={user} houses={state.houses} items={state.items} />;
 }
