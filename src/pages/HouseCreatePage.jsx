@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createHouse } from '../api/houses';
+import { GAMES } from '../constants';
 import './Houses.css';
 
 const MAX_MEMBER_OPTIONS = [5, 10, 20, 30, 50];
 
 const OPTIONS = {
+  activityType: [
+    { value: 'SOCIAL', icon: '🎮', title: '친목형', description: '부담 없이 함께 게임하고 교류해요.' },
+    { value: 'COMPETITIVE', icon: '🏆', title: '경쟁형', description: '목표를 세우고 실력을 함께 키워요.' },
+  ],
   visibility: [
     { value: 'PUBLIC', icon: '🌐', title: '공개', description: '누구나 찾을 수 있고 바로 가입할 수 있어요.' },
     { value: 'PRIVATE', icon: '🔒', title: '비공개', description: '가입 신청 후 방장의 승인이 필요해요.' },
@@ -45,7 +50,7 @@ export default function HouseCreatePage() {
   const [invitedFriends, setInvitedFriends] = useState(recommendedFriends);
   useEffect(() => { setInvitedFriends(recommendedFriends); }, [recommendedFriends]);
   const [form, setForm] = useState({
-    name: '', description: '', maxMembers: 20,
+    name: '', description: '', activityType: 'SOCIAL', representativeGame: GAMES[0], maxMembers: 20,
     visibility: invitedFriends.length > 0 ? 'PRIVATE' : 'PUBLIC',
   });
   const [error, setError] = useState('');
@@ -60,6 +65,14 @@ export default function HouseCreatePage() {
     setError('');
     if (!form.name.trim()) {
       setError('House 이름을 입력해주세요.');
+      return;
+    }
+    if (!form.activityType || !['SOCIAL', 'COMPETITIVE'].includes(form.activityType)) {
+      setError('House 활동 유형을 선택해주세요.');
+      return;
+    }
+    if (!form.representativeGame?.trim()) {
+      setError('대표 게임을 선택해주세요.');
       return;
     }
     if (invitedFriends.length > 0 && form.visibility !== 'PRIVATE') {
@@ -109,6 +122,17 @@ export default function HouseCreatePage() {
                       value={form.description}
                       onChange={(event) => update('description', event.target.value)} />
             <small>{form.description.length}/300</small>
+          </label>
+
+          <ChoiceGroup label="House 활동 유형" name="activityType" value={form.activityType}
+                       options={OPTIONS.activityType} onChange={(value) => update('activityType', value)} />
+
+          <label className="house-field">
+            <span>대표 게임 <b>*</b></span>
+            <select className="inp" value={form.representativeGame}
+                    onChange={(event) => update('representativeGame', event.target.value)} required>
+              {GAMES.map((game) => <option key={game} value={game}>{game}</option>)}
+            </select>
           </label>
 
           <label className="house-field">

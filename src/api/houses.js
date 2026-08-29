@@ -125,6 +125,10 @@ export const normalizeHouse = (house) => {
     ...growth,
     // 기존 화면의 공개 여부 필터와 새 Crew API의 type(PUBLIC/PRIVATE)을 연결한다.
     visibility: type,
+    // Crew API의 공개 범위(type)와 활동 유형(activityType)은 별도 필드다.
+    activityType: house.activityType
+      ?? (['SOCIAL', 'COMPETITIVE'].includes(type) ? type : null),
+    representativeGame: house.representativeGame ?? house.game ?? null,
     memberCount: Number.isFinite(Number(house.memberCount))
       ? Number(house.memberCount)
       : members.length,
@@ -211,9 +215,14 @@ const toCrewHouseWriteRequest = (payload = {}) => {
   const type = ['PUBLIC', 'PRIVATE'].includes(payload.visibility)
     ? payload.visibility
     : ['PUBLIC', 'PRIVATE'].includes(payload.type) ? payload.type : undefined;
+  const activityType = ['SOCIAL', 'COMPETITIVE'].includes(payload.activityType)
+    ? payload.activityType : undefined;
+  const representativeGame = String(payload.representativeGame ?? payload.game ?? '').trim();
   const maxMembers = Number(payload.maxMembers);
 
   if (type) request.type = type;
+  if (activityType) request.activityType = activityType;
+  if (representativeGame) request.representativeGame = representativeGame;
   if (Number.isInteger(maxMembers) && maxMembers > 0) request.maxMembers = maxMembers;
   return request;
 };

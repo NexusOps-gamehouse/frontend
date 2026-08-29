@@ -341,6 +341,9 @@ export default function HouseDetailPage() {
   const memberCount = house.memberCount ?? house.members.length;
   const leaderName = house.owner?.nickname || (house.leaderId ? `사용자 #${house.leaderId}` : '방장');
   const isCrewHouse = CREW_HOUSE_TYPES.includes(house.type);
+  const activityType = house.activityType
+    ?? (['SOCIAL', 'COMPETITIVE'].includes(house.type) ? house.type : null);
+  const representativeGame = house.representativeGame || house.game;
   const hasVisibilityType = isCrewHouse;
   const hasGrowthData = house.level !== undefined || house.xp !== undefined;
   const isFull = memberCount >= house.maxMembers;
@@ -351,8 +354,9 @@ export default function HouseDetailPage() {
       <section className="house-detail-hero">
         <div className="house-detail-copy">
           <div className="house-tags">
-            {house.game && <span className="ui-tag house-game">🎯 {house.game}</span>}
+            {representativeGame && <span className="ui-tag house-game">🎯 {representativeGame}</span>}
             <span className={`ui-tag house-type ${house.type.toLowerCase()}`}>{TYPE_LABEL[house.type] || house.type}</span>
+            {activityType && <span className="ui-tag">{TYPE_LABEL[activityType] || activityType}</span>}
             {!hasVisibilityType && <span className="ui-tag">{isPrivate ? '🔒 비공개' : '🌐 공개'}</span>}
             {isMember && <span className={`role-badge ${house.myRole.toLowerCase()}`}>{ROLE_LABEL[house.myRole]}</span>}
           </div>

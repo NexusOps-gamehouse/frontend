@@ -22,8 +22,13 @@ function HouseCard({ house }) {
     <Link className="house-card" to={`/houses/${house.id}`} aria-label={`${house.name} 상세 보기`}>
       <div className="house-card-head">
         <div className="house-tags">
-          {house.game && <span className="ui-tag house-game">🎯 {house.game}</span>}
+          {(house.representativeGame || house.game) && (
+            <span className="ui-tag house-game">🎯 {house.representativeGame || house.game}</span>
+          )}
           <span className={`ui-tag house-type ${house.type.toLowerCase()}`}>{TYPE_LABEL[house.type] || house.type}</span>
+          {house.activityType && (
+            <span className="ui-tag">{TYPE_LABEL[house.activityType] || house.activityType}</span>
+          )}
           {!hasVisibilityType && (
             <span className="ui-tag">{house.visibility === 'PUBLIC' ? '🌐 공개' : '🔒 비공개'}</span>
           )}
@@ -92,7 +97,7 @@ export default function HousesPage() {
   const normalizedKeyword = keyword.trim().toLowerCase();
   const filteredPublicHouses = useMemo(() => {
     if (!normalizedKeyword) return publicHouses;
-    return publicHouses.filter((house) => [house.name, house.game, house.description]
+    return publicHouses.filter((house) => [house.name, house.representativeGame, house.game, house.description]
       .map((value) => String(value ?? '').toLowerCase())
       .some((value) => value.includes(normalizedKeyword)));
   }, [normalizedKeyword, publicHouses]);

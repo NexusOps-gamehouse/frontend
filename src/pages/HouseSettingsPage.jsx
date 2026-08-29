@@ -38,6 +38,9 @@ const settingsFromHouse = (house) => ({
   name: house.name ?? '',
   description: house.description ?? '',
   game: house.game ?? '',
+  activityType: house.activityType
+    ?? (['SOCIAL', 'COMPETITIVE'].includes(house.type) ? house.type : 'SOCIAL'),
+  representativeGame: house.representativeGame ?? house.game ?? '',
   maxMembers: Number(house.maxMembers),
   type: house.type,
   visibility: house.visibility ?? house.type,
@@ -47,6 +50,8 @@ const normalizedSettings = (form) => form && ({
   name: String(form.name ?? '').trim(),
   description: String(form.description ?? '').trim(),
   game: form.game ?? '',
+  activityType: form.activityType,
+  representativeGame: String(form.representativeGame ?? '').trim(),
   maxMembers: Number(form.maxMembers),
   type: form.type,
   visibility: form.visibility,
@@ -105,6 +110,10 @@ export default function HouseSettingsPage() {
         : 'House 소개는 10자 이상 300자 이하로 입력해주세요.';
     }
     if (!isCrewHouse && !GAMES.includes(values.game)) return '대표 게임을 선택해주세요.';
+    if (isCrewHouse && !['SOCIAL', 'COMPETITIVE'].includes(values.activityType)) {
+      return 'House 활동 유형을 선택해주세요.';
+    }
+    if (isCrewHouse && !values.representativeGame) return '대표 게임을 입력해주세요.';
     if (!Number.isInteger(values.maxMembers)
       || values.maxMembers <= 0
       || (!isCrewHouse && (values.maxMembers < 2 || values.maxMembers > 100))) {
@@ -196,7 +205,18 @@ export default function HouseSettingsPage() {
             <small>{form.description.length}/300</small>
           </label>
           <div className="house-select-grid">
-            {!isCrewHouse && (
+            {isCrewHouse ? (
+              <label className="house-field">
+                <span>대표 게임 <b>*</b></span>
+                <select className="inp" required value={form.representativeGame}
+                        onChange={(event) => update('representativeGame', event.target.value)}>
+                  {form.representativeGame && !GAMES.includes(form.representativeGame) && (
+                    <option value={form.representativeGame}>{form.representativeGame}</option>
+                  )}
+                  {GAMES.map((game) => <option key={game} value={game}>{game}</option>)}
+                </select>
+              </label>
+            ) : (
               <label className="house-field">
                 <span>대표 게임 <b>*</b></span>
                 <select className="inp" required value={form.game}
@@ -216,7 +236,10 @@ export default function HouseSettingsPage() {
                 : `현재 멤버 ${house.members.length}명 · 2~100명`}</small>
             </label>
           </div>
-          {!isCrewHouse && (
+          {isCrewHouse ? (
+            <ChoiceGroup label="House 활동 유형" name="activityType" value={form.activityType}
+                         options={OPTIONS.type} onChange={(value) => update('activityType', value)} />
+          ) : (
             <ChoiceGroup label="House 성격" name="type" value={form.type}
                          options={OPTIONS.type} onChange={(value) => update('type', value)} />
           )}
