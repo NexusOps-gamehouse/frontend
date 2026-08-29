@@ -1,6 +1,5 @@
 import {
   mockAddHouseXp,
-  mockAcceptInvitation,
   mockCreateHouseNotice,
   mockCreateHouseSchedule,
   mockDeleteHouseNotice,
@@ -8,11 +7,8 @@ import {
   mockGetHouseWeeklyQuests,
   mockClaimHouseWeeklyXpReward,
   mockGetHouseSuggestionState,
-  mockInviteFriends,
   mockListHouseNotices,
   mockListHouseSchedules,
-  mockListMyInvitations,
-  mockRejectInvitation,
   mockRecordHouseQuestProgress,
   mockResetHouseSuggestion,
   mockDismissHouseSuggestion,
@@ -116,25 +112,84 @@ const normalizeHouseMessage = (message) => {
 const houseStompClients = new Map();
 
 export const normalizeHouse = (house) => {
-  const members = Array.isArray(house.members) ? house.members.map(normalizeMember) : [];
-  const type = house.type;
-  const growth = house.xp === undefined ? {} : calculateHouseGrowth(house.xp);
+  const members = Array.isArray(house.members)
+    ? house.members.map(normalizeMember)
+    : [];
+
+  const backendType = house.type;
+  const isCrewHouse = ['PUBLIC', 'PRIVATE'].includes(backendType);
+
+  // Crew API:
+  //   type            = PUBLIC | PRIVATE
+  //   activityType    = SOCIAL | COMPETITIVE
+  //   representativeGame
+  //
+  // 기존 Frontend House 모델:
+  //   visibility      = PUBLIC | PRIVATE
+  //   type            = SOCIAL | COMPETITIVE
+  //   game
+  //
+  // API 경계에서 기존 Frontend 모델로 정규화한다.
+  const visibility = isCrewHouse
+    ? backendType
+    : house.visibility ?? (
+      ['PUBLIC', 'PRIVATE'].includes(backendType) ? backendType : null
+    );
+
+  const activityType = isCrewHouse
+    ? house.activityType
+    : house.activityType ?? (
+      ['SOCIAL', 'COMPETITIVE'].includes(backendType)
+        ? backendType
+        : null
+    );
+
+  const growth = house.xp === undefined
+    ? {}
+    : calculateHouseGrowth(house.xp);
 
   return {
     ...house,
     ...growth,
-    // 기존 화면의 공개 여부 필터와 새 Crew API의 type(PUBLIC/PRIVATE)을 연결한다.
-    visibility: type,
+    isCrewHouse,
+    visibility,
+    type: activityType ?? backendType,
+    activityType: activityType ?? null,
+    game: house.game ?? house.representativeGame ?? '',
     memberCount: Number.isFinite(Number(house.memberCount))
       ? Number(house.memberCount)
       : members.length,
     members,
-    // 기존 화면은 owner 객체를 사용하지만 Crew API는 leaderId만 제공한다.
-    owner: { id: house.leaderId },
-    // 역할과 상태는 서로 다른 값이다. 역할만 기존 UI 값으로 변환하고,
-    // APPROVED/PENDING/REJECTED 상태는 Crew API 원문을 보존한다.
-    myRole: normalizeRole(house.myRole),
+    owner: { id: house.leaderId ?? house.owner?.id },
+    myRole: normalizeRole(house.myRole) ?? house.myRole ?? null,
     myStatus: house.myStatus ?? null,
+  };
+};
+
+const normalizeHouseInvitation = (invitation = {}) => {
+  const house = invitation.house || {};
+  const invitedByUserId = invitation.invitedByUserId ?? invitation.invitedBy?.id ?? null;
+  const currentMembers = Number(
+    house.currentMembers ?? house.memberCount ?? 0,
+  );
+
+  return {
+    ...invitation,
+    invitedBy: invitation.invitedBy || (
+      invitedByUserId == null
+        ? null
+        : {
+            id: invitedByUserId,
+            nickname: `사용자 #${invitedByUserId}`,
+          }
+    ),
+    house: {
+      ...house,
+      visibility: house.visibility ?? house.type,
+      game: house.game ?? house.representativeGame ?? '',
+      currentMembers: Number.isFinite(currentMembers) ? currentMembers : 0,
+      memberCount: Number.isFinite(currentMembers) ? currentMembers : 0,
+    },
   };
 };
 
@@ -203,18 +258,43 @@ export const getHouse = (houseId) => requestCrew(
 ).then(normalizeHouse);
 
 const toCrewHouseWriteRequest = (payload = {}) => {
-  const description = payload.description == null ? null : String(payload.description).trim();
+  const description = payload.description == null
+    ? null
+    : String(payload.description).trim();
+
   const request = {
     name: String(payload.name ?? '').trim(),
     description: description || null,
   };
-  const type = ['PUBLIC', 'PRIVATE'].includes(payload.visibility)
+
+  // Frontend visibility -> Crew HouseType
+  const visibility = ['PUBLIC', 'PRIVATE'].includes(payload.visibility)
     ? payload.visibility
-    : ['PUBLIC', 'PRIVATE'].includes(payload.type) ? payload.type : undefined;
+    : ['PUBLIC', 'PRIVATE'].includes(payload.houseType)
+      ? payload.houseType
+      : undefined;
+
+  // Frontend type -> Crew HouseActivityType
+  const activityType = ['SOCIAL', 'COMPETITIVE'].includes(payload.activityType)
+    ? payload.activityType
+    : ['SOCIAL', 'COMPETITIVE'].includes(payload.type)
+      ? payload.type
+      : undefined;
+
+  const representativeGame = String(
+    payload.representativeGame ?? payload.game ?? '',
+  ).trim();
+
   const maxMembers = Number(payload.maxMembers);
 
-  if (type) request.type = type;
-  if (Number.isInteger(maxMembers) && maxMembers > 0) request.maxMembers = maxMembers;
+  if (visibility) request.type = visibility;
+  if (activityType) request.activityType = activityType;
+  if (representativeGame) request.representativeGame = representativeGame;
+
+  if (Number.isInteger(maxMembers) && maxMembers > 0) {
+    request.maxMembers = maxMembers;
+  }
+
   return request;
 };
 
@@ -749,10 +829,53 @@ export const subscribeHouseMessages = (
     await client.deactivate();
   });
 };
-export const inviteFriends = (houseId, friends, user) => mockInviteFriends(houseId, friends, user);
-export const listMyInvitations = (user) => mockListMyInvitations(user);
-export const acceptInvitation = (invitationId, user) => mockAcceptInvitation(invitationId, user);
-export const rejectInvitation = (invitationId, user) => mockRejectInvitation(invitationId, user);
+export const inviteFriends = (houseId, friends) => {
+  const userIds = [...new Set(
+    (Array.isArray(friends) ? friends : [])
+      .map((friend) => Number(friend?.userId ?? friend?.id))
+      .filter((id) => Number.isSafeInteger(id) && id > 0),
+  )];
+
+  if (userIds.length === 0) {
+    return Promise.reject(crewMessageError('초대할 친구를 선택해주세요.'));
+  }
+
+  return requestCrew(
+    () => api.post(
+      `/crew/houses/${encodeURIComponent(houseId)}/invitations`,
+      { userIds },
+    ),
+    {
+      400: '초대할 친구 정보를 확인해주세요.',
+      403: 'House 친구 초대 권한이 없습니다.',
+      404: 'House를 찾을 수 없습니다.',
+      409: '선택한 친구는 이미 멤버이거나 초대 중입니다.',
+    },
+  ).then((data) => ({
+    ...data,
+    invitations: Array.isArray(data?.invitations)
+      ? data.invitations.map(normalizeHouseInvitation)
+      : [],
+  }));
+};
+
+export const listMyInvitations = () => requestCrew(
+  () => api.get('/crew/invitations/me'),
+).then((data) => (
+  Array.isArray(data) ? data.map(normalizeHouseInvitation) : []
+));
+
+export const acceptInvitation = (invitationId) => requestCrew(
+  () => api.post(
+    `/crew/invitations/${encodeURIComponent(invitationId)}/accept`,
+  ),
+).then(normalizeHouseInvitation);
+
+export const rejectInvitation = (invitationId) => requestCrew(
+  () => api.post(
+    `/crew/invitations/${encodeURIComponent(invitationId)}/reject`,
+  ),
+).then(normalizeHouseInvitation);
 export const getHouseSuggestionState = (suggestionId, user) => (
   mockGetHouseSuggestionState(suggestionId, user)
 );

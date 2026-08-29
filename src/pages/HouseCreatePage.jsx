@@ -1,11 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { createHouse } from '../api/houses';
+import { createHouse, inviteFriends } from '../api/houses';
+import { GAMES } from '../constants';
 import './Houses.css';
 
 const MAX_MEMBER_OPTIONS = [5, 10, 20, 30, 50];
 
 const OPTIONS = {
+  type: [
+    {
+      value: 'SOCIAL',
+      icon: '🎮',
+      title: '친목형',
+      description: '부담 없이 함께 게임하고 교류해요.',
+    },
+    {
+      value: 'COMPETITIVE',
+      icon: '🏆',
+      title: '경쟁형',
+      description: '목표를 세우고 실력을 함께 키워요.',
+    },
+  ],
   visibility: [
     { value: 'PUBLIC', icon: '🌐', title: '공개', description: '누구나 찾을 수 있고 바로 가입할 수 있어요.' },
     { value: 'PRIVATE', icon: '🔒', title: '비공개', description: '가입 신청 후 방장의 승인이 필요해요.' },
@@ -45,7 +60,11 @@ export default function HouseCreatePage() {
   const [invitedFriends, setInvitedFriends] = useState(recommendedFriends);
   useEffect(() => { setInvitedFriends(recommendedFriends); }, [recommendedFriends]);
   const [form, setForm] = useState({
-    name: '', description: '', maxMembers: 20,
+    name: '',
+    description: '',
+    game: GAMES[0],
+    type: 'SOCIAL',
+    maxMembers: 20,
     visibility: invitedFriends.length > 0 ? 'PRIVATE' : 'PUBLIC',
   });
   const [error, setError] = useState('');
@@ -78,11 +97,20 @@ export default function HouseCreatePage() {
       return;
     }
 
+    let houseCreationNotice;
+
+    if (invitedFriends.length > 0) {
+      try {
+        const result = await inviteFriends(house.id, invitedFriends);
+        houseCreationNotice = `${result.invitedCount}명에게 House 초대를 보냈습니다.`;
+      } catch (err) {
+        houseCreationNotice = `House는 생성되었지만 친구 초대에 실패했습니다. ${err.message || ''}`.trim();
+      }
+    }
+
     navigate(`/houses/${house.id}`, {
       replace: true,
-      state: invitedFriends.length > 0
-        ? { houseCreationNotice: 'House는 생성되었지만 Crew 초대 API가 없어 친구 초대는 저장되지 않았습니다.' }
-        : undefined,
+      state: houseCreationNotice ? { houseCreationNotice } : undefined,
     });
   };
 
@@ -112,6 +140,28 @@ export default function HouseCreatePage() {
           </label>
 
           <label className="house-field">
+            <span>대표 게임 <b>*</b></span>
+            <select
+              className="inp"
+              required
+              value={form.game}
+              onChange={(event) => update('game', event.target.value)}
+            >
+              {GAMES.map((game) => (
+                <option key={game} value={game}>{game}</option>
+              ))}
+            </select>
+          </label>
+
+          <ChoiceGroup
+            label="House 성격"
+            name="type"
+            value={form.type}
+            options={OPTIONS.type}
+            onChange={(value) => update('type', value)}
+          />
+
+          <label className="house-field">
             <span>최대 인원 <b>*</b></span>
             <select className="inp" value={form.maxMembers}
                     onChange={(event) => update('maxMembers', Number(event.target.value))} required>
@@ -134,7 +184,7 @@ export default function HouseCreatePage() {
                           aria-label={`${friend.nickname} 초대 예정에서 제외`}>×</button>
                 </span>
               ))}</div>
-              <small>Crew 초대 API가 제공되지 않아 이번 생성 요청에는 포함되지 않습니다.</small>
+              <small>House 생성이 완료되면 선택한 친구에게 자동으로 초대를 보냅니다.</small>
             </div>
           )}
 
