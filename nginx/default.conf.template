@@ -1,0 +1,109 @@
+server {
+    listen 5173;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+    resolver ${NGINX_RESOLVER} valid=10s ipv6=off;
+    set $user_upstream "${USER_UPSTREAM}";
+    set $post_upstream "${POST_UPSTREAM}";
+    set $chat_upstream "${CHAT_UPSTREAM}";
+    set $match_upstream "${MATCH_UPSTREAM}";
+    set $crew_upstream "${CREW_UPSTREAM}";
+    proxy_read_timeout 60s;
+
+    location = /healthz {
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # Vite의 user proxy 경로
+    location ^~ /api/auth {
+        proxy_pass http://$user_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /api/users {
+        proxy_pass http://$user_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /api/friends {
+        proxy_pass http://$user_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /api/notifications {
+        proxy_pass http://$user_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /uploads {
+        proxy_pass http://$user_upstream;
+        include /etc/nginx/proxy_params;
+    }
+
+    # Vite의 crew proxy 경로
+    location ^~ /api/crew {
+        proxy_pass http://$crew_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /api/houses {
+        proxy_pass http://$crew_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /api/shop {
+        proxy_pass http://$crew_upstream;
+        include /etc/nginx/proxy_params;
+    }
+
+    # Vite의 post proxy 경로
+    location ^~ /api/posts {
+        proxy_pass http://$post_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /api/applications {
+        proxy_pass http://$post_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /api/my {
+        proxy_pass http://$post_upstream;
+        include /etc/nginx/proxy_params;
+    }
+
+    # Vite의 chat/match proxy 경로
+    location ^~ /api/chat {
+        proxy_pass http://$chat_upstream;
+        include /etc/nginx/proxy_params;
+    }
+    location ^~ /api/match {
+        proxy_pass http://$match_upstream;
+        include /etc/nginx/proxy_params;
+    }
+
+    # House 채팅과 일반 채팅의 WebSocket upgrade
+    location ^~ /ws-house {
+        proxy_pass http://$crew_upstream;
+        include /etc/nginx/proxy_params;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+    }
+    location ^~ /ws {
+        proxy_pass http://$chat_upstream;
+        include /etc/nginx/proxy_params;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+    }
+
+    # API는 절대로 index.html로 fallback하지 않는다.
+    location = /api {
+        default_type application/json;
+        return 404 '{"message":"API route not found"}';
+    }
+    location ^~ /api/ {
+        default_type application/json;
+        return 404 '{"message":"API route not found"}';
+    }
+
+    # 나머지는 React Router용 SPA fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
