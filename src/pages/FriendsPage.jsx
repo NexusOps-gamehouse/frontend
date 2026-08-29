@@ -97,10 +97,11 @@ export default function FriendsPage() {
     setHouseLoading(true);
     try {
       const houses = await listHouses(user);
-      // Crew에는 초대 API가 없으므로 mock inviteFriends가 실행되지 않게 legacy House만 노출한다.
-      setOwnedHouses(houses.filter((house) => house.myRole === 'OWNER'
+      setOwnedHouses(houses.filter((house) => (
+        ['OWNER', 'MANAGER'].includes(house.myRole)
+        && house.myStatus === 'APPROVED'
         && house.visibility === 'PRIVATE'
-        && !['PUBLIC', 'PRIVATE'].includes(house.type)));
+      )));
     } catch (err) {
       setInviteError(err.message || 'House 목록을 불러오지 못했습니다.');
     } finally {
@@ -124,7 +125,7 @@ export default function FriendsPage() {
 
   const houseAvailability = (house) => {
     const id = String(inviteTarget?.id ?? '');
-    if (house.members.some((member) => String(member.id) === id)) return '이미 멤버';
+    if ((house.members || []).some((member) => String(member.userId ?? member.id) === id)) return '이미 멤버';
     if ((house.invitations || []).some((invitation) => String(invitation.userId) === id)) return '초대 대기중';
     return '';
   };
@@ -191,7 +192,7 @@ export default function FriendsPage() {
           {inviteLoading ? '초대 중…' : '초대 보내기'}
         </button>
       </>}>
-        <p className="modal-description">방장인 비공개 House 중 하나를 선택해주세요.</p>
+        <p className="modal-description">관리 권한이 있는 비공개 House 중 하나를 선택해주세요.</p>
         {houseLoading && <div className="ui-empty"><p>House 목록을 불러오는 중…</p></div>}
         {!houseLoading && ownedHouses.length === 0 && (
           <div className="ui-empty">
@@ -213,7 +214,7 @@ export default function FriendsPage() {
                          checked={selectedHouseId === house.id} onChange={() => setSelectedHouseId(house.id)} />
                   <span className="modal-selection-copy">
                     <strong>{house.name}</strong>
-                    <small>{unavailable || `${house.game} · ${house.members.length}/${house.maxMembers}명`}</small>
+                    <small>{unavailable || `${house.game || '게임 미지정'} · ${house.memberCount ?? house.members?.length ?? 0}/${house.maxMembers}명`}</small>
                   </span>
                 </label>
               );

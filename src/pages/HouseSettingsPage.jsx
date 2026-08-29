@@ -92,7 +92,7 @@ export default function HouseSettingsPage() {
   const values = useMemo(() => normalizedSettings(form), [form]);
   const changed = Boolean(values && initialSettings
     && JSON.stringify(values) !== JSON.stringify(initialSettings));
-  const isCrewHouse = ['PUBLIC', 'PRIVATE'].includes(house?.type);
+  const isCrewHouse = Boolean(house?.isCrewHouse);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -104,7 +104,10 @@ export default function HouseSettingsPage() {
         ? 'House 소개는 300자 이하로 입력해주세요.'
         : 'House 소개는 10자 이상 300자 이하로 입력해주세요.';
     }
-    if (!isCrewHouse && !GAMES.includes(values.game)) return '대표 게임을 선택해주세요.';
+    if (!GAMES.includes(values.game)) return '대표 게임을 선택해주세요.';
+    if (!['SOCIAL', 'COMPETITIVE'].includes(values.type)) {
+      return 'House 성격을 선택해주세요.';
+    }
     if (!Number.isInteger(values.maxMembers)
       || values.maxMembers <= 0
       || (!isCrewHouse && (values.maxMembers < 2 || values.maxMembers > 100))) {
@@ -196,7 +199,6 @@ export default function HouseSettingsPage() {
             <small>{form.description.length}/300</small>
           </label>
           <div className="house-select-grid">
-            {!isCrewHouse && (
               <label className="house-field">
                 <span>대표 게임 <b>*</b></span>
                 <select className="inp" required value={form.game}
@@ -204,7 +206,6 @@ export default function HouseSettingsPage() {
                   {GAMES.map((game) => <option key={game} value={game}>{game}</option>)}
                 </select>
               </label>
-            )}
             <label className="house-field">
               <span>최대 인원 <b>*</b></span>
               <input className="inp" type="number" min={isCrewHouse ? 1 : 2}
@@ -216,10 +217,8 @@ export default function HouseSettingsPage() {
                 : `현재 멤버 ${house.members.length}명 · 2~100명`}</small>
             </label>
           </div>
-          {!isCrewHouse && (
             <ChoiceGroup label="House 성격" name="type" value={form.type}
                          options={OPTIONS.type} onChange={(value) => update('type', value)} />
-          )}
           <ChoiceGroup label="공개 설정" name="visibility" value={form.visibility}
                        options={OPTIONS.visibility} onChange={(value) => update('visibility', value)} />
 

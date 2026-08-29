@@ -43,7 +43,6 @@ const DISPLAY_RANK_LABEL = {
 };
 const MEMBER_ROLES = ['OWNER', 'MANAGER', 'MEMBER'];
 const NOTICE_MANAGER_ROLES = ['OWNER', 'MANAGER'];
-const CREW_HOUSE_TYPES = ['PUBLIC', 'PRIVATE'];
 const NOTICE_DATE_FORMAT = new Intl.DateTimeFormat('ko-KR', {
   year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
 });
@@ -115,7 +114,7 @@ export default function HouseDetailPage() {
       const data = await getHouse(houseId, user);
       setHouse(data);
       setPendingCount(Number(data.pendingCount) || 0);
-      const isCrewHouse = CREW_HOUSE_TYPES.includes(data.type);
+      const isCrewHouse = Boolean(data.isCrewHouse);
       if (MEMBER_ROLES.includes(data.myRole)) {
         await loadNotices(isCrewHouse);
       } else {
@@ -256,7 +255,7 @@ export default function HouseDetailPage() {
   };
 
   const saveNotice = async (values) => {
-    const isCrewHouse = CREW_HOUSE_TYPES.includes(house?.type);
+    const isCrewHouse = Boolean(house?.isCrewHouse);
     if (noticeEditor?.notice) {
       await updateHouseNotice(houseId, noticeEditor.notice.id, values, user, isCrewHouse);
     } else {
@@ -275,7 +274,7 @@ export default function HouseDetailPage() {
 
   const toggleNoticePinned = async (houseNotice) => {
     if (pinningNoticeId) return;
-    const isCrewHouse = CREW_HOUSE_TYPES.includes(house?.type);
+    const isCrewHouse = Boolean(house?.isCrewHouse);
     const nextPinned = !houseNotice.pinned;
     setPinningNoticeId(houseNotice.id);
     setError('');
@@ -303,7 +302,7 @@ export default function HouseDetailPage() {
     setDeletingNotice(true);
     setDeleteNoticeError('');
     try {
-      const isCrewHouse = CREW_HOUSE_TYPES.includes(house?.type);
+      const isCrewHouse = Boolean(house?.isCrewHouse);
       await deleteHouseNotice(houseId, noticeToDelete.id, user, isCrewHouse);
       const reloaded = await loadNotices(isCrewHouse);
       if (!reloaded) throw new Error('공지 목록을 새로고침하지 못했습니다.');
@@ -336,12 +335,15 @@ export default function HouseDetailPage() {
 
   const isPrivate = house.visibility === 'PRIVATE';
   const isOwner = house.myRole === 'OWNER';
+  const canInvite = isPrivate
+    && ['OWNER', 'MANAGER'].includes(house.myRole)
+    && house.myStatus === 'APPROVED';
   const isMember = MEMBER_ROLES.includes(house.myRole) && house.myStatus === 'APPROVED';
   const canManageNotices = NOTICE_MANAGER_ROLES.includes(house.myRole);
   const memberCount = house.memberCount ?? house.members.length;
   const leaderName = house.owner?.nickname || (house.leaderId ? `사용자 #${house.leaderId}` : '방장');
-  const isCrewHouse = CREW_HOUSE_TYPES.includes(house.type);
-  const hasVisibilityType = isCrewHouse;
+  const isCrewHouse = Boolean(house.isCrewHouse);
+  const hasVisibilityType = ['PUBLIC', 'PRIVATE'].includes(house.type);
   const hasGrowthData = house.level !== undefined || house.xp !== undefined;
   const isFull = memberCount >= house.maxMembers;
 
@@ -381,7 +383,7 @@ export default function HouseDetailPage() {
               <p>비공개 House는 가입 신청 후 승인이 필요합니다.<br />현재 역할: {ROLE_LABEL[house.myRole]}</p>
               <div className="house-join-actions">
                 <Link className="ui-btn-primary" to={`/houses/${houseId}/chat`}>House 채팅 입장</Link>
-                {isOwner && !isCrewHouse && <button className="ui-btn-secondary" type="button" onClick={() => setInviteOpen(true)}>친구 초대</button>}
+                {canInvite && <button className="ui-btn-secondary" type="button" onClick={() => setInviteOpen(true)}>친구 초대</button>}
                 {isOwner && <Link className="ui-btn-secondary" to={`/houses/${houseId}/settings`}>House 설정</Link>}
                 {!isOwner && <button className="ui-btn-secondary" type="button" disabled={working === 'leave'} onClick={leaveApprovedHouse}>
                   {working === 'leave' ? '탈퇴 중…' : 'House 탈퇴'}
@@ -557,7 +559,7 @@ export default function HouseDetailPage() {
       <section className="house-members-section">
         <div className="house-section-head">
           <h2>House 멤버</h2><span>{house.members.length}명</span>
-          {isOwner && isPrivate && !isCrewHouse && (
+          {canInvite && (
             <button className="ui-btn-secondary ui-btn-sm house-section-action" type="button"
                     onClick={() => setInviteOpen(true)}>+ 친구 초대</button>
           )}
@@ -591,8 +593,8 @@ export default function HouseDetailPage() {
         </div>
       </section>
 
-      {!isCrewHouse && <HouseInviteModal open={inviteOpen} house={house} friends={friends}
-                                         friendsLoading={friendsLoading} onClose={() => setInviteOpen(false)} onInvite={invite} />}
+      <HouseInviteModal open={inviteOpen} house={house} friends={friends}
+                        friendsLoading={friendsLoading} onClose={() => setInviteOpen(false)} onInvite={invite} />
       <HouseNoticeFormModal open={Boolean(noticeEditor)} notice={noticeEditor?.notice}
                             onClose={() => setNoticeEditor(null)} onSubmit={saveNotice} />
       <Modal open={Boolean(noticeToDelete)} title="공지 삭제" size="sm"
