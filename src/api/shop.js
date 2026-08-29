@@ -33,12 +33,16 @@ const requestShop = async (request) => {
 
 const normalizeShopItem = (item) => {
   if (!item || typeof item !== 'object') return null;
-  const priceHc = Number(item.priceHc);
+  const sourceCategory = String(item.category ?? 'OTHER');
+  const category = sourceCategory === 'BADGE' ? 'HOUSE_ICON' : sourceCategory;
+  const priceHc = Number(item.price ?? item.priceHc);
   return {
     ...item,
     id: item.id,
     name: String(item.name ?? '상품'),
-    category: String(item.category ?? 'OTHER'),
+    // UI는 기존 HOUSE_ICON 카테고리를 사용하고, 원본 API 값은 별도 보존한다.
+    category,
+    apiCategory: sourceCategory,
     priceHc: Number.isSafeInteger(priceHc) && priceHc >= 0 ? priceHc : 0,
     imageUrl: item.imageUrl || null,
   };

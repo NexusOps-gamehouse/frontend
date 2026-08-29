@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getCustomizationItemByCode } from '../mocks/customizationItems';
 
 const CATEGORY_LABEL = {
   BORDER: '프로필 테두리',
@@ -10,9 +11,16 @@ const CATEGORY_LABEL = {
 
 const getCategoryLabel = (category) => CATEGORY_LABEL[category] || CATEGORY_LABEL.OTHER;
 
+const isUsableImageUrl = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  return !/^https?:\/\/(?:www\.)?example\.com(?:\/|$)/i.test(value.trim());
+};
+
 export default function ShopItemImage({ item, alt = '', className = '' }) {
   const [failed, setFailed] = useState(false);
-  const source = item?.imageUrl || item?.asset || '';
+  const localAsset = getCustomizationItemByCode(item?.code)?.asset || item?.asset || '';
+  const remoteAsset = isUsableImageUrl(item?.imageUrl) ? item.imageUrl : '';
+  const source = localAsset || remoteAsset;
 
   useEffect(() => setFailed(false), [source]);
 

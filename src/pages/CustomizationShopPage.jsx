@@ -1805,14 +1805,14 @@ function CrewCustomizationShopPage({ user, houses, items }) {
     setError('');
     setMessage('');
     try {
-      await buyShopItem({
+      const purchaseResult = await buyShopItem({
         houseId: selectedHouse.id,
         itemId: purchaseItem.id,
         quantity: 1,
       });
       await loadHouseData();
       setPurchaseItem(null);
-      setMessage('상품을 구매했습니다. 최신 보유 상품과 House HC를 불러왔습니다.');
+      setMessage(purchaseResult?.message || '상품을 구매했습니다. 최신 보유 상품과 House HC를 불러왔습니다.');
     } catch (requestError) {
       setError(requestError.message || '상품을 구매하지 못했습니다.');
     } finally {
