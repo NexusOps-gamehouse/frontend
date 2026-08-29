@@ -26,7 +26,7 @@ export default function HouseScheduleFormModal({
   const [form, setForm] = useState(() => emptyForm(defaultGame));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const editing = Boolean(schedule) && !isCrewHouse;
+  const editing = Boolean(schedule);
 
   useEffect(() => {
     if (!open) return;

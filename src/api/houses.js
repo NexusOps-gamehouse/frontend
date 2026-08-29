@@ -535,10 +535,18 @@ export const setHouseNoticePinned = (houseId, noticeId, pinned, user, useCrewApi
   ).then((data) => (data ? normalizeNotice(data) : null));
 };
 
-// Crew API는 제목/본문 수정 endpoint를 제공하지 않는다.
-export const updateHouseNotice = (houseId, noticeId, payload, user) => (
-  mockUpdateHouseNotice(houseId, noticeId, payload, user)
-);
+export const updateHouseNotice = (houseId, noticeId, payload, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockUpdateHouseNotice(houseId, noticeId, payload, user);
+  return requestCrew(
+    () => api.put(
+      `/crew/houses/${encodeURIComponent(houseId)}/notices/${encodeURIComponent(noticeId)}`,
+      {
+        title: String(payload?.title ?? '').trim(),
+        content: payload?.content == null ? null : String(payload.content).trim(),
+      },
+    ),
+  ).then(normalizeNotice);
+};
 export const deleteHouseNotice = (houseId, noticeId, user, useCrewApi = false) => {
   if (!useCrewApi) return mockDeleteHouseNotice(houseId, noticeId, user);
   return requestCrew(
@@ -596,14 +604,24 @@ export const leaveHouseSchedule = (houseId, scheduleId) => requestCrew(
   ),
 ).then(normalizeSchedule);
 
-// Crew API는 일정 수정 endpoint를 제공하지 않는다.
-export const updateHouseSchedule = (houseId, scheduleId, payload, user) => (
-  mockUpdateHouseSchedule(houseId, scheduleId, payload, user)
-);
-// Crew API는 일정 삭제 endpoint를 제공하지 않는다.
-export const deleteHouseSchedule = (houseId, scheduleId, user) => (
-  mockDeleteHouseSchedule(houseId, scheduleId, user)
-);
+export const updateHouseSchedule = (houseId, scheduleId, payload, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockUpdateHouseSchedule(houseId, scheduleId, payload, user);
+  return requestCrew(
+    () => api.put(
+      `/crew/houses/${encodeURIComponent(houseId)}/schedules/${encodeURIComponent(scheduleId)}`,
+      toCrewScheduleWriteRequest(payload),
+    ),
+  ).then(normalizeSchedule);
+};
+
+export const deleteHouseSchedule = (houseId, scheduleId, user, useCrewApi = false) => {
+  if (!useCrewApi) return mockDeleteHouseSchedule(houseId, scheduleId, user);
+  return requestCrew(
+    () => api.delete(
+      `/crew/houses/${encodeURIComponent(houseId)}/schedules/${encodeURIComponent(scheduleId)}`,
+    ),
+  );
+};
 // Crew API는 JOINED/DECLINED attendance 저장 endpoint를 제공하지 않는다.
 export const updateScheduleAttendance = (houseId, scheduleId, status, user) => (
   mockUpdateScheduleAttendance(houseId, scheduleId, status, user)
