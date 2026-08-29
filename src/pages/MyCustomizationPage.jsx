@@ -1188,7 +1188,7 @@ function CrewMyCustomizationPage({ user, houses }) {
     setLoading(true);
     setError('');
     try {
-      const entries = await listShopInventory({ houseId: selectedHouseId, userId: user.id });
+      const entries = await listShopInventory({ houseId: selectedHouseId });
       if (!isCurrentLoad()) return;
       const nextApplied = emptyCrewSelection();
       entries.forEach((entry) => {

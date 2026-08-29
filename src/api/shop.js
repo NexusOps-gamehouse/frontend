@@ -82,16 +82,16 @@ export const buyShopItem = ({ houseId, itemId, quantity = 1 }) => {
   );
 };
 
-export const listShopInventory = ({ houseId, userId } = {}) => {
+export const listShopInventory = ({ houseId } = {}) => {
   if (!houseId) return Promise.reject(new Error('Inventory를 조회할 House가 필요합니다.'));
   return requestShop(
     () => api.get(`/shop/inventory?houseId=${encodeURIComponent(houseId)}`),
   ).then((data) => {
-    const inventory = Array.isArray(data)
+    // Crew Inventory는 사용자 개인이 아니라 House가 보유한다.
+    // userId는 최초 구매자 등 표시용 응답 정보로만 보존하고 소유권 필터에는 사용하지 않는다.
+    return Array.isArray(data)
       ? data.map(normalizeInventoryItem).filter(Boolean)
       : [];
-    if (userId == null) return inventory;
-    return inventory.filter((item) => String(item.userId) === String(userId));
   });
 };
 

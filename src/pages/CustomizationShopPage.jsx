@@ -1732,7 +1732,7 @@ function CrewCustomizationShopPage({ user, houses, items }) {
     setCurrencyError('');
 
     const [inventoryResult, currencyResult] = await Promise.allSettled([
-      listShopInventory({ houseId: selectedHouseId, userId: user.id }),
+      listShopInventory({ houseId: selectedHouseId }),
       getHouseCurrency(selectedHouseId),
     ]);
 
