@@ -160,7 +160,7 @@ export const normalizeHouse = (house) => {
       ? Number(house.memberCount)
       : members.length,
     members,
-    owner: { id: house.leaderId ?? house.owner?.id },
+    owner: { id: house.leaderId ?? house.owner?.id, nickname: house.leaderName ?? house.owner?.nickname },
     myRole: normalizeRole(house.myRole) ?? house.myRole ?? null,
     myStatus: house.myStatus ?? null,
   };
