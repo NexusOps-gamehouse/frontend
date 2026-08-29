@@ -31,7 +31,15 @@ POST_UPSTREAM=${POST_UPSTREAM:-post:8080}
 CHAT_UPSTREAM=${CHAT_UPSTREAM:-chat:8080}
 MATCH_UPSTREAM=${MATCH_UPSTREAM:-match:8080}
 CREW_UPSTREAM=${CREW_UPSTREAM:-crew:8080}
-NGINX_RESOLVER=${NGINX_RESOLVER:-kube-dns.kube-system.svc.cluster.local}
+if [ -z "${NGINX_RESOLVER:-}" ]; then
+  NGINX_RESOLVER="$(awk '$1 == "nameserver" { print $2; exit }' /etc/resolv.conf)"
+fi
+
+if [ -z "${NGINX_RESOLVER}" ]; then
+  echo "[entrypoint] DNS resolver could not be detected"
+  exit 1
+fi
+
 export USER_UPSTREAM POST_UPSTREAM CHAT_UPSTREAM MATCH_UPSTREAM CREW_UPSTREAM NGINX_RESOLVER
 
 envsubst '${USER_UPSTREAM} ${POST_UPSTREAM} ${CHAT_UPSTREAM} ${MATCH_UPSTREAM} ${CREW_UPSTREAM} ${NGINX_RESOLVER}' \
