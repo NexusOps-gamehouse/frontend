@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { acceptInvitation, listHouses, listMyInvitations, rejectInvitation } from '../api/houses';
-import HouseCoinWallet from '../components/HouseCoinWallet';
 import { useAuth } from '../context/AuthContext';
 import './Houses.css';
 
@@ -129,8 +128,6 @@ export default function HousesPage() {
           )}
         </div>
       </div>
-
-      <HouseCoinWallet user={user} />
 
       <div className="house-tabs" role="tablist" aria-label="House 목록">
         <button type="button" role="tab" aria-selected={tab === 'public'}
