@@ -1,7 +1,7 @@
 .customization-shop-page {
   min-height: calc(100vh - 64px);
   padding: 40px 24px 80px;
-  background: var(--bg, #f7f8fb);
+  background: var(--bg-color, #f7f8fb);
 }
 
 .customization-shop-container {
@@ -41,7 +41,7 @@
   padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: var(--card, #fff);
+  background: var(--surface, #fff);
 }
 
 .customization-shop-house-controls label {
@@ -57,8 +57,8 @@
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg, #f7f8fb);
-  color: var(--text);
+  background: var(--bg-color, #f7f8fb);
+  color: var(--text-main);
   font: inherit;
 }
 
@@ -106,7 +106,7 @@
   height: 120px;
   margin: 0 auto 12px;
   border-radius: 12px;
-  background: var(--bg, #f7f8fb);
+  background: var(--bg-color, #f7f8fb);
 }
 
 .customization-purchase-image img,
@@ -143,8 +143,8 @@
   border: 1px solid var(--border);
   border-radius: 999px;
 
-  background: var(--card, #fff);
-  color: var(--text);
+  background: var(--surface, #fff);
+  color: var(--text-main);
 
   font: inherit;
   font-size: 14px;
@@ -219,7 +219,7 @@
   border: 1px solid var(--border);
   border-radius: 16px;
 
-  background: var(--card, #fff);
+  background: var(--surface, #fff);
 
   transition:
     border-color 0.15s ease,
@@ -265,10 +265,10 @@
   border-radius: 12px;
 
   background:
-    linear-gradient(45deg, #f1f2f5 25%, transparent 25%),
-    linear-gradient(-45deg, #f1f2f5 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #f1f2f5 75%),
-    linear-gradient(-45deg, transparent 75%, #f1f2f5 75%);
+    linear-gradient(45deg, var(--surface-hover, #f1f2f5) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--surface-hover, #f1f2f5) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--surface-hover, #f1f2f5) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-hover, #f1f2f5) 75%);
 
   background-size: 16px 16px;
 
@@ -394,7 +394,7 @@
   border: 1px solid var(--border);
   border-radius: 18px;
 
-  background: var(--card, #fff);
+  background: var(--surface, #fff);
 }
 
 .customization-shop-preview.is-chat-theme {
@@ -418,8 +418,8 @@
   border: 1px solid var(--border);
   border-radius: 8px;
 
-  background: var(--card, #fff);
-  color: var(--text);
+  background: var(--surface, #fff);
+  color: var(--text-main);
 
   font: inherit;
   font-size: 12px;
@@ -434,7 +434,7 @@
 
 .customization-preview-expand-button:hover {
   border-color: var(--primary, #5068ff);
-  background: var(--bg, #f7f8fb);
+  background: var(--bg-color, #f7f8fb);
 }
 
 /* =========================
@@ -453,7 +453,7 @@
 
   border-radius: 14px;
 
-  background: var(--bg, #f7f8fb);
+  background: var(--bg-color, #f7f8fb);
 }
 
 .customization-preview-image img {
@@ -697,7 +697,7 @@
 }
 
 .customization-full-preview-close:hover {
-  background: #f4f5f8;
+  background: var(--surface-hover, #f4f5f8);
   transform: scale(1.04);
 }
 

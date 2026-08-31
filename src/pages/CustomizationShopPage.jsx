@@ -143,7 +143,7 @@ const modalStyle = {
     borderRadius: 18,
 
     background:
-      '#ffffff',
+      'var(--surface, #ffffff)',
 
     boxShadow:
       '0 24px 70px rgba(15, 23, 42, 0.28)',
@@ -177,7 +177,7 @@ const modalStyle = {
 
   successIcon: {
     background:
-      '#ecfdf5',
+      'var(--surface-hover, #ecfdf5)',
 
     color:
       '#059669',
@@ -185,7 +185,7 @@ const modalStyle = {
 
   failureIcon: {
     background:
-      '#fef2f2',
+      'var(--surface-hover, #fef2f2)',
 
     color:
       '#dc2626',
@@ -193,7 +193,7 @@ const modalStyle = {
 
   infoIcon: {
     background:
-      '#eff6ff',
+      'var(--surface-hover, #eff6ff)',
 
     color:
       '#2563eb',
@@ -207,7 +207,7 @@ const modalStyle = {
       8,
 
     color:
-      '#64748b',
+      'var(--text-muted, #64748b)',
 
     fontSize:
       11,
@@ -223,7 +223,7 @@ const modalStyle = {
     margin: 0,
 
     color:
-      '#0f172a',
+      'var(--text-main, #0f172a)',
 
     fontSize:
       20,
@@ -237,7 +237,7 @@ const modalStyle = {
       '14px 0 0',
 
     color:
-      '#334155',
+      'var(--text-main, #334155)',
 
     fontSize:
       14,
@@ -251,7 +251,7 @@ const modalStyle = {
       '8px 0 0',
 
     color:
-      '#64748b',
+      'var(--text-muted, #64748b)',
 
     fontSize:
       13,
@@ -290,16 +290,16 @@ const modalStyle = {
       42,
 
     border:
-      '1px solid #cbd5e1',
+      '1px solid var(--border, #cbd5e1)',
 
     borderRadius:
       10,
 
     background:
-      '#ffffff',
+      'var(--surface, #ffffff)',
 
     color:
-      '#334155',
+      'var(--text-main, #334155)',
 
     fontSize:
       14,
@@ -1923,9 +1923,6 @@ function CrewCustomizationShopPage({ user, houses, items }) {
                         className="customization-item-select"
                         onClick={() => {
                           setSelectedItemId(item.id);
-                          if (toShopCategory(item.category) === 'CHAT_SKIN') {
-                            setIsPreviewExpanded(true);
-                          }
                         }}
                         aria-pressed={selectedItemId === item.id}
                       >
