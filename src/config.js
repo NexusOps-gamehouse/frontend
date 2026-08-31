@@ -27,6 +27,7 @@ export const BACKEND_ORIGIN = 'BACKEND_ORIGIN' in env ? env.BACKEND_ORIGIN : '';
 export function assetUrl(path) {
   if (!path) return path;
   if (/^https?:\/\//.test(path)) return path; // 이미 절대 URL
+  if (path.startsWith('profile-images/')) return `/${path}`;
   if (BACKEND_ORIGIN && path.startsWith('/uploads')) return BACKEND_ORIGIN + path;
   return path;
 }
