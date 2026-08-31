@@ -643,7 +643,7 @@
 
   padding: 16px 20px;
 
-  background: #fff;
+  background: var(--surface);
 }
 
 .customization-full-preview-header > div {
@@ -660,7 +660,7 @@
 }
 
 .customization-full-preview-header strong {
-  color: var(--text, #111);
+  color: var(--text-main, var(--text, #111));
   font-size: 18px;
 }
 
@@ -682,8 +682,8 @@
   border: 1px solid var(--border);
   border-radius: 10px;
 
-  background: #fff;
-  color: #222;
+  background: var(--surface);
+  color: var(--text-main, var(--text, #222));
 
   font: inherit;
   font-size: 18px;
@@ -728,6 +728,29 @@
 
   object-fit: contain;
   object-position: center;
+}
+
+.customization-full-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-main, var(--text, #111));
+}
+
+.customization-full-preview-footer > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.customization-full-preview-footer > div span {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 /* =========================
@@ -845,5 +868,14 @@
 
   .customization-full-preview-image {
     padding: 6px;
+  }
+
+  .customization-full-preview-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customization-full-preview-footer .ui-btn-primary {
+    width: 100%;
   }
 }

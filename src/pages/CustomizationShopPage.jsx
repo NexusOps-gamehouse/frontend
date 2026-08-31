@@ -1701,6 +1701,7 @@ function CrewCustomizationShopPage({ user, houses, items }) {
   const [selectedHouseId, setSelectedHouseId] = useState(() => houses[0]?.id ?? '');
   const [activeCategory, setActiveCategory] = useState('BORDER');
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [inventory, setInventory] = useState([]);
   const [currency, setCurrency] = useState(null);
   const [inventoryLoading, setInventoryLoading] = useState(false);
@@ -1767,11 +1768,42 @@ function CrewCustomizationShopPage({ user, houses, items }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedHouseId]);
 
-  const visibleItems = useMemo(() => items.filter((item) => (
-    toShopCategory(item.category) === activeCategory
-  )), [activeCategory, items]);
+  useEffect(() => {
+    if (!isPreviewExpanded) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsPreviewExpanded(false);
+      }
+    };
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isPreviewExpanded]);
+
+  const visibleItems = useMemo(() => {
+    const filteredItems = items.filter((item) => (
+      toShopCategory(item.category) === activeCategory
+    ));
+    if (activeCategory !== 'BANNER') return filteredItems;
+
+    const bannerOrder = new Map(
+      customizationItems
+        .filter((item) => item.category === CUSTOMIZATION_CATEGORY.PROFILE_BANNER)
+        .map((item, index) => [item.code, index]),
+    );
+    return filteredItems.sort((left, right) => (
+      (bannerOrder.get(left.code) ?? Number.MAX_SAFE_INTEGER)
+      - (bannerOrder.get(right.code) ?? Number.MAX_SAFE_INTEGER)
+    ));
+  }, [activeCategory, items]);
 
   const selectedItem = items.find((item) => String(item.id) === String(selectedItemId)) ?? null;
+  const isChatThemeSelected = toShopCategory(selectedItem?.category) === 'CHAT_SKIN';
   const ownedItemIds = useMemo(() => new Set(
     inventory
       .filter((entry) => entry.quantity > 0)
@@ -1861,7 +1893,11 @@ function CrewCustomizationShopPage({ user, houses, items }) {
               key={category}
               type="button"
               className={activeCategory === category ? 'customization-category-tab is-active' : 'customization-category-tab'}
-              onClick={() => { setActiveCategory(category); setSelectedItemId(null); }}
+              onClick={() => {
+                setActiveCategory(category);
+                setSelectedItemId(null);
+                setIsPreviewExpanded(false);
+              }}
             >
               {SHOP_CATEGORY_LABEL[category]}
             </button>
@@ -1882,7 +1918,17 @@ function CrewCustomizationShopPage({ user, houses, items }) {
                   const price = getSafeShopPrice(item);
                   return (
                     <article key={item.id} className={selectedItemId === item.id ? 'customization-item-card is-selected' : 'customization-item-card'}>
-                      <button type="button" className="customization-item-select" onClick={() => setSelectedItemId(item.id)} aria-pressed={selectedItemId === item.id}>
+                      <button
+                        type="button"
+                        className="customization-item-select"
+                        onClick={() => {
+                          setSelectedItemId(item.id);
+                          if (toShopCategory(item.category) === 'CHAT_SKIN') {
+                            setIsPreviewExpanded(true);
+                          }
+                        }}
+                        aria-pressed={selectedItemId === item.id}
+                      >
                         <div className={`customization-item-image ${toShopCategory(item.category).toLowerCase()}`}>
                           <ShopItemImage item={item} alt={item.name} />
                         </div>
@@ -1902,7 +1948,18 @@ function CrewCustomizationShopPage({ user, houses, items }) {
           </section>
 
           <aside className="customization-shop-preview">
-            <span className="customization-shop-preview-label">PREVIEW</span>
+            <div className="customization-preview-heading">
+              <span className="customization-shop-preview-label">PREVIEW</span>
+              {isChatThemeSelected && selectedItem && (
+                <button
+                  type="button"
+                  className="customization-preview-expand-button"
+                  onClick={() => setIsPreviewExpanded(true)}
+                >
+                  전체 화면으로 보기
+                </button>
+              )}
+            </div>
             {selectedItem ? (
               <>
                 <div className={`customization-preview-image ${toShopCategory(selectedItem.category).toLowerCase()}`}>
@@ -1941,6 +1998,62 @@ function CrewCustomizationShopPage({ user, houses, items }) {
           </div>
         )}
       </Modal>
+
+      {isPreviewExpanded && isChatThemeSelected && selectedItem && (
+        <div
+          className="customization-full-preview-overlay"
+          role="presentation"
+          onClick={() => setIsPreviewExpanded(false)}
+        >
+          <div
+            className="customization-full-preview"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedItem.name} 전체 화면 미리보기`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="customization-full-preview-header">
+              <div>
+                <span>CHAT THEME PREVIEW</span>
+                <strong>{selectedItem.name}</strong>
+              </div>
+              <button
+                type="button"
+                className="customization-full-preview-close"
+                onClick={() => setIsPreviewExpanded(false)}
+                aria-label="전체 화면 미리보기 닫기"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="customization-full-preview-image">
+              <ShopItemImage item={selectedItem} alt={`${selectedItem.name} 전체 화면 미리보기`} />
+            </div>
+
+            <div className="customization-full-preview-footer">
+              <div>
+                <strong>{selectedOwned ? '보유 중' : `HC ${getSafeShopPrice(selectedItem)}`}</strong>
+                <span>{selectedOwned ? '내 꾸미기에서 적용할 수 있습니다.' : '미리보기는 구매 없이 확인할 수 있습니다.'}</span>
+              </div>
+              {selectedOwned ? (
+                <span className="customization-item-status">보유 중</span>
+              ) : (
+                <button
+                  type="button"
+                  className="ui-btn-primary ui-btn-sm"
+                  onClick={() => {
+                    setIsPreviewExpanded(false);
+                    openPurchase(selectedItem);
+                  }}
+                >
+                  구매
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
