@@ -132,6 +132,7 @@ const PREMIUM_FRAME_KEYS = [
  * 200 HC
  */
 const STANDARD_BANNER_KEYS = [
+  'guardian-name',
   'amethyst',
   'disco-pop',
   'forest-warrior',
@@ -144,7 +145,6 @@ const STANDARD_BANNER_KEYS = [
  * 300 HC
  */
 const PREMIUM_BANNER_KEYS = [
-  'guardian-name',
   'voyage-road',
   'fairy-garden',
   'mermaid-ocean',
