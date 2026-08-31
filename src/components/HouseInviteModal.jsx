@@ -15,7 +15,7 @@ export default function HouseInviteModal({ open, house, friends, friendsLoading,
   }, [open]);
 
   const unavailable = useMemo(() => new Set([
-    ...(house?.members || []).map((member) => String(member.id)),
+    ...(house?.members || []).map((member) => String(member.userId ?? member.id)),
     ...(house?.invitations || []).map((invitation) => String(invitation.userId)),
   ]), [house]);
 

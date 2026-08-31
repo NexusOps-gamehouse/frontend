@@ -4,33 +4,43 @@ import { acceptInvitation, listHouses, listMyInvitations, rejectInvitation } fro
 import { useAuth } from '../context/AuthContext';
 import './Houses.css';
 
-const TYPE_LABEL = { SOCIAL: '친목형', COMPETITIVE: '경쟁형' };
+const TYPE_LABEL = {
+  SOCIAL: '친목형',
+  COMPETITIVE: '경쟁형',
+  PUBLIC: '공개',
+  PRIVATE: '비공개',
+};
 
 function HouseCard({ house }) {
-  const mine = ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myStatus);
+  const mine = ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myRole) && house.myStatus === 'APPROVED';
+  const memberCount = house.memberCount ?? house.members?.length ?? 0;
+  const leaderName = house.owner?.nickname || (house.leaderId ? `사용자 #${house.leaderId}` : '방장');
+  const hasVisibilityType = ['PUBLIC', 'PRIVATE'].includes(house.type);
 
   return (
     <Link className="house-card" to={`/houses/${house.id}`} aria-label={`${house.name} 상세 보기`}>
       <div className="house-card-head">
         <div className="house-tags">
-          <span className="ui-tag house-game">🎯 {house.game}</span>
-          <span className={`ui-tag house-type ${house.type.toLowerCase()}`}>{TYPE_LABEL[house.type]}</span>
-          <span className="ui-tag">{house.visibility === 'PUBLIC' ? '🌐 공개' : '🔒 비공개'}</span>
+          {house.game && <span className="ui-tag house-game">🎯 {house.game}</span>}
+          <span className={`ui-tag house-type ${house.type.toLowerCase()}`}>{TYPE_LABEL[house.type] || house.type}</span>
+          {!hasVisibilityType && (
+            <span className="ui-tag">{house.visibility === 'PUBLIC' ? '🌐 공개' : '🔒 비공개'}</span>
+          )}
         </div>
         {mine && <span className="ui-tag is-online">내 House</span>}
       </div>
       <div>
         <h2>{house.name}</h2>
-        <p>{house.description}</p>
+        {house.description && <p>{house.description}</p>}
       </div>
       <div className="house-card-foot">
         <div className="ui-author">
-          <div className="ui-author-av">{house.owner.nickname?.[0] || '?'}</div>
+          <div className="ui-author-av">{leaderName[0] || '?'}</div>
           <div className="ui-author-info">
             <span className="ui-author-name">
-              {house.owner.nickname} <span className="owner-badge">방장</span>
+              {leaderName} <span className="owner-badge">방장</span>
             </span>
-            <span className="ui-time">멤버 {house.members.length}/{house.maxMembers}명</span>
+            <span className="ui-time">멤버 {memberCount}/{house.maxMembers}명</span>
           </div>
         </div>
         <span className="house-card-link">자세히 보기 →</span>
@@ -47,6 +57,7 @@ export default function HousesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [working, setWorking] = useState('');
+  const [keyword, setKeyword] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,10 +83,19 @@ export default function HousesPage() {
     [houses],
   );
   const myHouses = useMemo(
-    () => houses.filter((house) => ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myStatus)),
+    () => houses.filter((house) => (
+      ['OWNER', 'MANAGER', 'MEMBER'].includes(house.myRole) && house.myStatus === 'APPROVED'
+    )),
     [houses],
   );
-  const visible = tab === 'public' ? publicHouses : myHouses;
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const filteredPublicHouses = useMemo(() => {
+    if (!normalizedKeyword) return publicHouses;
+    return publicHouses.filter((house) => [house.name, house.game, house.description]
+      .map((value) => String(value ?? '').toLowerCase())
+      .some((value) => value.includes(normalizedKeyword)));
+  }, [normalizedKeyword, publicHouses]);
+  const visible = tab === 'public' ? filteredPublicHouses : myHouses;
 
   const decideInvitation = async (invitation, decision) => {
     setWorking(`${decision}-${invitation.id}`);
@@ -99,11 +119,14 @@ export default function HousesPage() {
           <h1>House</h1>
           <p>게임 취향과 목표가 맞는 멤버들과 우리만의 공간을 만들어보세요.</p>
         </div>
-        {user ? (
-          <Link className="ui-btn-primary house-create-link" to="/houses/new">+ House 만들기</Link>
-        ) : (
-          <Link className="ui-btn-primary house-create-link" to="/login">로그인하고 시작하기</Link>
-        )}
+        <div className="house-page-actions">
+          <Link className="ui-btn-secondary" to="/houses/rankings">House 랭킹</Link>
+          {user ? (
+            <Link className="ui-btn-primary house-create-link" to="/houses/new">+ House 만들기</Link>
+          ) : (
+            <Link className="ui-btn-primary house-create-link" to="/login">로그인하고 시작하기</Link>
+          )}
+        </div>
       </div>
 
       <div className="house-tabs" role="tablist" aria-label="House 목록">
@@ -121,6 +144,23 @@ export default function HousesPage() {
         </button>
       </div>
 
+      {tab === 'public' && (
+        <div className="house-search" role="search">
+          <label htmlFor="public-house-search">공개 House 검색</label>
+          <div className="house-search-control">
+            <input id="public-house-search" className="inp" type="search" value={keyword}
+                   onChange={(event) => setKeyword(event.target.value)}
+                   placeholder="House 이름이나 게임을 검색해보세요" />
+            {keyword && (
+              <button className="ui-btn-secondary ui-btn-sm" type="button" onClick={() => setKeyword('')}>
+                초기화
+              </button>
+            )}
+          </div>
+          {normalizedKeyword && <span className="house-search-result">{visible.length}개 결과</span>}
+        </div>
+      )}
+
       {loading && <div className="ui-empty"><p>House를 불러오는 중…</p></div>}
       {!loading && error && <div className="house-alert error">{error}</div>}
       {!loading && !error && (tab === 'mine' || tab === 'invitations') && !user && (
@@ -131,7 +171,9 @@ export default function HousesPage() {
       )}
       {!loading && !error && tab !== 'invitations' && visible.length === 0 && !(tab === 'mine' && !user) && (
         <div className="ui-empty">
-          <p>{tab === 'public' ? '아직 공개된 House가 없습니다.' : '아직 가입한 House가 없습니다.'}</p>
+          <p>{tab === 'public'
+            ? normalizedKeyword ? '검색 조건에 맞는 House가 없습니다.' : '아직 공개된 House가 없습니다.'
+            : '아직 가입한 House가 없습니다.'}</p>
           {tab === 'mine' && <Link className="ui-btn-secondary house-empty-link" to="/houses/new">첫 House 만들기</Link>}
         </div>
       )}

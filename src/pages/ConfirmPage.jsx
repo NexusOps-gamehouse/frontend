@@ -26,39 +26,59 @@ export default function ConfirmPage() {
   const submit = async () => {
     setError('');
     setLoading(true);
+
     try {
-      const form = new FormData();
-      form.append('email', s.email);
-      form.append('password', s.password);
-      form.append('nickname', s.nickname);
-      form.append('name', s.name);
-      form.append('phone', s.phone);
+      let profileImageKey = null;
 
-      // [FR-01] 프로필 정보 5개.
-      // gender / position / game / gameModes / playStyle / tier 는 더 이상 가입에서 받지 않는다.
-      form.append('mic', s.mic);
-      if (s.age !== '') form.append('age', Number(s.age));
-      form.append('playTimes', s.playTimes.join(','));
-      form.append('playDays', s.playDays.join(','));
-      form.append('playDuration', s.playDuration);
+      // 이미지가 있으면 Presigned URL을 받아 S3에 직접 업로드
+      if (s.imageFile) {
+        const { data: presigned } = await api.post(
+            '/auth/profile-image/presigned-url',
+            { contentType: s.imageFile.type }
+        );
 
-      // 성향 설문 12문항. 콤마 문자열로 보낸다.
-      //
-      // 가입 요청 안에 같이 실어 보내는 이유: 별도 API 로 나누면 계정은 생겼는데
-      // 설문만 실패한 사용자가 생긴다. 그 계정은 매칭 점수를 낼 수 없는 상태로
-      // 서비스에 남고, 다시 채우게 만들 화면도 없다. 한 트랜잭션에서 끝낸다.
-      if (surveyDone) form.append('surveyAnswers', s.surveyAnswers.join(','));
+        const uploadResponse = await fetch(presigned.uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': s.imageFile.type,
+          },
+          body: s.imageFile,
+        });
 
-      // 라이엇 계정은 이름/태그로 나눠 보낸다.
-      // 티어·숙련도 저장은 백엔드가 signup 트랜잭션 안에서 직접 조회해 처리해야 한다.
-      // (프론트가 보낸 값을 그대로 믿고 저장하면 위조가 가능하다)
-      if (s.riotGameName) {
-        form.append('gameName', s.riotGameName);
-        form.append('tagLine', s.riotTagLine);
+        if (!uploadResponse.ok) {
+          throw new Error('프로필 이미지 업로드에 실패했습니다.');
+        }
+
+        profileImageKey = presigned.objectKey;
       }
-      if (s.imageFile) form.append('image', s.imageFile);
 
-      const { data } = await api.post('/auth/signup', form);
+      const payload = {
+        email: s.email,
+        password: s.password,
+        nickname: s.nickname,
+        name: s.name,
+        phone: s.phone,
+
+        // [FR-01] 프로필 정보 5개.
+        // gender / position / game / gameModes / playStyle / tier 는 더 이상 가입에서 받지 않는다.
+        mic: s.mic,
+        age: s.age !== '' ? Number(s.age) : null,
+        playTimes: s.playTimes.join(','),
+        playDays: s.playDays.join(','),
+        playDuration: s.playDuration,
+
+        // 성향 설문 12문항. 기존 백엔드 형식에 맞춰 콤마 문자열로 보낸다.
+        surveyAnswers: surveyDone ? s.surveyAnswers.join(',') : null,
+
+        // 라이엇 계정은 이름/태그로 나눠 보낸다.
+        gameName: s.riotGameName || null,
+        tagLine: s.riotTagLine || null,
+
+        // S3에 업로드된 프로필 이미지의 Object Key
+        profileImageKey,
+      };
+
+      const { data } = await api.post('/auth/signup', payload);
       login(data.token, data.user);
       resetSignupStore();
       navigate('/');

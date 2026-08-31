@@ -1,0 +1,2485 @@
+/* =========================================================
+   GAME HOUSE - FINAL CHAT THEME SKINS
+
+   Source of truth:
+   src/assets/customization/chat-themes/<theme>/background.png
+
+   The exact same approved artwork is also stored as preview.png,
+   so Shop / My Customization and the live chat always match.
+
+   IMPORTANT
+   - No blur.
+   - No CSS-redrawn substitute artwork.
+   - No old reference-decor/theme-frame overlay.
+   - The live messages/input remain React elements layered above
+     the approved theme image.
+========================================================= */
+
+/* =========================================================
+   Theme asset mapping
+========================================================= */
+
+.chat-theme-moonlight-lounge {
+  --gh-chat-header-ink: #ffffff;
+
+  --gh-chat-skin:
+    url('../assets/customization/chat-themes/moonlight-lounge/background.png');
+
+  --chat-text: #263c5c;
+  --chat-muted: #7b8da8;
+  --chat-bubble: rgba(255, 255, 255, 0.94);
+  --chat-bubble-text: #26394f;
+  --chat-my-bubble: rgba(202, 224, 248, 0.96);
+  --chat-my-text: #31557d;
+  --chat-accent: #0a3475;
+  --chat-accent-soft: rgba(10, 52, 117, 0.12);
+  --chat-avatar-border: #9dbce0;
+}
+
+.chat-theme-green-forest {
+  --gh-chat-header-ink: #ffffff;
+
+  --gh-chat-skin:
+    url('../assets/customization/chat-themes/green-forest/background.png');
+
+  --chat-text: #415036;
+  --chat-muted: #7d816c;
+  --chat-bubble: rgba(255, 255, 255, 0.94);
+  --chat-bubble-text: #3e4937;
+  --chat-my-bubble: rgba(204, 225, 171, 0.96);
+  --chat-my-text: #3d5c2e;
+  --chat-accent: #456e37;
+  --chat-accent-soft: rgba(69, 110, 55, 0.12);
+  --chat-avatar-border: #b9d093;
+}
+
+.chat-theme-pixel-arcade {
+  --gh-chat-header-ink: #ffffff;
+
+  --gh-chat-skin:
+    url('../assets/customization/chat-themes/pixel-arcade/background.png');
+
+  --chat-text: #f4f8ff;
+  --chat-muted: #9fb4d2;
+  --chat-bubble: rgba(247, 249, 255, 0.96);
+  --chat-bubble-text: #17233b;
+  --chat-my-bubble: rgba(16, 129, 249, 0.97);
+  --chat-my-text: #ffffff;
+  --chat-accent: #138dff;
+  --chat-accent-soft: rgba(19, 141, 255, 0.18);
+  --chat-avatar-border: #168cff;
+}
+
+.chat-theme-cherry-garden {
+  --gh-chat-header-ink: #8f3f58;
+
+  --gh-chat-skin:
+    url('../assets/customization/chat-themes/cherry-garden/background.png');
+
+  --chat-text: #6e3e4c;
+  --chat-muted: #a17784;
+  --chat-bubble: rgba(255, 255, 255, 0.95);
+  --chat-bubble-text: #563d46;
+  --chat-my-bubble: rgba(249, 178, 193, 0.96);
+  --chat-my-text: #7d3d50;
+  --chat-accent: #ef7591;
+  --chat-accent-soft: rgba(239, 117, 145, 0.14);
+  --chat-avatar-border: #ffc6d3;
+}
+
+.chat-theme-magic-library {
+  --gh-chat-header-ink: #ffffff;
+
+  --gh-chat-skin:
+    url('../assets/customization/chat-themes/magic-library/background.png');
+
+  --chat-text: #504464;
+  --chat-muted: #8d8090;
+  --chat-bubble: rgba(255, 255, 255, 0.95);
+  --chat-bubble-text: #554c62;
+  --chat-my-bubble: rgba(198, 180, 239, 0.96);
+  --chat-my-text: #50427a;
+  --chat-accent: #342c86;
+  --chat-accent-soft: rgba(52, 44, 134, 0.13);
+  --chat-avatar-border: #ddc05c;
+}
+
+.chat-theme-ocean-walk {
+  --gh-chat-header-ink: #ffffff;
+
+  --gh-chat-skin:
+    url('../assets/customization/chat-themes/ocean-walk/background.png');
+
+  --chat-text: #315d6c;
+  --chat-muted: #7899a4;
+  --chat-bubble: rgba(255, 255, 255, 0.95);
+  --chat-bubble-text: #365d69;
+  --chat-my-bubble: rgba(166, 225, 237, 0.96);
+  --chat-my-text: #2d6070;
+  --chat-accent: #086886;
+  --chat-accent-soft: rgba(8, 104, 134, 0.12);
+  --chat-avatar-border: #9bdbe7;
+}
+
+.chat-theme-default {
+  --gh-chat-skin: none;
+}
+
+/* =========================================================
+   Live themed chat panel
+========================================================= */
+
+.themed-chat-shell {
+  display: flex;
+  justify-content: center;
+}
+
+.themed-chat-panel {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  width: min(720px, 92vw);
+  height: auto;
+  min-height: 0;
+
+  aspect-ratio: 3 / 4;
+
+  overflow: hidden;
+
+  border: 0 !important;
+  border-radius: 26px;
+
+  background-color: transparent !important;
+  background-image: var(--gh-chat-skin) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+
+  /*
+   * background.png itself is 3:4 and the panel is also 3:4,
+   * so the circular emblem remains a true circle.
+   */
+  box-shadow:
+    0 24px 60px
+    rgba(15, 23, 42, 0.18);
+}
+
+/*
+ * The approved PNG already contains the header / body / composer
+ * frame. React only supplies real room data and controls on top.
+ */
+.themed-chat-header {
+  position: relative;
+  z-index: 20;
+
+  flex: 0 0 12.8%;
+
+  display: grid;
+  grid-template-columns:
+    18%
+    minmax(0, 1fr)
+    auto;
+
+  align-items: center;
+  gap: 12px;
+
+  min-height: 0 !important;
+
+  padding:
+    1.8%
+    4.2% !important;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/*
+ * The logo / profile circle is already part of each skin.
+ * Keep the grid slot but do not draw another GH circle on top.
+ */
+.themed-chat-brand {
+  visibility: hidden;
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1;
+}
+
+/* Room title sits directly inside the long baked header band. */
+.themed-chat-heading {
+  position: absolute;
+  z-index: 31;
+
+  top: 51%;
+  left: 14.6%;
+
+  width: 24.8%;
+  height: 24%;
+
+  min-width: 0;
+
+  padding: 0 !important;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.themed-chat-heading::before,
+.themed-chat-heading::after {
+  content: none !important;
+  display: none !important;
+}
+
+.themed-chat-title {
+  max-width: 100%;
+  overflow: hidden;
+
+  color:
+    var(--gh-header-field-text, #173352) !important;
+  background: transparent !important;
+
+  font-size:
+    clamp(
+      12px,
+      1.45vw,
+      17px
+    ) !important;
+
+  font-weight: 850 !important;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.themed-chat-meta {
+  display: none !important;
+}
+
+/*
+ * Keep only useful real controls visible.
+ * The decorative search / more glyphs are already inside the skin.
+ */
+.themed-chat-header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 7px;
+}
+
+.themed-chat-connection,
+.themed-chat-preview-label {
+  display: none !important;
+}
+
+.themed-chat-count {
+  min-width: 44px;
+  min-height: 28px;
+
+  padding: 4px 9px !important;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.22) !important;
+
+  border-radius: 999px !important;
+
+  background:
+    rgba(255, 255, 255, 0.13) !important;
+
+  color: #ffffff !important;
+
+  font-size: 10px !important;
+  font-weight: 850;
+}
+
+.chat-theme-green-forest .themed-chat-count,
+.chat-theme-cherry-garden .themed-chat-count {
+  border-color:
+    rgba(255, 255, 255, 0.45) !important;
+
+  background:
+    rgba(255, 255, 255, 0.17) !important;
+}
+
+/*
+ * Invisible hit areas sit directly above the search / more artwork.
+ * They remain accessible and clickable without drawing duplicate icons.
+ */
+.themed-chat-icon-button {
+  width: 36px !important;
+  height: 36px !important;
+
+  border: 0 !important;
+  background: transparent !important;
+
+  color: transparent !important;
+
+  opacity: 0.01;
+}
+
+.themed-chat-icon-button svg {
+  opacity: 0;
+}
+
+/* =========================================================
+   Message stage
+========================================================= */
+
+.themed-chat-stage {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  min-height: 0 !important;
+
+  overflow: hidden;
+
+  background: transparent !important;
+}
+
+.themed-chat-decoration {
+  display: none !important;
+}
+
+/*
+ * The central area of every approved image was intentionally kept empty,
+ * so this is where actual chat messages live.
+ */
+.themed-chat-messages {
+  position: relative;
+  z-index: 3;
+
+  flex: 1;
+
+  min-height: 0 !important;
+  max-height: none !important;
+
+  padding:
+    4%
+    5.5%
+    2% !important;
+
+  overflow-y: auto;
+
+  background: transparent !important;
+
+  scrollbar-width: thin;
+}
+
+.themed-chat-message-row {
+  gap: 11px;
+
+  margin-bottom:
+    clamp(
+      12px,
+      1.6vh,
+      20px
+    ) !important;
+}
+
+.themed-chat-message-body {
+  min-width: 0;
+}
+
+.themed-chat-sender {
+  margin-bottom: 4px;
+
+  color: var(--chat-text) !important;
+
+  font-size:
+    clamp(
+      10px,
+      1vw,
+      12px
+    ) !important;
+
+  font-weight: 800;
+}
+
+.themed-chat-message-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.themed-chat-message-row.is-me {
+  justify-content: flex-end;
+}
+
+.themed-chat-bubble {
+  max-width:
+    min(
+      520px,
+      70%
+    );
+
+  padding:
+    10px
+    14px !important;
+
+  border:
+    1px solid
+    rgba(69, 89, 119, 0.14) !important;
+
+  border-radius:
+    13px !important;
+
+  background:
+    var(--chat-bubble) !important;
+
+  color:
+    var(--chat-bubble-text) !important;
+
+  box-shadow:
+    0 3px 10px
+    rgba(15, 23, 42, 0.06);
+
+  font-size:
+    clamp(
+      11px,
+      1.15vw,
+      14px
+    );
+
+  line-height: 1.5;
+}
+
+.themed-chat-bubble.is-me {
+  background:
+    var(--chat-my-bubble) !important;
+
+  color:
+    var(--chat-my-text) !important;
+}
+
+.chat-theme-pixel-arcade .themed-chat-bubble {
+  border-radius: 2px !important;
+
+  box-shadow:
+    3px 3px 0
+    rgba(13, 72, 171, 0.30);
+}
+
+.themed-chat-time {
+  flex: 0 0 auto;
+
+  padding-bottom: 3px;
+
+  color:
+    var(--chat-muted) !important;
+
+  font-size:
+    clamp(
+      8px,
+      0.9vw,
+      10px
+    ) !important;
+}
+
+/* =========================================================
+   Theme profile icons
+========================================================= */
+
+.chat-theme-avatar {
+  position: relative;
+
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border:
+    2px solid
+    var(--chat-avatar-border, rgba(255, 255, 255, 0.78));
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 255, 255, 0.86);
+
+  box-shadow:
+    0 3px 10px
+    rgba(15, 23, 42, 0.14);
+}
+
+.chat-theme-avatar img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.chat-theme-avatar-sm {
+  width: 30px;
+  height: 30px;
+}
+
+.chat-theme-avatar-md {
+  width: 42px;
+  height: 42px;
+}
+
+.chat-theme-avatar-lg {
+  width: 56px;
+  height: 56px;
+}
+
+/*
+ * Existing Avatar fallback keeps working for users who have
+ * no selected theme icon.
+ */
+.themed-chat-message-row > .av {
+  flex: 0 0 auto;
+}
+
+/* =========================================================
+   Composer
+========================================================= */
+
+/*
+ * The approved image already draws the input capsule,
+ * clip symbol and send button.
+ * Make the real form transparent and align it with that area.
+ */
+.themed-chat-form {
+  position: relative;
+  z-index: 5;
+
+  flex: 0 0 10.5%;
+
+  display: grid;
+  grid-template-columns:
+    9%
+    minmax(0, 1fr)
+    10%;
+
+  align-items: center;
+  gap: 0;
+
+  width: auto !important;
+
+  margin:
+    0
+    4.3%
+    2.6% !important;
+
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
+
+  box-shadow: none !important;
+}
+
+.themed-chat-input {
+  width: 100%;
+  height: 54% !important;
+
+  padding:
+    0
+    10px !important;
+
+  border: 0 !important;
+  outline: 0 !important;
+
+  background:
+    transparent !important;
+
+  color:
+    var(--chat-text) !important;
+
+  font-size:
+    clamp(
+      11px,
+      1.1vw,
+      14px
+    ) !important;
+}
+
+.chat-theme-pixel-arcade .themed-chat-input {
+  color: #ffffff !important;
+}
+
+.themed-chat-input::placeholder {
+  color:
+    var(--chat-muted) !important;
+
+  opacity: 0.74;
+}
+
+/*
+ * Preserve actual buttons for accessibility / click handling,
+ * but show the approved skin's paperclip/send artwork instead.
+ */
+.themed-chat-attach,
+.themed-chat-send {
+  width: 100% !important;
+  height: 100% !important;
+
+  min-width: 0 !important;
+
+  border: 0 !important;
+  background: transparent !important;
+
+  color: transparent !important;
+
+  box-shadow: none !important;
+}
+
+.themed-chat-attach svg,
+.themed-chat-send svg {
+  opacity: 0;
+}
+
+.themed-chat-send {
+  cursor: pointer;
+}
+
+.themed-chat-send:disabled {
+  cursor: default;
+}
+
+/* =========================================================
+   Participants popover
+========================================================= */
+
+.themed-chat-participants-popover {
+  z-index: 80 !important;
+
+  border:
+    1px solid
+    rgba(148, 163, 184, 0.28) !important;
+
+  background:
+    rgba(255, 255, 255, 0.97) !important;
+
+  color: #1f2937 !important;
+
+  box-shadow:
+    0 18px 45px
+    rgba(15, 23, 42, 0.22) !important;
+
+  backdrop-filter: blur(12px);
+}
+
+.chat-theme-pixel-arcade .themed-chat-participants-popover {
+  border-color:
+    rgba(22, 140, 255, 0.65) !important;
+
+  background:
+    rgba(4, 11, 28, 0.97) !important;
+
+  color:
+    #f4f8ff !important;
+}
+
+/* =========================================================
+   Shop + My Customization
+   preview.png is now the same approved artwork as live chat.
+========================================================= */
+
+.customization-item-image.chat_theme,
+.customization-preview-image.chat_theme,
+.my-customization-item-image.chat_theme {
+  background:
+    #f4f6f9;
+}
+
+.customization-item-image.chat_theme img,
+.my-customization-item-image.chat_theme img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain !important;
+  object-position: center;
+
+  background:
+    transparent !important;
+}
+
+.customization-preview-image.chat_theme img,
+.customization-full-preview-image img,
+.my-customization-chat-preview img {
+  display: block;
+
+  width: 100%;
+  height: auto;
+
+  max-height:
+    min(
+      70vh,
+      760px
+    );
+
+  object-fit: contain !important;
+  object-position: center;
+
+  border-radius: 14px;
+}
+
+/*
+ * If the latest MyCustomizationPage renders its 4-avatar selector,
+ * keep the selected theme icons visually tied to the skin.
+ */
+.my-customization-chat-avatar-option,
+.chat-theme-avatar-option {
+  border-radius: 50% !important;
+}
+
+.my-customization-chat-avatar-option img,
+.chat-theme-avatar-option img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+/* =========================================================
+   House Chat compatibility
+
+   Only the theme skin is changed.
+   Existing House rank-frame PNGs and their geometry remain untouched.
+========================================================= */
+
+.house-chat-page[class*='chat-theme-'] .house-chat-panel,
+[class*='chat-theme-'] .house-chat-panel {
+  position: relative;
+
+  overflow: hidden;
+
+  background-color: transparent !important;
+  background-image: var(--gh-chat-skin) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+}
+
+.house-chat-page[class*='chat-theme-'] .house-chat-header,
+.house-chat-page[class*='chat-theme-'] .house-chat-messages,
+.house-chat-page[class*='chat-theme-'] .house-chat-composer,
+[class*='chat-theme-'] .house-chat-header,
+[class*='chat-theme-'] .house-chat-messages,
+[class*='chat-theme-'] .house-chat-composer {
+  position: relative;
+  z-index: 2;
+
+  background: transparent !important;
+}
+
+/* Never alter the already-approved House rank frame alignment. */
+.house-rank-avatar-frame {
+  z-index: 5;
+}
+
+/* =========================================================
+   Responsive
+========================================================= */
+
+@media (max-width: 860px) {
+  .themed-chat-panel {
+    width:
+      min(
+        680px,
+        92vw
+      );
+
+    height: auto;
+
+    min-height: 0;
+
+    aspect-ratio:
+      3 / 4;
+  }
+
+  .themed-chat-header {
+    grid-template-columns:
+      18%
+      minmax(0, 1fr)
+      auto !important;
+
+    padding:
+      1.6%
+      3.6% !important;
+  }
+
+  .themed-chat-header-controls {
+    grid-column: auto !important;
+
+    flex-wrap: nowrap !important;
+
+    padding-top: 0 !important;
+
+    border-top: 0 !important;
+  }
+
+  .themed-chat-message-row {
+    margin-bottom: 14px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .themed-chat-page {
+    padding-right: 8px !important;
+    padding-left: 8px !important;
+  }
+
+  .themed-chat-panel {
+    width:
+      min(
+        100%,
+        540px
+      );
+
+    height: auto;
+
+    min-height: 0;
+
+    aspect-ratio:
+      3 / 4;
+
+    border-radius: 18px;
+  }
+
+  .themed-chat-header {
+    flex-basis: 12.5%;
+
+    grid-template-columns:
+      19%
+      minmax(0, 1fr)
+      auto !important;
+
+    gap: 6px;
+
+    padding:
+      1.4%
+      3.4% !important;
+  }
+
+  .themed-chat-title {
+    font-size: 12px !important;
+  }
+
+  .themed-chat-meta {
+    display: none;
+  }
+
+  .themed-chat-count {
+    min-width: 38px;
+    min-height: 25px;
+
+    padding:
+      3px
+      7px !important;
+
+    font-size: 9px !important;
+  }
+
+  .themed-chat-icon-button {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .themed-chat-messages {
+    padding:
+      3%
+      4%
+      1.5% !important;
+  }
+
+  .themed-chat-bubble {
+    max-width: 75%;
+
+    padding:
+      8px
+      11px !important;
+  }
+
+  .chat-theme-avatar-md {
+    width: 36px;
+    height: 36px;
+  }
+
+  .themed-chat-form {
+    flex-basis: 10.5%;
+
+    grid-template-columns:
+      10%
+      minmax(0, 1fr)
+      11%;
+
+    margin:
+      0
+      4.2%
+      2.7% !important;
+  }
+}
+
+/* =========================================================
+   v7 FUNCTIONAL HEADER
+   Approved artwork remains untouched.
+========================================================= */
+
+/* Theme-specific text ink for the baked light header bands. */
+.chat-theme-moonlight-lounge {
+  --gh-header-field-text: #17375f;
+}
+
+.chat-theme-green-forest {
+  --gh-header-field-text: #405b31;
+}
+
+.chat-theme-pixel-arcade {
+  --gh-header-field-text: #e7f3ff;
+}
+
+.chat-theme-cherry-garden {
+  --gh-header-field-text: #8a4658;
+}
+
+.chat-theme-magic-library {
+  --gh-header-field-text: #4c3d78;
+}
+
+.chat-theme-ocean-walk {
+  --gh-header-field-text: #155f75;
+}
+
+/* The artwork itself is the header. Do not cover either band. */
+.themed-chat-header {
+  position: relative !important;
+
+  display: block !important;
+
+  padding: 0 !important;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ---------------------------------------------------------
+   Top-left circle = selected themed profile icon
+--------------------------------------------------------- */
+
+.themed-chat-brand {
+  position: absolute !important;
+  z-index: 30;
+
+  top: 19%;
+  left: 4.55%;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+
+  width: 8.15% !important;
+  height: auto !important;
+
+  aspect-ratio: 1 / 1;
+
+  overflow: hidden;
+
+  visibility: visible !important;
+
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.themed-chat-brand .chat-theme-avatar,
+.themed-chat-brand .av {
+  width: 78% !important;
+  height: 78% !important;
+
+  border-width: 0 !important;
+
+  box-shadow: none !important;
+}
+
+/* ---------------------------------------------------------
+   Short upper band = member count
+--------------------------------------------------------- */
+
+.themed-chat-count {
+  position: absolute !important;
+  z-index: 32;
+
+  top: 25% !important;
+  left: 14.6% !important;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+
+  width: 9.6% !important;
+  min-width: 0 !important;
+  height: 17% !important;
+  min-height: 0 !important;
+
+  margin: 0 !important;
+  padding: 0 5px !important;
+
+  overflow: hidden;
+
+  border: 0 !important;
+  border-radius: 999px !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+
+  color: var(--gh-header-field-text) !important;
+
+  font-size:
+    clamp(
+      8px,
+      0.92vw,
+      11px
+    ) !important;
+
+  font-weight: 850 !important;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+/*
+ * Moon / cherry artwork has a second small decorative pill.
+ * Use it as a tiny connection indicator without drawing a new box.
+ */
+.themed-chat-count::after {
+  content: '';
+}
+
+/* ---------------------------------------------------------
+   Long lower band = actual room title
+--------------------------------------------------------- */
+
+.themed-chat-heading {
+  position: absolute !important;
+  z-index: 31;
+
+  top: 51% !important;
+  left: 14.6% !important;
+
+  display: flex;
+  align-items: center;
+
+  width: 24.8% !important;
+  height: 24% !important;
+
+  min-width: 0;
+
+  padding: 0 7px !important;
+
+  pointer-events: auto;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.themed-chat-heading::before,
+.themed-chat-heading::after {
+  content: none !important;
+  display: none !important;
+}
+
+.themed-chat-title {
+  display: block !important;
+
+  width: 100%;
+  max-width: 100%;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  overflow: hidden;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  color: var(--gh-header-field-text) !important;
+
+  font-size:
+    clamp(
+      9px,
+      1.05vw,
+      13px
+    ) !important;
+
+  font-weight: 850 !important;
+  line-height: 1.15;
+
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.themed-chat-title:not(.is-static) {
+  cursor: pointer;
+}
+
+.themed-chat-meta,
+.themed-chat-connection,
+.themed-chat-preview-label {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   Search / more icons
+   The icons are already painted into background.png.
+   These are accurate transparent hit areas.
+--------------------------------------------------------- */
+
+.themed-chat-header-controls {
+  position: absolute !important;
+  z-index: 40;
+
+  inset: 0 !important;
+
+  display: block !important;
+
+  pointer-events: none;
+}
+
+.themed-chat-icon-button {
+  position: absolute !important;
+
+  width: 7.2% !important;
+  height: 43% !important;
+
+  min-width: 0 !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 50% !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+
+  opacity: 1 !important;
+
+  color: transparent !important;
+
+  cursor: pointer;
+
+  pointer-events: auto;
+}
+
+.themed-chat-icon-button:hover {
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    ) !important;
+}
+
+.themed-chat-icon-button:focus-visible {
+  outline:
+    2px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.92
+    );
+
+  outline-offset: 2px;
+}
+
+.themed-chat-icon-button svg {
+  opacity: 0 !important;
+}
+
+.themed-chat-search-button {
+  top: 26% !important;
+  right: 11.7% !important;
+}
+
+.themed-chat-more-button {
+  top: 26% !important;
+  right: 3.35% !important;
+}
+
+/* =========================================================
+   Shared header popovers
+========================================================= */
+
+.themed-chat-header-popover {
+  position: absolute;
+  z-index: 100;
+
+  top: 82%;
+
+  width:
+    min(
+      330px,
+      76%
+    );
+
+  max-height: 360px;
+
+  overflow: auto;
+
+  border:
+    1px solid
+    rgba(
+      148,
+      163,
+      184,
+      0.28
+    );
+
+  border-radius: 16px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.98
+    );
+
+  color: #1f2937;
+
+  box-shadow:
+    0 18px 48px
+    rgba(
+      15,
+      23,
+      42,
+      0.24
+    );
+
+  backdrop-filter:
+    blur(
+      12px
+    );
+}
+
+.chat-theme-pixel-arcade .themed-chat-header-popover {
+  border-color:
+    rgba(
+      22,
+      140,
+      255,
+      0.65
+    );
+
+  background:
+    rgba(
+      4,
+      11,
+      28,
+      0.98
+    );
+
+  color: #f4f8ff;
+}
+
+.themed-chat-participants-popover {
+  right: 18%;
+}
+
+.themed-chat-search-popover {
+  right: 8%;
+}
+
+.themed-chat-options-popover {
+  right: 2.8%;
+  width:
+    min(
+      290px,
+      72%
+    );
+}
+
+.themed-chat-popover-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding:
+    14px
+    14px
+    10px;
+}
+
+.themed-chat-popover-heading strong {
+  font-size: 13px;
+}
+
+.themed-chat-popover-heading span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.chat-theme-pixel-arcade .themed-chat-popover-heading span {
+  color: #9fb4d2;
+}
+
+/* =========================================================
+   Participant list / search
+========================================================= */
+
+.themed-chat-participant-list {
+  display: grid;
+  gap: 4px;
+
+  padding:
+    4px
+    8px
+    10px;
+}
+
+.themed-chat-participant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  min-width: 0;
+
+  padding:
+    6px;
+
+  border-radius: 10px;
+}
+
+.themed-chat-participant:hover {
+  background:
+    rgba(
+      148,
+      163,
+      184,
+      0.10
+    );
+}
+
+.themed-chat-participant-profile {
+  display: flex;
+  flex: 1;
+  align-items: center;
+
+  gap: 9px;
+
+  min-width: 0;
+
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color: inherit;
+
+  font: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.themed-chat-participant-profile:disabled {
+  cursor: default;
+}
+
+.themed-chat-participant-profile > span:last-child {
+  overflow: hidden;
+
+  font-size: 12px;
+  font-weight: 750;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.themed-chat-participant-actions {
+  flex: 0 0 auto;
+}
+
+.themed-chat-member-search-field {
+  display: grid;
+  grid-template-columns:
+    20px
+    minmax(
+      0,
+      1fr
+    );
+
+  align-items: center;
+
+  gap: 7px;
+
+  margin:
+    0
+    12px
+    8px;
+
+  padding:
+    8px
+    10px;
+
+  border:
+    1px solid
+    #d8e0eb;
+
+  border-radius: 10px;
+
+  background: #f7f9fc;
+}
+
+.chat-theme-pixel-arcade .themed-chat-member-search-field {
+  border-color:
+    rgba(
+      22,
+      140,
+      255,
+      0.38
+    );
+
+  background:
+    #081225;
+}
+
+.themed-chat-member-search-field svg {
+  width: 17px;
+  height: 17px;
+
+  fill: none;
+
+  stroke: currentColor;
+
+  stroke-width: 2;
+}
+
+.themed-chat-member-search-field input {
+  min-width: 0;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: inherit;
+
+  font: inherit;
+  font-size: 12px;
+}
+
+.themed-chat-member-search-field input::placeholder {
+  color: #94a3b8;
+}
+
+.themed-chat-search-empty {
+  padding:
+    18px
+    12px;
+
+  color: #64748b;
+
+  font-size: 12px;
+  text-align: center;
+}
+
+/* =========================================================
+   Options
+========================================================= */
+
+.themed-chat-options-summary {
+  display: grid;
+  gap: 4px;
+
+  padding:
+    14px;
+
+  border-bottom:
+    1px solid
+    rgba(
+      148,
+      163,
+      184,
+      0.18
+    );
+}
+
+.themed-chat-options-summary strong {
+  overflow: hidden;
+
+  font-size: 13px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.themed-chat-options-summary span {
+  color: #64748b;
+
+  font-size: 10px;
+}
+
+.chat-theme-pixel-arcade .themed-chat-options-summary span {
+  color: #9fb4d2;
+}
+
+.themed-chat-options-summary span.is-connected::before {
+  content: '●';
+
+  margin-right: 5px;
+
+  color: #22c55e;
+}
+
+.themed-chat-options-list {
+  display: grid;
+
+  padding: 6px;
+}
+
+.themed-chat-options-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  width: 100%;
+
+  padding:
+    10px
+    11px;
+
+  border: 0;
+  border-radius: 9px;
+
+  background: transparent;
+
+  color: inherit;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.themed-chat-options-list button:hover {
+  background:
+    rgba(
+      148,
+      163,
+      184,
+      0.12
+    );
+}
+
+.themed-chat-options-list small {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.themed-chat-options-actions {
+  display: grid;
+  gap: 6px;
+
+  padding:
+    6px
+    10px
+    10px;
+
+  border-top:
+    1px solid
+    rgba(
+      148,
+      163,
+      184,
+      0.18
+    );
+}
+
+.themed-chat-options-actions > * {
+  width: 100%;
+}
+
+.themed-chat-options-preview-label {
+  padding:
+    0
+    12px
+    12px;
+
+  color: #94a3b8;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  text-align: right;
+}
+
+/* =========================================================
+   Exact approved source ratio
+========================================================= */
+
+.themed-chat-panel {
+  width:
+    min(
+      720px,
+      92vw
+    ) !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+
+  aspect-ratio:
+    3 / 4 !important;
+}
+
+/* =========================================================
+   Responsive header hit areas
+========================================================= */
+
+@media (
+  max-width:
+    560px
+) {
+  .themed-chat-brand {
+    top: 20%;
+    left: 4.5%;
+
+    width: 8.2% !important;
+  }
+
+  .themed-chat-count {
+    top: 25% !important;
+    left: 14.6% !important;
+
+    width: 10.5% !important;
+
+    font-size: 8px !important;
+  }
+
+  .themed-chat-heading {
+    top: 51% !important;
+    left: 14.6% !important;
+
+    width: 26% !important;
+
+    padding:
+      0
+      4px !important;
+  }
+
+  .themed-chat-title {
+    font-size: 9px !important;
+  }
+
+  .themed-chat-search-button {
+    right: 11.3% !important;
+  }
+
+  .themed-chat-more-button {
+    right: 2.8% !important;
+  }
+
+  .themed-chat-header-popover {
+    top: 85%;
+
+    width:
+      min(
+        300px,
+        86vw
+      );
+  }
+
+  .themed-chat-participants-popover,
+  .themed-chat-search-popover,
+  .themed-chat-options-popover {
+    right: 2.5%;
+  }
+}
+
+
+/* =========================================================
+   v9 - EXACT MEASURED HEADER ALIGNMENT
+
+   The values below are measured directly from the approved
+   1086 x 1448 theme PNGs. Each short band, long title band,
+   and circular profile frame uses its own theme-specific box.
+
+   Only layout is changed:
+   - no theme artwork changes
+   - no chat logic changes
+   - no search/options behavior changes
+========================================================= */
+
+/* ---------------------------------------------------------
+   Moonlight Lounge
+   header: 140 px
+   circle: center 88,77 / radius 37
+   bands:
+   156,49,77,22
+   239,49,70,22
+   156,84,245,20
+--------------------------------------------------------- */
+.chat-theme-moonlight-lounge {
+  --gh-header-height: 9.67%;
+
+  --gh-avatar-left: 4.70%;
+  --gh-avatar-top: 28.57%;
+  --gh-avatar-size: 6.81%;
+  --gh-avatar-inner: 88%;
+
+  --gh-count-left: 14.36%;
+  --gh-count-top: 35.00%;
+  --gh-count-width: 7.09%;
+  --gh-count-height: 15.71%;
+
+  --gh-status-display: flex;
+  --gh-status-left: 22.01%;
+  --gh-status-top: 35.00%;
+  --gh-status-width: 6.45%;
+  --gh-status-height: 15.71%;
+
+  --gh-title-left: 14.36%;
+  --gh-title-top: 60.00%;
+  --gh-title-width: 22.56%;
+  --gh-title-height: 14.29%;
+
+  --gh-search-left: 75.6%;
+  --gh-search-top: 26%;
+  --gh-search-width: 6.1%;
+  --gh-search-height: 48%;
+
+  --gh-more-left: 84.2%;
+  --gh-more-top: 28%;
+  --gh-more-width: 6.1%;
+  --gh-more-height: 44%;
+
+  --gh-header-field-text: #17375f;
+  --gh-header-status-text: #244d7d;
+
+  --gh-header-main-font: 9px;
+  --gh-header-title-font: 9px;
+
+  --gh-popover-right: 8.5%;
+}
+
+/* ---------------------------------------------------------
+   Green Forest
+   header: 140 px
+   circle: center 92,71 / radius 40
+   bands:
+   163,43,100,22
+   163,83,247,22
+--------------------------------------------------------- */
+.chat-theme-green-forest {
+  --gh-header-height: 9.67%;
+
+  --gh-avatar-left: 4.79%;
+  --gh-avatar-top: 22.14%;
+  --gh-avatar-size: 7.37%;
+  --gh-avatar-inner: 92%;
+
+  --gh-count-left: 15.01%;
+  --gh-count-top: 30.71%;
+  --gh-count-width: 9.21%;
+  --gh-count-height: 15.71%;
+
+  --gh-status-display: none;
+
+  --gh-title-left: 15.01%;
+  --gh-title-top: 59.29%;
+  --gh-title-width: 22.74%;
+  --gh-title-height: 15.71%;
+
+  --gh-search-left: 79.3%;
+  --gh-search-top: 24%;
+  --gh-search-width: 6.2%;
+  --gh-search-height: 49%;
+
+  --gh-more-left: 89.2%;
+  --gh-more-top: 27%;
+  --gh-more-width: 6.4%;
+  --gh-more-height: 44%;
+
+  --gh-header-field-text: #3f5e31;
+  --gh-header-status-text: #3f5e31;
+
+  --gh-header-main-font: 9px;
+  --gh-header-title-font: 9px;
+
+  --gh-popover-right: 5%;
+}
+
+/* ---------------------------------------------------------
+   Pixel Arcade
+   header: 196 px
+   circle: center 122,106 / radius 62
+   bands:
+   222,62,125,31
+   222,113,311,30
+--------------------------------------------------------- */
+.chat-theme-pixel-arcade {
+  --gh-header-height: 13.54%;
+
+  --gh-avatar-left: 5.52%;
+  --gh-avatar-top: 22.45%;
+  --gh-avatar-size: 11.42%;
+  --gh-avatar-inner: 74%;
+
+  --gh-count-left: 20.44%;
+  --gh-count-top: 31.63%;
+  --gh-count-width: 11.51%;
+  --gh-count-height: 15.82%;
+
+  --gh-status-display: none;
+
+  --gh-title-left: 20.44%;
+  --gh-title-top: 57.65%;
+  --gh-title-width: 28.64%;
+  --gh-title-height: 15.31%;
+
+  --gh-search-left: 73.7%;
+  --gh-search-top: 26%;
+  --gh-search-width: 6.5%;
+  --gh-search-height: 46%;
+
+  --gh-more-left: 84.2%;
+  --gh-more-top: 29%;
+  --gh-more-width: 7.1%;
+  --gh-more-height: 41%;
+
+  --gh-header-field-text: #eef7ff;
+  --gh-header-status-text: #a9dcff;
+
+  --gh-header-main-font: 10px;
+  --gh-header-title-font: 10px;
+
+  --gh-popover-right: 7%;
+}
+
+/* ---------------------------------------------------------
+   Cherry Garden
+   header: 164 px
+   circle: center 95,87 / radius 48
+   bands:
+   179,53,101,29
+   287,53,123,29
+   179,95,290,27
+--------------------------------------------------------- */
+.chat-theme-cherry-garden {
+  --gh-header-height: 11.33%;
+
+  --gh-avatar-left: 4.33%;
+  --gh-avatar-top: 23.78%;
+  --gh-avatar-size: 8.84%;
+  --gh-avatar-inner: 72%;
+
+  --gh-count-left: 16.48%;
+  --gh-count-top: 32.32%;
+  --gh-count-width: 9.30%;
+  --gh-count-height: 17.68%;
+
+  --gh-status-display: flex;
+  --gh-status-left: 26.43%;
+  --gh-status-top: 32.32%;
+  --gh-status-width: 11.33%;
+  --gh-status-height: 17.68%;
+
+  --gh-title-left: 16.48%;
+  --gh-title-top: 57.93%;
+  --gh-title-width: 26.70%;
+  --gh-title-height: 16.46%;
+
+  --gh-search-left: 78.0%;
+  --gh-search-top: 25%;
+  --gh-search-width: 6.2%;
+  --gh-search-height: 47%;
+
+  --gh-more-left: 89.2%;
+  --gh-more-top: 28%;
+  --gh-more-width: 6.2%;
+  --gh-more-height: 42%;
+
+  --gh-header-field-text: #8d4056;
+  --gh-header-status-text: #a65369;
+
+  --gh-header-main-font: 9px;
+  --gh-header-title-font: 9px;
+
+  --gh-popover-right: 5%;
+}
+
+/* ---------------------------------------------------------
+   Magic Library
+   header: 167 px
+   circle: center 88,86 / radius 52
+   bands:
+   171,55,104,28
+   282,55,103,28
+   171,97,344,24
+--------------------------------------------------------- */
+.chat-theme-magic-library {
+  --gh-header-height: 11.53%;
+
+  --gh-avatar-left: 3.31%;
+  --gh-avatar-top: 20.36%;
+  --gh-avatar-size: 9.58%;
+  --gh-avatar-inner: 76%;
+
+  --gh-count-left: 15.75%;
+  --gh-count-top: 32.93%;
+  --gh-count-width: 9.58%;
+  --gh-count-height: 16.77%;
+
+  --gh-status-display: flex;
+  --gh-status-left: 25.97%;
+  --gh-status-top: 32.93%;
+  --gh-status-width: 9.48%;
+  --gh-status-height: 16.77%;
+
+  --gh-title-left: 15.75%;
+  --gh-title-top: 58.08%;
+  --gh-title-width: 31.68%;
+  --gh-title-height: 14.37%;
+
+  --gh-search-left: 76.3%;
+  --gh-search-top: 25%;
+  --gh-search-width: 6.3%;
+  --gh-search-height: 48%;
+
+  --gh-more-left: 87.7%;
+  --gh-more-top: 28%;
+  --gh-more-width: 6.2%;
+  --gh-more-height: 43%;
+
+  --gh-header-field-text: #4c3c78;
+  --gh-header-status-text: #5c4d8c;
+
+  --gh-header-main-font: 9px;
+  --gh-header-title-font: 9px;
+
+  --gh-popover-right: 6%;
+}
+
+/* ---------------------------------------------------------
+   Ocean Walk
+   header: 165 px
+   circle: center 94,83 / radius 53
+   bands:
+   184,48,99,27
+   292,48,96,27
+   184,95,301,27
+--------------------------------------------------------- */
+.chat-theme-ocean-walk {
+  --gh-header-height: 11.40%;
+
+  --gh-avatar-left: 3.78%;
+  --gh-avatar-top: 18.18%;
+  --gh-avatar-size: 9.76%;
+  --gh-avatar-inner: 84%;
+
+  --gh-count-left: 16.94%;
+  --gh-count-top: 29.09%;
+  --gh-count-width: 9.12%;
+  --gh-count-height: 16.36%;
+
+  --gh-status-display: flex;
+  --gh-status-left: 26.89%;
+  --gh-status-top: 29.09%;
+  --gh-status-width: 8.84%;
+  --gh-status-height: 16.36%;
+
+  --gh-title-left: 16.94%;
+  --gh-title-top: 57.58%;
+  --gh-title-width: 27.72%;
+  --gh-title-height: 16.36%;
+
+  --gh-search-left: 78.0%;
+  --gh-search-top: 25%;
+  --gh-search-width: 6.3%;
+  --gh-search-height: 47%;
+
+  --gh-more-left: 89.25%;
+  --gh-more-top: 28%;
+  --gh-more-width: 6.3%;
+  --gh-more-height: 42%;
+
+  --gh-header-field-text: #155c73;
+  --gh-header-status-text: #226f84;
+
+  --gh-header-main-font: 9px;
+  --gh-header-title-font: 9px;
+
+  --gh-popover-right: 5%;
+}
+
+/* =========================================================
+   Apply per-theme geometry
+========================================================= */
+
+.themed-chat-header {
+  flex:
+    0
+    0
+    var(
+      --gh-header-height,
+      11.33%
+    ) !important;
+
+  min-height: 0 !important;
+}
+
+/* Profile image is centered precisely inside each painted circle. */
+.themed-chat-brand {
+  position: absolute !important;
+  z-index: 33;
+
+  top:
+    var(
+      --gh-avatar-top,
+      20%
+    ) !important;
+
+  left:
+    var(
+      --gh-avatar-left,
+      4.5%
+    ) !important;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+
+  width:
+    var(
+      --gh-avatar-size,
+      8%
+    ) !important;
+
+  height: auto !important;
+
+  aspect-ratio: 1 / 1;
+
+  overflow: visible !important;
+
+  visibility: visible !important;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  pointer-events: none;
+}
+
+.themed-chat-brand .chat-theme-avatar,
+.themed-chat-brand .av {
+  display: block !important;
+
+  width:
+    var(
+      --gh-avatar-inner,
+      80%
+    ) !important;
+
+  height:
+    var(
+      --gh-avatar-inner,
+      80%
+    ) !important;
+
+  max-width: none !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  overflow: hidden !important;
+
+  border: 0 !important;
+  border-radius: 50% !important;
+
+  background: transparent !important;
+
+  box-shadow: none !important;
+
+  object-fit: cover !important;
+}
+
+.themed-chat-brand .chat-theme-avatar img,
+.themed-chat-brand .av img {
+  display: block !important;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 50% !important;
+
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+/* First short pill: member count */
+.themed-chat-count {
+  top:
+    var(
+      --gh-count-top,
+      30%
+    ) !important;
+
+  left:
+    var(
+      --gh-count-left,
+      15%
+    ) !important;
+
+  width:
+    var(
+      --gh-count-width,
+      9%
+    ) !important;
+
+  height:
+    var(
+      --gh-count-height,
+      16%
+    ) !important;
+
+  min-width: 0 !important;
+  min-height: 0 !important;
+
+  color:
+    var(
+      --gh-header-field-text,
+      #173352
+    ) !important;
+
+  line-height: 1 !important;
+}
+
+/* Second short pill: connection state, only where the artwork has one. */
+.themed-chat-status {
+  position: absolute;
+  z-index: 32;
+
+  top:
+    var(
+      --gh-status-top,
+      30%
+    );
+
+  left:
+    var(
+      --gh-status-left,
+      25%
+    );
+
+  display:
+    var(
+      --gh-status-display,
+      flex
+    );
+
+  align-items: center;
+  justify-content: center;
+
+  width:
+    var(
+      --gh-status-width,
+      9%
+    );
+
+  height:
+    var(
+      --gh-status-height,
+      16%
+    );
+
+  min-width: 0;
+
+  padding: 0 5px;
+
+  overflow: hidden;
+
+  color:
+    var(
+      --gh-header-status-text,
+      var(--gh-header-field-text)
+    );
+
+  font-size:
+    clamp(
+      7px,
+      0.78vw,
+      10px
+    );
+
+  font-weight: 800;
+  line-height: 1;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  pointer-events: none;
+}
+
+/* Long lower band: actual room name */
+.themed-chat-heading {
+  top:
+    var(
+      --gh-title-top,
+      57%
+    ) !important;
+
+  left:
+    var(
+      --gh-title-left,
+      15%
+    ) !important;
+
+  width:
+    var(
+      --gh-title-width,
+      26%
+    ) !important;
+
+  height:
+    var(
+      --gh-title-height,
+      17%
+    ) !important;
+
+  padding:
+    0
+    6px !important;
+}
+
+.themed-chat-title {
+  color:
+    var(
+      --gh-header-field-text,
+      #173352
+    ) !important;
+
+  font-size:
+    clamp(
+      8px,
+      0.92vw,
+      12px
+    ) !important;
+
+  line-height: 1 !important;
+}
+
+/* Search icon hit-area measured independently per skin. */
+.themed-chat-search-button {
+  top:
+    var(
+      --gh-search-top,
+      25%
+    ) !important;
+
+  left:
+    var(
+      --gh-search-left,
+      77%
+    ) !important;
+
+  right: auto !important;
+
+  width:
+    var(
+      --gh-search-width,
+      6.2%
+    ) !important;
+
+  height:
+    var(
+      --gh-search-height,
+      47%
+    ) !important;
+}
+
+/* Three-dot option hit-area measured independently per skin. */
+.themed-chat-more-button {
+  top:
+    var(
+      --gh-more-top,
+      28%
+    ) !important;
+
+  left:
+    var(
+      --gh-more-left,
+      88%
+    ) !important;
+
+  right: auto !important;
+
+  width:
+    var(
+      --gh-more-width,
+      6.2%
+    ) !important;
+
+  height:
+    var(
+      --gh-more-height,
+      43%
+    ) !important;
+}
+
+/* Do not draw a generic hover disk over the baked artwork. */
+.themed-chat-icon-button:hover {
+  background: transparent !important;
+}
+
+.themed-chat-icon-button:active {
+  transform: scale(0.94);
+}
+
+/* Popovers also follow each icon cluster rather than one global right offset. */
+.themed-chat-search-popover,
+.themed-chat-options-popover {
+  right:
+    var(
+      --gh-popover-right,
+      5%
+    ) !important;
+}
+
+/* Keep the participant list a little farther left so it does not cover options. */
+.themed-chat-participants-popover {
+  right:
+    calc(
+      var(
+        --gh-popover-right,
+        5%
+      ) +
+      8%
+    ) !important;
+}
+
+/* =========================================================
+   Narrow screens
+   Keep the same measured percentages; only type scales down.
+========================================================= */
+
+@media (max-width: 560px) {
+  .themed-chat-count {
+    font-size: 7px !important;
+  }
+
+  .themed-chat-status {
+    padding: 0 2px;
+    font-size: 6.5px;
+  }
+
+  .themed-chat-title {
+    padding: 0 !important;
+    font-size: 7.5px !important;
+  }
+}
+
+
+/* =========================================================
+   v9 precise text centering
+========================================================= */
+
+.themed-chat-count,
+.themed-chat-status,
+.themed-chat-heading {
+  box-sizing: border-box !important;
+}
+
+.themed-chat-count,
+.themed-chat-status {
+  align-items: center !important;
+  justify-content: center !important;
+
+  margin: 0 !important;
+  padding: 0 4px !important;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  font-size:
+    var(
+      --gh-header-main-font,
+      9px
+    ) !important;
+
+  line-height: 1 !important;
+
+  text-align: center !important;
+}
+
+.themed-chat-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  margin: 0 !important;
+  padding: 0 7px !important;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.themed-chat-title {
+  width: 100% !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  font-size:
+    var(
+      --gh-header-title-font,
+      9px
+    ) !important;
+
+  line-height: 1 !important;
+
+  text-align: left !important;
+}
+
+/* Do not allow the generic avatar styles to re-add a border inside the header circle. */
+.themed-chat-brand .chat-theme-avatar {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}

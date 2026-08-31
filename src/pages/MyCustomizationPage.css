@@ -1,0 +1,1557 @@
+.my-customization-page {
+  min-height: calc(100vh - 64px);
+  padding: 32px 32px 130px;
+  background: var(--bg-color, #f7f8fb);
+}
+
+.my-customization-container {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+}
+
+/* =========================
+   Header
+========================= */
+
+.my-customization-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.my-customization-header h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.my-customization-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.my-customization-shop-button {
+  min-width: 120px;
+}
+
+.my-customization-house-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.my-customization-house-control select {
+  min-width: 180px;
+  max-width: 240px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--text-main);
+  font: inherit;
+}
+
+/* =========================
+   Main Tabs
+========================= */
+
+.my-customization-main-tabs {
+  display: flex;
+  align-items: center;
+  gap: 60px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.my-customization-main-tab {
+  position: relative;
+  min-width: 120px;
+  padding: 0 20px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-customization-main-tab::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  background: transparent;
+  content: '';
+}
+
+.my-customization-main-tab.is-active {
+  color: var(--primary, #133fc5);
+}
+
+.my-customization-main-tab.is-active::after {
+  background: var(--primary, #133fc5);
+}
+
+/* =========================
+   Profile Category Tabs
+========================= */
+
+.my-customization-profile-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: min(400px, 100%);
+  margin-bottom: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+}
+
+.my-customization-profile-tab {
+  padding: 10px 18px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-customization-profile-tab:last-child {
+  border-right: 0;
+}
+
+.my-customization-profile-tab.is-active {
+  background: var(--primary, #123fc3);
+  color: #fff;
+}
+
+/* =========================
+   Main Content
+========================= */
+
+.my-customization-content {
+  display: grid;
+  grid-template-columns:
+    minmax(440px, 0.88fr)
+    minmax(620px, 1.2fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.my-customization-preview-column {
+  min-width: 0;
+  padding-right: 26px;
+  border-right: 1px solid var(--border);
+}
+
+.my-customization-inventory-column {
+  min-width: 0;
+}
+
+.my-customization-section-title {
+  margin: 0 0 18px;
+  font-size: 19px;
+}
+
+/* =========================================================
+   Profile Preview
+========================================================= */
+
+.custom-profile-preview {
+  --safe-left: 8%;
+  --safe-right: 8%;
+  --safe-top: 14%;
+  --safe-bottom: 14%;
+
+  /*
+   * 프로필 이미지는 유지하고
+   * 테두리만 이미지에 조금 더 가깝게 축소
+   */
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 110px;
+  --emblem-width: 88px;
+  --emblem-height: 112px;
+
+  --content-gap: 10px;
+
+  position: relative;
+
+  width: 100%;
+  aspect-ratio: var(--banner-ratio);
+
+  overflow: hidden;
+
+  border-radius: 16px;
+
+  background: transparent;
+
+  isolation: isolate;
+}
+
+/* =========================
+   Banner Image
+========================= */
+
+.custom-profile-banner {
+  position: absolute;
+  inset: 0;
+
+  z-index: 0;
+
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+  object-position: center;
+
+  pointer-events: none;
+  user-select: none;
+}
+
+/* =========================================================
+   Safe Area
+========================================================= */
+
+.custom-profile-overlay {
+  position: absolute;
+
+  top: var(--safe-top);
+  right: var(--safe-right);
+  bottom: var(--safe-bottom);
+  left: var(--safe-left);
+
+  z-index: 2;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(82px, var(--avatar-column))
+    minmax(0, 1fr)
+    minmax(76px, var(--emblem-column));
+
+  align-items: center;
+
+  gap: var(--content-gap);
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+
+  color: #fff;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   Avatar
+========================================================= */
+
+.custom-profile-avatar-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+}
+
+.custom-profile-avatar-stage {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: var(--avatar-stage-size);
+  height: var(--avatar-stage-size);
+
+  max-width: 100%;
+  max-height: 100%;
+
+  flex: 0 0 auto;
+}
+
+.custom-profile-avatar {
+  position: relative;
+
+  z-index: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+
+  max-width: 70%;
+  max-height: 70%;
+
+  overflow: hidden;
+
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+
+  background: #fff;
+
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.custom-profile-avatar > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.custom-profile-avatar img {
+  display: block;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  object-fit: cover;
+}
+
+.custom-profile-frame {
+  position: absolute;
+
+  z-index: 2;
+
+  top: 50%;
+  left: 50%;
+
+  display: block;
+
+  width: var(--avatar-stage-size);
+  height: var(--avatar-stage-size);
+
+  max-width: 100%;
+  max-height: 100%;
+
+  object-fit: contain;
+
+  pointer-events: none;
+
+  transform: translate(-50%, -50%);
+}
+
+/* =========================================================
+   Profile Information
+========================================================= */
+
+.custom-profile-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  min-width: 0;
+  max-width: 100%;
+
+  overflow: hidden;
+
+  padding: 0 4px;
+}
+
+.custom-profile-nickname {
+  display: block;
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  overflow: hidden;
+
+  color: #fff;
+
+  font-size: clamp(17px, 1.65vw, 24px);
+  font-weight: 800;
+  line-height: 1.15;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.42);
+}
+
+.custom-profile-subtext {
+  display: block;
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  margin-top: 5px;
+
+  overflow: hidden;
+
+  color: rgba(255, 255, 255, 0.92);
+
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.42);
+}
+
+.custom-profile-tags {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  gap: 4px;
+
+  margin-top: 8px;
+
+  overflow: hidden;
+
+  white-space: nowrap;
+}
+
+.custom-profile-tags span {
+  flex: 0 1 auto;
+
+  min-width: 0;
+
+  padding: 3px 6px;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 6px;
+
+  background: rgba(0, 0, 0, 0.16);
+
+  color: #fff;
+
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.25;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  backdrop-filter: blur(3px);
+}
+
+/* =========================================================
+   Emblem
+========================================================= */
+
+.custom-profile-emblem-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+}
+
+.custom-profile-emblem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: var(--emblem-width);
+  height: var(--emblem-height);
+
+  max-width: 100%;
+  max-height: 100%;
+
+  flex: 0 0 auto;
+}
+
+.custom-profile-emblem img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  max-width: 100%;
+  max-height: 100%;
+
+  object-fit: contain;
+
+  filter:
+    drop-shadow(
+      0 3px 5px rgba(0, 0, 0, 0.28)
+    );
+}
+
+.custom-profile-emblem span {
+  overflow: hidden;
+
+  color: rgba(255, 255, 255, 0.68);
+
+  font-size: 9px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   Banner Safe Areas
+========================================================= */
+
+/* =========================
+   수호의 명
+========================= */
+
+.banner-layout-guardian {
+  --safe-left: 11%;
+  --safe-right: 11.5%;
+  --safe-top: 14%;
+  --safe-bottom: 14%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 112px;
+  --emblem-width: 88px;
+  --emblem-height: 112px;
+}
+
+/* =========================
+   애머시스트
+========================= */
+
+.banner-layout-amethyst {
+  --safe-left: 15%;
+  --safe-right: 15%;
+  --safe-top: 18%;
+  --safe-bottom: 18%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 100px;
+
+  --content-gap: 7px;
+
+  --emblem-width: 82px;
+  --emblem-height: 102px;
+}
+
+/* =========================
+   디스코 팝
+========================= */
+
+.banner-layout-disco {
+  --safe-left: 12%;
+  --safe-right: 12%;
+  --safe-top: 17%;
+  --safe-bottom: 17%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 104px;
+
+  --emblem-width: 84px;
+  --emblem-height: 104px;
+}
+
+/* =========================
+   숲의 전사
+========================= */
+
+.banner-layout-forest {
+  --safe-left: 19%;
+  --safe-right: 17%;
+
+  --safe-top: 31%;
+  --safe-bottom: 9%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 98px;
+
+  --content-gap: 6px;
+
+  --emblem-width: 80px;
+  --emblem-height: 100px;
+}
+
+/* =========================
+   별 헤는 밤
+========================= */
+
+.banner-layout-starry {
+  --safe-left: 24%;
+  --safe-right: 15%;
+  --safe-top: 17%;
+  --safe-bottom: 20%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 98px;
+
+  --content-gap: 5px;
+
+  --emblem-width: 80px;
+  --emblem-height: 100px;
+}
+
+/* =========================
+   항해의 길
+========================= */
+
+.banner-layout-voyage {
+  --safe-left: 21%;
+  --safe-right: 11%;
+  --safe-top: 18%;
+  --safe-bottom: 22%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 100px;
+
+  --content-gap: 6px;
+
+  --emblem-width: 82px;
+  --emblem-height: 102px;
+}
+
+/* =========================
+   요정의 정원
+========================= */
+
+.banner-layout-fairy {
+  --safe-left: 14%;
+  --safe-right: 14%;
+  --safe-top: 18%;
+  --safe-bottom: 22%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 102px;
+
+  --content-gap: 7px;
+
+  --emblem-width: 84px;
+  --emblem-height: 104px;
+}
+
+/* =========================
+   머메이드 오션
+========================= */
+
+.banner-layout-mermaid {
+  --safe-left: 16%;
+  --safe-right: 17%;
+  --safe-top: 14%;
+  --safe-bottom: 26%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 100px;
+
+  --content-gap: 6px;
+
+  --emblem-width: 82px;
+  --emblem-height: 102px;
+}
+
+/* =========================
+   Future / Unknown
+========================= */
+
+.banner-layout-default {
+  --safe-left: 11%;
+  --safe-right: 11%;
+  --safe-top: 16%;
+  --safe-bottom: 16%;
+
+  --avatar-column: 120px;
+  --avatar-stage-size: 92px;
+  --avatar-size: 64px;
+
+  --emblem-column: 104px;
+
+  --emblem-width: 84px;
+  --emblem-height: 104px;
+}
+
+/* =========================
+   Current Combination
+========================= */
+
+.my-customization-current-panel {
+  margin-top: 28px;
+  padding: 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background: var(--surface, #fff);
+}
+
+.my-customization-current-panel h3 {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+
+.my-customization-current-grid {
+  display: grid;
+
+  grid-template-columns:
+    1fr
+    1.65fr
+    1fr;
+
+  gap: 10px;
+}
+
+.my-customization-current-card {
+  min-width: 0;
+
+  padding: 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--bg-color, #f7f8fb);
+}
+
+.my-customization-current-card > span {
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.my-customization-current-card > strong {
+  display: block;
+
+  margin-top: 6px;
+
+  overflow: hidden;
+
+  font-size: 11px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.current-item-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+
+  overflow: hidden;
+
+  border-radius: 8px;
+}
+
+.current-item-preview.square,
+.current-item-preview.banner {
+  height: 105px;
+}
+
+.current-item-preview img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+}
+
+/* =========================
+   Inventory Header
+========================= */
+
+.my-customization-inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+
+  margin-bottom: 18px;
+}
+
+.my-customization-inventory-header h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+}
+
+.my-customization-inventory-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* =========================
+   Inventory Grid
+========================= */
+
+.my-customization-item-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+.my-customization-item-card {
+  min-width: 0;
+
+  padding: 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface, #fff);
+
+  color: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.my-customization-item-card:hover {
+  transform: translateY(-2px);
+
+  border-color:
+    rgba(19, 63, 195, 0.4);
+}
+
+.my-customization-item-card.is-selected {
+  border-color: var(--primary, #133fc5);
+
+  box-shadow:
+    0 0 0 2px
+    rgba(19, 63, 195, 0.12);
+}
+
+.my-customization-item-card.is-applied {
+  background: var(--surface-hover, #f8f9ff);
+}
+
+.my-customization-item-name {
+  display: block;
+
+  margin-bottom: 14px;
+
+  overflow: hidden;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================
+   Inventory Image
+========================= */
+
+.my-customization-item-image {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  aspect-ratio: 1 / 1;
+
+  overflow: hidden;
+
+  border-radius: 9px;
+
+  background: var(--bg-color, #f7f8fb);
+}
+
+.my-customization-item-image img {
+  display: block;
+
+  width: 88%;
+  height: 88%;
+
+  object-fit: contain;
+}
+
+.customization-item-image-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88%;
+  height: 88%;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.my-customization-item-image.frame {
+  overflow: visible;
+}
+
+.my-customization-item-image.frame img {
+  width: 92%;
+  height: 92%;
+}
+
+.my-customization-item-image.emblem img {
+  width: 76%;
+  height: 76%;
+}
+
+.my-customization-item-image.profile_banner,
+.my-customization-item-image.chat_theme {
+  aspect-ratio: 16 / 9;
+}
+
+.my-customization-item-image.profile_banner img,
+.my-customization-item-image.chat_theme img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+}
+
+/* =========================
+   Applied Badge
+========================= */
+
+.my-customization-applied-badge {
+  position: absolute;
+
+  top: 6px;
+  right: 6px;
+
+  z-index: 3;
+
+  padding: 4px 7px;
+
+  border-radius: 999px;
+
+  background: rgba(10, 20, 50, 0.82);
+
+  color: #fff;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* =========================
+   Chat Preview
+========================= */
+
+.my-customization-chat-preview {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  min-height: 540px;
+
+  overflow: hidden;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: #101014;
+}
+
+.my-customization-chat-preview > .my-customization-chat-theme-image {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+  max-height: 620px;
+
+  object-fit: contain;
+}
+
+.my-customization-chat-avatar-preview {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 76px;
+  height: 76px;
+
+  overflow: hidden;
+
+  border: 3px solid var(--surface, #fff);
+  border-radius: 50%;
+
+  background: var(--surface, #fff);
+
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.my-customization-chat-avatar-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.my-customization-chat-empty {
+  color: var(--text-muted, #999);
+  font-size: 13px;
+}
+
+.my-customization-chat-avatar-picker {
+  margin-top: 18px;
+  padding: 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background: var(--surface, #fff);
+}
+
+.my-customization-chat-avatar-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.my-customization-chat-avatar-heading h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.my-customization-chat-avatar-heading p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.my-customization-chat-avatar-heading > span {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.my-customization-chat-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.my-customization-chat-avatar-option {
+  min-width: 0;
+  padding: 10px 8px;
+
+  border: 1px solid var(--border);
+  border-radius: 11px;
+
+  background: var(--bg-color, var(--surface-hover, #f7f8fb));
+  color: var(--text-main);
+
+  font: inherit;
+  text-align: center;
+
+  cursor: pointer;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.my-customization-chat-avatar-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.my-customization-chat-avatar-option:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.my-customization-chat-avatar-option.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow, rgba(19, 63, 195, 0.12));
+}
+
+.my-customization-chat-avatar-image {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 8px;
+
+  overflow: hidden;
+
+  border: 2px solid var(--border);
+  border-radius: 50%;
+
+  background: var(--surface, #fff);
+}
+
+.my-customization-chat-avatar-option.is-selected .my-customization-chat-avatar-image {
+  border-color: var(--primary);
+}
+
+.my-customization-chat-avatar-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.my-customization-chat-avatar-image > span {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+
+  border: 2px solid var(--surface, #fff);
+  border-radius: 50%;
+
+  background: var(--primary);
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.my-customization-chat-avatar-option > strong {
+  display: block;
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-customization-chat-avatar-empty {
+  padding: 22px 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.my-customization-chat-current-list {
+  display: grid;
+  gap: 8px;
+}
+
+.my-customization-chat-current {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 14px;
+
+  border-radius: 9px;
+
+  background: var(--bg-color, #f7f8fb);
+}
+
+.my-customization-chat-current span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.my-customization-chat-current strong {
+  font-size: 13px;
+}
+
+/* =========================
+   Bottom Action Bar
+========================= */
+
+.my-customization-action-bar {
+  position: fixed;
+
+  z-index: 50;
+
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  border-top: 1px solid var(--border);
+
+  background: var(--surface);
+
+  backdrop-filter: blur(10px);
+}
+
+.my-customization-action-inner {
+  display: grid;
+
+  grid-template-columns:
+    250px
+    300px
+    minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 18px;
+
+  width:
+    min(1000px, calc(100% - 40px));
+
+  margin: 0 auto;
+
+  padding: 18px 0;
+}
+
+.my-customization-cancel-button,
+.my-customization-apply-button {
+  min-height: 50px;
+}
+
+.my-customization-action-help {
+  margin: 0;
+
+  color: var(--text-muted);
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.my-customization-action-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* =========================
+   Responsive - Medium
+========================= */
+
+@media (max-width: 1150px) {
+  .my-customization-content {
+    grid-template-columns:
+      minmax(400px, 0.9fr)
+      minmax(500px, 1fr);
+  }
+
+  .my-customization-item-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  /*
+   * 프로필 이미지는 그대로,
+   * 테두리만 조금 더 축소
+   */
+  .custom-profile-preview {
+    --avatar-column: 100px;
+    --avatar-stage-size: 78px;
+    --avatar-size: 54px;
+
+    --emblem-column: 96px;
+    --emblem-width: 76px;
+    --emblem-height: 96px;
+  }
+
+  .custom-profile-nickname {
+    font-size: 18px;
+  }
+
+  .custom-profile-subtext {
+    font-size: 9px;
+  }
+
+  .custom-profile-tags {
+    margin-top: 6px;
+  }
+
+  .custom-profile-tags span {
+    padding: 2px 5px;
+    font-size: 7px;
+  }
+
+  .banner-layout-forest {
+    --safe-top: 30%;
+    --safe-bottom: 10%;
+
+    --avatar-column: 100px;
+    --avatar-stage-size: 78px;
+    --avatar-size: 54px;
+
+    --emblem-width: 72px;
+    --emblem-height: 90px;
+  }
+
+  .banner-layout-voyage {
+    --safe-right: 10.5%;
+  }
+}
+
+/* =========================
+   Responsive - Tablet
+========================= */
+
+@media (max-width: 900px) {
+  .my-customization-content {
+    grid-template-columns: 1fr;
+  }
+
+  .my-customization-preview-column {
+    padding-right: 0;
+    padding-bottom: 28px;
+
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .custom-profile-preview {
+    width: min(700px, 100%);
+    margin: 0 auto;
+  }
+
+  .my-customization-current-panel {
+    width: min(700px, 100%);
+
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .my-customization-action-inner {
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+
+  .my-customization-action-help {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+}
+
+/* =========================
+   Responsive - Mobile
+========================= */
+
+@media (max-width: 640px) {
+  .my-customization-page {
+    padding:
+      24px
+      16px
+      190px;
+  }
+
+  .my-customization-header {
+    flex-direction: column;
+  }
+
+  .my-customization-shop-button {
+    width: 100%;
+  }
+
+  .my-customization-main-tabs {
+    gap: 0;
+  }
+
+  .my-customization-main-tab {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .my-customization-profile-tabs {
+    width: 100%;
+  }
+
+  /*
+   * 모바일에서도 이미지 크기는 그대로,
+   * 테두리만 조금 더 축소
+   */
+  .custom-profile-preview {
+    --avatar-column: 78px;
+    --avatar-stage-size: 60px;
+    --avatar-size: 42px;
+
+    --emblem-column: 76px;
+    --emblem-width: 62px;
+    --emblem-height: 78px;
+
+    --content-gap: 4px;
+  }
+
+  .custom-profile-nickname {
+    font-size: 15px;
+  }
+
+  .custom-profile-subtext {
+    margin-top: 3px;
+    font-size: 8px;
+  }
+
+  .custom-profile-tags {
+    gap: 2px;
+    margin-top: 4px;
+  }
+
+  .custom-profile-tags span {
+    padding: 2px 3px;
+    font-size: 6px;
+  }
+
+  .banner-layout-guardian {
+    --safe-left: 10%;
+    --safe-right: 10.5%;
+  }
+
+  .banner-layout-amethyst {
+    --safe-left: 13%;
+    --safe-right: 13%;
+  }
+
+  .banner-layout-forest {
+    --safe-left: 17%;
+    --safe-right: 15%;
+
+    --safe-top: 30%;
+    --safe-bottom: 10%;
+
+    --avatar-column: 78px;
+    --avatar-stage-size: 60px;
+    --avatar-size: 42px;
+
+    --emblem-width: 58px;
+    --emblem-height: 72px;
+  }
+
+  .banner-layout-starry {
+    --safe-left: 21%;
+    --safe-right: 13%;
+  }
+
+  .banner-layout-voyage {
+    --safe-left: 18%;
+    --safe-right: 9.5%;
+  }
+
+  .banner-layout-mermaid {
+    --safe-left: 14%;
+    --safe-right: 15%;
+  }
+
+  .my-customization-current-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .current-item-preview.square,
+  .current-item-preview.banner {
+    height: 120px;
+  }
+
+  .my-customization-item-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .my-customization-chat-preview {
+    min-height: 360px;
+  }
+
+  .my-customization-chat-avatar-preview {
+    bottom: 16px;
+    left: 16px;
+    width: 64px;
+    height: 64px;
+  }
+
+  .my-customization-chat-avatar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .my-customization-action-inner {
+    grid-template-columns: 1fr;
+
+    width: calc(100% - 32px);
+
+    gap: 8px;
+
+    padding: 12px 0;
+  }
+
+  .my-customization-action-help {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .my-customization-house-control,
+  .my-customization-house-control select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .my-customization-house-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

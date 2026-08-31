@@ -9,7 +9,7 @@ set -e
 #
 # 이미지에는 URL 이 박히지 않는다. 값은 컨테이너를 띄우는 쪽(compose / EC2 / CI)에서 주입.
 
-CONFIG_FILE=/app/dist/config.js
+CONFIG_FILE=/usr/share/nginx/html/config.js
 
 if [ -n "${API_BASE_URL}" ] || [ -n "${WS_URL}" ] || [ -n "${BACKEND_ORIGIN}" ]; then
   cat > "${CONFIG_FILE}" <<EOF
@@ -24,5 +24,26 @@ else
   echo "[entrypoint] no env override → using built-in config.js (relative paths)"
 fi
 
-# -s: SPA fallback(없는 경로 → index.html) / -l: 리슨 포트
-exec serve -s dist -l 5173
+# Compose에서는 서비스명을, Kubernetes에서는 서비스 포트 기본값을 사용한다.
+# 제한된 변수만 envsubst하여 nginx의 $uri/$http_* 변수는 보존한다.
+USER_UPSTREAM=${USER_UPSTREAM:-user:8080}
+POST_UPSTREAM=${POST_UPSTREAM:-post:8080}
+CHAT_UPSTREAM=${CHAT_UPSTREAM:-chat:8080}
+MATCH_UPSTREAM=${MATCH_UPSTREAM:-match:8080}
+CREW_UPSTREAM=${CREW_UPSTREAM:-crew:8080}
+if [ -z "${NGINX_RESOLVER:-}" ]; then
+  NGINX_RESOLVER="$(awk '$1 == "nameserver" { print $2; exit }' /etc/resolv.conf)"
+fi
+
+if [ -z "${NGINX_RESOLVER}" ]; then
+  echo "[entrypoint] DNS resolver could not be detected"
+  exit 1
+fi
+
+export USER_UPSTREAM POST_UPSTREAM CHAT_UPSTREAM MATCH_UPSTREAM CREW_UPSTREAM NGINX_RESOLVER
+
+envsubst '${USER_UPSTREAM} ${POST_UPSTREAM} ${CHAT_UPSTREAM} ${MATCH_UPSTREAM} ${CREW_UPSTREAM} ${NGINX_RESOLVER}' \
+  < /etc/nginx/templates/default.conf.template \
+  > /etc/nginx/conf.d/default.conf
+
+exec nginx -g 'daemon off;'

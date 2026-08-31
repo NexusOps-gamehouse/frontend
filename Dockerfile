@@ -11,21 +11,28 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# ── 2) run 스테이지: dist만 serve로 서빙 (vite·소스·node_modules 없음) ──
-FROM node:24-alpine AS run
-WORKDIR /app
+# ── 2) run 스테이지: nginx가 SPA와 MSA reverse proxy를 함께 제공 ──
+FROM nginx:1.27-alpine AS run
 
-# serve: vite에 묶이지 않은 독립 정적 서버 (preview 대신)
-RUN npm i -g serve
+# 기존 Compose/Kubernetes 계약인 내부 5173 포트를 유지하면서 non-root로 실행한다.
+RUN addgroup -S -g 1000 app \
+  && adduser -S -D -H -u 1000 -G app app \
+  && mkdir -p /tmp/nginx/proxy_temp /tmp/nginx/client_temp \
+  && rm -f /etc/nginx/conf.d/default.conf \
+  && chown -R app:app /usr/share/nginx/html /etc/nginx /var/cache/nginx /var/log/nginx /tmp/nginx
 
-# build 스테이지 결과물(dist)만 가져옴 → 이미지 슬림
-COPY --from=build /app/dist ./dist
+WORKDIR /usr/share/nginx/html
+COPY --from=build /app/dist ./
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx/proxy_params /etc/nginx/proxy_params
 
-# 런타임에 env → dist/config.js 를 생성하는 진입점
+# 런타임 env → config.js와 nginx upstream을 생성하는 진입점
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && chown app:app /docker-entrypoint.sh
+RUN chown -R app:app /usr/share/nginx/html /etc/nginx /var/cache/nginx /var/log/nginx /tmp/nginx
 
+USER app
 EXPOSE 5173
 
-# entrypoint 가 config.js 생성 후 serve 실행 (내부에서 exec serve ...)
 ENTRYPOINT ["/docker-entrypoint.sh"]

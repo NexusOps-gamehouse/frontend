@@ -4,3 +4,5 @@ vite.config.js.timestamp-*.mjs
 .env
 .env.*
 !.env.example
+.DS_Store
+*.zip

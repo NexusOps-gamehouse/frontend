@@ -1,0 +1,881 @@
+.customization-shop-page {
+  min-height: calc(100vh - 64px);
+  padding: 40px 24px 80px;
+  background: var(--bg-color, #f7f8fb);
+}
+
+.customization-shop-container {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+}
+
+/* =========================
+   Header
+========================= */
+
+.customization-shop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.customization-shop-header h1 {
+  margin: 6px 0 8px;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.customization-shop-header p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.customization-shop-house-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+}
+
+.customization-shop-house-controls label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.customization-shop-house-controls select {
+  min-width: 180px;
+  max-width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-color, #f7f8fb);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.customization-shop-house-currency {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.customization-item-image-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88%;
+  height: 88%;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.customization-purchase-summary {
+  text-align: center;
+}
+
+.customization-purchase-summary > strong,
+.customization-purchase-summary > p {
+  display: block;
+  margin: 8px 0 0;
+}
+
+.customization-purchase-summary > p {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.customization-purchase-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  background: var(--bg-color, #f7f8fb);
+}
+
+.customization-purchase-image img,
+.customization-purchase-image .customization-item-image-fallback {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+}
+
+.customization-shop-eyebrow,
+.customization-shop-preview-label {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+/* =========================
+   Category Tabs
+========================= */
+
+.customization-category-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 28px 0 20px;
+  overflow-x: auto;
+}
+
+.customization-category-tab {
+  padding: 10px 18px;
+
+  border: 1px solid var(--border);
+  border-radius: 999px;
+
+  background: var(--surface, #fff);
+  color: var(--text-main);
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.customization-category-tab:hover {
+  transform: translateY(-1px);
+}
+
+.customization-category-tab.is-active {
+  border-color: var(--primary, #5068ff);
+  background: var(--primary, #5068ff);
+  color: #fff;
+}
+
+/* =========================
+   Main Layout
+========================= */
+
+.customization-shop-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 460px;
+  gap: 28px;
+  align-items: start;
+}
+
+.customization-shop-list {
+  min-width: 0;
+}
+
+.customization-shop-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.customization-shop-section-head h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.customization-shop-section-head p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* =========================
+   Item Grid
+========================= */
+
+.customization-item-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.customization-item-card {
+  min-width: 0;
+  overflow: hidden;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: var(--surface, #fff);
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.customization-item-card:hover {
+  transform: translateY(-2px);
+}
+
+.customization-item-card.is-selected {
+  border-color: var(--primary, #5068ff);
+  box-shadow: 0 0 0 2px rgba(80, 104, 255, 0.12);
+}
+
+.customization-item-select {
+  width: 100%;
+  padding: 14px;
+
+  border: 0;
+  background: transparent;
+  color: inherit;
+
+  text-align: left;
+  cursor: pointer;
+}
+
+/* =========================
+   Item Image Base
+========================= */
+
+.customization-item-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  aspect-ratio: 1 / 1;
+
+  margin-bottom: 12px;
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(45deg, var(--surface-hover, #f1f2f5) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--surface-hover, #f1f2f5) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--surface-hover, #f1f2f5) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-hover, #f1f2f5) 75%);
+
+  background-size: 16px 16px;
+
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+}
+
+.customization-item-image img {
+  display: block;
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+}
+
+/* =========================
+   Frame Card
+========================= */
+
+.customization-item-image.frame {
+  padding: 22px;
+  overflow: visible;
+}
+
+.customization-item-image.frame img {
+  width: 100%;
+  height: 100%;
+  max-width: 190px;
+  max-height: 190px;
+
+  object-fit: contain;
+}
+
+/* =========================
+   Emblem Card
+========================= */
+
+.customization-item-image.emblem {
+  padding: 16px;
+  overflow: visible;
+}
+
+.customization-item-image.emblem img {
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+}
+
+/* =========================
+   Profile Banner Card
+========================= */
+
+.customization-item-image.profile_banner {
+  aspect-ratio: 16 / 9;
+  padding: 10px;
+  overflow: visible;
+}
+
+.customization-item-image.profile_banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* =========================
+   Chat Theme Card
+========================= */
+
+.customization-item-image.chat_theme {
+  aspect-ratio: 16 / 9;
+  padding: 6px;
+  overflow: hidden;
+}
+
+.customization-item-image.chat_theme img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* =========================
+   Item Info
+========================= */
+
+.customization-item-select strong {
+  display: block;
+  overflow: hidden;
+
+  font-size: 14px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customization-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  padding: 10px 14px 14px;
+}
+
+.customization-item-status {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* =========================
+   Preview Panel
+========================= */
+
+.customization-shop-preview {
+  position: sticky;
+  top: 92px;
+
+  width: 100%;
+
+  padding: 22px;
+
+  border: 1px solid var(--border);
+  border-radius: 18px;
+
+  background: var(--surface, #fff);
+}
+
+.customization-shop-preview.is-chat-theme {
+  padding: 24px;
+}
+
+.customization-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* =========================
+   Preview Expand Button
+========================= */
+
+.customization-preview-expand-button {
+  padding: 7px 11px;
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--surface, #fff);
+  color: var(--text-main);
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.customization-preview-expand-button:hover {
+  border-color: var(--primary, #5068ff);
+  background: var(--bg-color, #f7f8fb);
+}
+
+/* =========================
+   Preview Image Base
+========================= */
+
+.customization-preview-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  aspect-ratio: 1 / 1;
+
+  margin-top: 14px;
+
+  border-radius: 14px;
+
+  background: var(--bg-color, #f7f8fb);
+}
+
+.customization-preview-image img {
+  display: block;
+
+  width: 88%;
+  height: 88%;
+
+  object-fit: contain;
+}
+
+/* =========================
+   Frame Preview
+========================= */
+
+.customization-preview-image.frame {
+  padding: 30px;
+  overflow: visible;
+}
+
+.customization-preview-image.frame img {
+  width: 100%;
+  height: 100%;
+
+  max-width: 300px;
+  max-height: 300px;
+
+  object-fit: contain;
+}
+
+/* =========================
+   Emblem Preview
+========================= */
+
+.customization-preview-image.emblem {
+  padding: 28px;
+  overflow: visible;
+}
+
+.customization-preview-image.emblem img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* =========================
+   Banner Preview
+========================= */
+
+.customization-preview-image.profile_banner {
+  aspect-ratio: 16 / 9;
+
+  padding: 10px;
+
+  overflow: visible;
+}
+
+.customization-preview-image.profile_banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* =========================
+   Chat Theme Preview
+========================= */
+
+.customization-preview-image.chat_theme {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 520px;
+  aspect-ratio: auto;
+
+  padding: 12px;
+
+  overflow: hidden;
+
+  border-radius: 16px;
+
+  background: #111;
+}
+
+.customization-preview-image.chat_theme img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+  object-position: center;
+}
+
+/* =========================
+   Preview Info
+========================= */
+
+.customization-preview-info {
+  margin-top: 18px;
+}
+
+.customization-preview-info span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.customization-preview-info strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.customization-preview-info p,
+.customization-preview-empty p {
+  margin: 8px 0 0;
+
+  color: var(--text-muted);
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.customization-preview-empty {
+  padding: 90px 10px;
+  text-align: center;
+}
+
+.customization-preview-empty strong {
+  font-size: 16px;
+}
+
+/* =========================
+   Fullscreen Chat Preview Overlay
+========================= */
+
+.customization-full-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.82);
+
+  backdrop-filter: blur(8px);
+}
+
+/* =========================
+   Fullscreen Preview Window
+========================= */
+
+.customization-full-preview {
+  display: flex;
+  flex-direction: column;
+
+  width: min(1600px, 97vw);
+  height: min(1000px, 96vh);
+
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+
+  background: #111;
+
+  box-shadow:
+    0 30px 100px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* =========================
+   Fullscreen Header
+========================= */
+
+.customization-full-preview-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 16px 20px;
+
+  background: var(--surface);
+}
+
+.customization-full-preview-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.customization-full-preview-header span {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.customization-full-preview-header strong {
+  color: var(--text-main, var(--text, #111));
+  font-size: 18px;
+}
+
+/* =========================
+   Fullscreen Close Button
+========================= */
+
+.customization-full-preview-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+
+  padding: 0;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--surface);
+  color: var(--text-main, var(--text, #222));
+
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.customization-full-preview-close:hover {
+  background: var(--surface-hover, #f4f5f8);
+  transform: scale(1.04);
+}
+
+/* =========================
+   Fullscreen Preview Image
+========================= */
+
+.customization-full-preview-image {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 0;
+
+  padding: 10px;
+
+  overflow: hidden;
+
+  background: #0b0b0d;
+}
+
+.customization-full-preview-image img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+  object-position: center;
+}
+
+.customization-full-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-main, var(--text, #111));
+}
+
+.customization-full-preview-footer > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.customization-full-preview-footer > div span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* =========================
+   Responsive - Medium
+========================= */
+
+@media (max-width: 1100px) {
+  .customization-shop-content {
+    grid-template-columns: minmax(0, 1fr) 400px;
+  }
+
+  .customization-preview-image.chat_theme {
+    height: 460px;
+  }
+
+  .customization-item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================
+   Responsive - Tablet
+========================= */
+
+@media (max-width: 900px) {
+  .customization-shop-content {
+    grid-template-columns: 1fr;
+  }
+
+  .customization-shop-preview {
+    position: static;
+    order: -1;
+  }
+
+  .customization-shop-preview.is-chat-theme {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .customization-preview-image.chat_theme {
+    height: 520px;
+  }
+
+  .customization-item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customization-full-preview {
+    width: 98vw;
+    height: 95vh;
+  }
+}
+
+/* =========================
+   Responsive - Mobile
+========================= */
+
+@media (max-width: 640px) {
+  .customization-shop-page {
+    padding: 24px 16px 60px;
+  }
+
+  .customization-shop-header {
+    flex-direction: column;
+  }
+
+  .customization-shop-house-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customization-shop-house-controls select,
+  .customization-shop-house-currency {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .customization-item-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .customization-preview-image.chat_theme {
+    height: 400px;
+  }
+
+  .customization-preview-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customization-preview-expand-button {
+    width: 100%;
+  }
+
+  .customization-full-preview-overlay {
+    padding: 8px;
+  }
+
+  .customization-full-preview {
+    width: 100%;
+    height: 96vh;
+
+    border-radius: 14px;
+  }
+
+  .customization-full-preview-header {
+    padding: 12px 14px;
+  }
+
+  .customization-full-preview-header strong {
+    font-size: 16px;
+  }
+
+  .customization-full-preview-image {
+    padding: 6px;
+  }
+
+  .customization-full-preview-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customization-full-preview-footer .ui-btn-primary {
+    width: 100%;
+  }
+}

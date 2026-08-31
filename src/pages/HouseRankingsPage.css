@@ -1,0 +1,45 @@
+.house-ranking-page-head { align-items: center; }
+.house-ranking-period {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 22px; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  color: var(--text-muted); font-size: 13px;
+}
+.house-ranking-period strong { color: var(--text-main); }
+.house-ranking-period small { margin-left: auto; }
+.house-ranking-section { margin-top: 28px; }
+.house-ranking-list { display: grid; gap: 9px; }
+.house-ranking-card {
+  display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; align-items: center; gap: 16px;
+  padding: 17px 19px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.house-ranking-card.is-mine { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary-glow); }
+.house-ranking-rank { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.house-ranking-rank > strong { color: var(--text-main); font-family: 'Orbitron', sans-serif; font-size: 20px; }
+.house-ranking-movement { font-size: 11px; font-weight: 800; white-space: nowrap; }
+.house-ranking-movement.up { color: var(--online); }
+.house-ranking-movement.down { color: var(--danger); }
+.house-ranking-movement.same { color: var(--text-muted); }
+.house-ranking-movement.new { color: var(--primary); }
+.house-ranking-main { min-width: 0; }
+.house-ranking-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.house-ranking-title {
+  overflow: hidden; color: var(--text-main); font-size: 16px; font-weight: 800; text-decoration: none; text-overflow: ellipsis; white-space: nowrap;
+}
+.house-ranking-title:hover { color: var(--primary); }
+.house-ranking-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; color: var(--text-muted); font-size: 12px; }
+.house-ranking-score { display: flex; min-width: 92px; flex-direction: column; align-items: flex-end; gap: 3px; }
+.house-ranking-score strong { color: var(--primary); font-size: 14px; }
+.house-ranking-score span { color: var(--text-muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.house-ranking-empty { padding: 28px 16px; }
+.house-ranking-pagination {
+  display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px;
+  color: var(--text-muted); font-size: 13px; font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .house-ranking-period { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .house-ranking-period small { margin-left: 0; }
+  .house-ranking-card { grid-template-columns: 48px minmax(0, 1fr); gap: 12px; padding: 15px; }
+  .house-ranking-score { grid-column: 2; align-items: flex-start; }
+  .house-ranking-rank > strong { font-size: 17px; }
+}

@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
   const postOrigin = env.VITE_POST_ORIGIN || 'http://localhost:8082';
   const chatOrigin = env.VITE_CHAT_ORIGIN || 'http://localhost:8083';
   const matchOrigin = env.VITE_MATCH_ORIGIN || 'http://localhost:8085';
+  const crewOrigin = env.VITE_CREW_ORIGIN || 'http://localhost:8086';
 
   // riot(:8084) 은 여기에 없다. 클러스터 내부 전용이라 브라우저가 직접 부르지
   // 않는다. 라이엇 연동은 /api/users/riot/* 로 user 를 거쳐 간다.
@@ -41,6 +42,15 @@ export default defineConfig(({ mode }) => {
         '/api/friends': userOrigin,
         '/api/notifications': userOrigin,
         '/uploads': userOrigin,           // 프로필 이미지 (user 가 파일을 소유)
+
+        // ── crew : House 목록·상세 ────────────────────────────────
+        '/api/crew': crewOrigin,
+        '/api/houses': crewOrigin,
+        '/api/shop': crewOrigin,
+        '/ws-house': {
+          target: crewOrigin,
+          ws: true,
+        },
 
         // ── post :8082 ──────────────────────────────────────────────
         '/api/posts': postOrigin,
