@@ -441,7 +441,7 @@ export default function HouseDetailPage() {
         </aside>
       </section>
 
-      <HouseCoinWallet user={user} refreshKey={coinWalletVersion} />
+      <HouseCoinWallet houseId={houseId} refreshKey={coinWalletVersion} />
 
       {hasGrowthData && (
         <HouseGrowthPanel house={house} user={user} onUpdate={setHouse} onNotice={setNotice} />

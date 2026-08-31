@@ -1932,7 +1932,7 @@ function CrewCustomizationShopPage({ user, houses, items }) {
                         <strong>{item.name}</strong>
                       </button>
                       <div className="customization-item-footer">
-                        <span className="customization-item-status">{owned ? '보유 중' : `HC ${price}`}</span>
+                        <span className="customization-item-status">{owned ? '보유 중' : price === 0 ? '무료' : `HC ${price}`}</span>
                         <button type="button" className="ui-btn-primary ui-btn-sm" disabled={owned || !selectedHouse || !currency || currency.hc < price} onClick={() => openPurchase(item)}>
                           {owned ? '보유 중' : !selectedHouse ? 'House 선택' : !currency ? 'HC 확인 필요' : currency.hc < price ? 'HC 부족' : '구매'}
                         </button>
@@ -1965,7 +1965,7 @@ function CrewCustomizationShopPage({ user, houses, items }) {
                 <div className="customization-preview-info">
                   <span>{SHOP_CATEGORY_LABEL[toShopCategory(selectedItem.category)]}</span>
                   <strong>{selectedItem.name}</strong>
-                  <p>{selectedOwned ? '보유 중인 상품입니다. 내 꾸미기에서 적용할 수 있습니다.' : `HC ${getSafeShopPrice(selectedItem)}로 구매할 수 있습니다.`}</p>
+                  <p>{selectedOwned ? '보유 중인 상품입니다. 내 꾸미기에서 적용할 수 있습니다.' : getSafeShopPrice(selectedItem) === 0 ? '무료로 획득할 수 있습니다.' : `HC ${getSafeShopPrice(selectedItem)}로 구매할 수 있습니다.`}</p>
                 </div>
               </>
             ) : <div className="customization-preview-empty"><strong>상품을 선택해보세요.</strong><p>선택한 상품을 크게 미리볼 수 있습니다.</p></div>}
@@ -1991,7 +1991,7 @@ function CrewCustomizationShopPage({ user, houses, items }) {
             <p>House: {selectedHouse?.name}</p>
             <p>구매 전 HC {currency?.hc ?? 0}</p>
             <p>구매 후 예상 HC {Math.max(0, (currency?.hc ?? 0) - getSafeShopPrice(purchaseItem))}</p>
-            <p>가격 HC {getSafeShopPrice(purchaseItem)}</p>
+            <p>가격 {getSafeShopPrice(purchaseItem) === 0 ? '무료' : `HC ${getSafeShopPrice(purchaseItem)}`}</p>
           </div>
         )}
       </Modal>
@@ -2030,7 +2030,7 @@ function CrewCustomizationShopPage({ user, houses, items }) {
 
             <div className="customization-full-preview-footer">
               <div>
-                <strong>{selectedOwned ? '보유 중' : `HC ${getSafeShopPrice(selectedItem)}`}</strong>
+                <strong>{selectedOwned ? '보유 중' : getSafeShopPrice(selectedItem) === 0 ? '무료' : `HC ${getSafeShopPrice(selectedItem)}`}</strong>
                 <span>{selectedOwned ? '내 꾸미기에서 적용할 수 있습니다.' : '미리보기는 구매 없이 확인할 수 있습니다.'}</span>
               </div>
               {selectedOwned ? (
