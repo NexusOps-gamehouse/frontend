@@ -1923,9 +1923,6 @@ function CrewCustomizationShopPage({ user, houses, items }) {
                         className="customization-item-select"
                         onClick={() => {
                           setSelectedItemId(item.id);
-                          if (toShopCategory(item.category) === 'CHAT_SKIN') {
-                            setIsPreviewExpanded(true);
-                          }
                         }}
                         aria-pressed={selectedItemId === item.id}
                       >
