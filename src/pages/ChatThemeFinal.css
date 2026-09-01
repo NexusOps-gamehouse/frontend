@@ -155,7 +155,7 @@
   background-image: var(--gh-chat-skin) !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
-  background-size: 100% 100% !important;
+  background-size: contain !important;
 
   /*
    * background.png itself is 3:4 and the panel is also 3:4,
@@ -585,6 +585,8 @@
 }
 
 .themed-chat-input {
+  min-width: 0;
+
   width: 100%;
   height: 54% !important;
 
@@ -650,6 +652,17 @@
 
 .themed-chat-send:disabled {
   cursor: default;
+}
+
+/* Keep House chat previews compact enough to fit below the site header while
+ * preserving the approved artwork ratio. The message viewport remains the
+ * scrolling surface inside the panel. */
+@media (min-width: 721px) {
+  .house-chat-page .house-chat-panel.themed-chat-panel {
+    width: min(720px, 92vw, 64vh) !important;
+    max-height: calc(100vh - 96px) !important;
+    margin-inline: auto;
+  }
 }
 
 /* =========================================================
@@ -2482,4 +2495,36 @@
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+
+/* The regular recruitment chat uses ThemedChatPanel rather than the
+ * HouseChatPage message markup. Keep its content column expandable so the
+ * avatar and timestamp do not make the bubble artificially narrow. */
+.themed-chat-page .themed-chat-message-row {
+  min-width: 0;
+}
+
+.themed-chat-page .themed-chat-message-body {
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 0;
+}
+
+.themed-chat-page .themed-chat-bubble {
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+/* The approved artwork is 3:4. Derive its width from the available viewport
+ * height so the header, internal message scroller, and composer stay inside
+ * the page without distorting or cropping the artwork. */
+@media (min-width: 721px) {
+  .themed-chat-page .themed-chat-panel {
+    width: min(720px, 92vw, calc((100vh - 160px) * 0.75)) !important;
+    max-height: calc(100vh - 160px) !important;
+    margin-inline: auto;
+  }
 }
