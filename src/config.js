@@ -12,9 +12,16 @@
 
 const env = (typeof window !== 'undefined' && window.__ENV__) || {};
 
+// 로컬 브라우저에서는 runtime config.js가 운영 컨테이너 설정으로 남아
+// 있어도 Vite/nginx의 same-origin proxy를 사용한다. 운영 호스트에서는
+// 기존 runtime WS_URL을 그대로 존중한다.
+const isLocalHost =
+  typeof window !== 'undefined' &&
+  ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+
 export const API_BASE_URL = env.API_BASE_URL || '/api';
 
-export const WS_URL = env.WS_URL || '/ws';
+export const WS_URL = isLocalHost ? '/ws' : (env.WS_URL || '/ws');
 
 // 명시적으로 "" 를 주면(=same-origin) 그대로 존중해야 하므로 키 존재 여부로 판별.
 export const BACKEND_ORIGIN = 'BACKEND_ORIGIN' in env ? env.BACKEND_ORIGIN : '';
