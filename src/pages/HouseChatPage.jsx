@@ -36,6 +36,11 @@ import {
 import Avatar from '../components/Avatar';
 
 import {
+  chatUserId,
+  ThemedChatAvatar,
+} from '../components/ThemedChatPanel';
+
+import {
   CUSTOMIZATION_CATEGORY,
   customizationItems,
 } from '../mocks/customizationItems';
@@ -375,6 +380,7 @@ function HouseRankAvatar({
   person,
   displayRank,
   large = false,
+  chatAvatar = null,
 }) {
   const frame =
     getHouseRankFrame(
@@ -418,16 +424,18 @@ function HouseRankAvatar({
       }
     >
       <div className="house-rank-avatar-photo">
-        <Avatar
-          user={
-            person
-          }
-          size={
-            large
-              ? ''
-              : 'sm'
-          }
-        />
+        {chatAvatar ?? (
+          <Avatar
+            user={
+              person
+            }
+            size={
+              large
+                ? ''
+                : 'sm'
+            }
+          />
+        )}
       </div>
 
       <img
@@ -575,6 +583,11 @@ export default function HouseChatPage() {
   ] = useState(null);
 
   const [
+    customizationsByUserId,
+    setCustomizationsByUserId,
+  ] = useState({});
+
+  const [
     searchOpen,
     setSearchOpen,
   ] = useState(false);
@@ -610,6 +623,41 @@ export default function HouseChatPage() {
 
   const chatThemeClass = `chat-theme-${chatThemeKey}`;
 
+  const currentUserId = userKey(user);
+
+  const houseMemberIds = [
+    currentUserId,
+    ...(house?.members ?? []).map(
+      (member) =>
+        member.userId ??
+        member.id,
+    ),
+  ]
+    .filter(Boolean)
+    .map(String)
+    .filter((id, index, ids) =>
+      ids.indexOf(id) === index,
+    )
+    .join('|');
+
+  const houseMembersByUserId =
+    useMemo(
+      () => new Map(
+        (house?.members ?? []).map(
+          (member) => [
+            String(
+              member.userId ??
+              member.id,
+            ),
+            member,
+          ],
+        ),
+      ),
+      [
+        house?.members,
+      ],
+    );
+
   const bottomRef =
     useRef(null);
 
@@ -633,6 +681,12 @@ export default function HouseChatPage() {
 
   const messageRefs =
     useRef(new Map());
+
+  const customizationReadInFlightRef =
+    useRef(0);
+
+  const participantCustomizationReadInFlightRef =
+    useRef(0);
 
   const updateParticipantsPopoverPosition =
     useCallback(
@@ -813,17 +867,43 @@ export default function HouseChatPage() {
         return;
       }
 
+      customizationReadInFlightRef.current += 1;
+
       try {
         const state = await getCustomizationState(user);
         if (active) setCustomization(state);
       } catch {
         if (active) setCustomization(null);
+      } finally {
+        customizationReadInFlightRef.current = Math.max(
+          0,
+          customizationReadInFlightRef.current - 1,
+        );
       }
     };
 
-    const unsubscribe = subscribeCustomization(loadCustomization);
+    const handleCustomizationChange = () => {
+      if (
+        customizationReadInFlightRef.current ||
+        participantCustomizationReadInFlightRef.current
+      ) {
+        return;
+      }
+
+      loadCustomization();
+    };
+
+    const unsubscribe = subscribeCustomization(
+      handleCustomizationChange,
+    );
     const handleStorage = (event) => {
-      if (event.key === 'gamehouse.customization.v2') loadCustomization();
+      if (
+        event.key === 'gamehouse.customization.v2' &&
+        !customizationReadInFlightRef.current &&
+        !participantCustomizationReadInFlightRef.current
+      ) {
+        loadCustomization();
+      }
     };
 
     window.addEventListener('storage', handleStorage);
@@ -834,7 +914,65 @@ export default function HouseChatPage() {
       unsubscribe();
       window.removeEventListener('storage', handleStorage);
     };
-  }, [previewMode, user]);
+  }, [
+    currentUserId,
+    previewMode,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (
+      previewMode ||
+      !houseMemberIds
+    ) {
+      setCustomizationsByUserId({});
+      return () => {
+        active = false;
+      };
+    }
+
+    participantCustomizationReadInFlightRef.current += 1;
+
+    const loadParticipantCustomizations = async () => {
+      try {
+        const entries = await Promise.all(
+          houseMemberIds.split('|').map(
+            async (id) => {
+              try {
+                return [
+                  id,
+                  await getCustomizationState({ id }),
+                ];
+              } catch {
+                return [id, null];
+              }
+            },
+          ),
+        );
+
+        if (active) {
+          setCustomizationsByUserId(
+            Object.fromEntries(entries),
+          );
+        }
+      } finally {
+        participantCustomizationReadInFlightRef.current = Math.max(
+          0,
+          participantCustomizationReadInFlightRef.current - 1,
+        );
+      }
+    };
+
+    loadParticipantCustomizations();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    houseMemberIds,
+    previewMode,
+  ]);
 
   useEffect(
     () => {
@@ -1991,17 +2129,15 @@ export default function HouseChatPage() {
                   ) ===
                   viewerId;
 
+                const senderId = String(
+                  message.senderId ??
+                    message.author?.id ??
+                    '',
+                );
+
                 const authorMember =
-                  house.members.find(
-                    (
-                      member,
-                    ) => String(
-                      member.userId ??
-                        member.id,
-                    ) === String(
-                      message.senderId ??
-                        message.author?.id,
-                    ),
+                  houseMembersByUserId.get(
+                    senderId,
                   );
 
                 const authorRole =
@@ -2017,16 +2153,78 @@ export default function HouseChatPage() {
                   role: authorRole,
                 };
 
+                const senderPerson = {
+                  ...(authorMember
+                    ? getMemberPerson(authorMember)
+                    : {}),
+                  ...(message.author ?? {}),
+                  ...(mine ? user : {}),
+                  id:
+                    message.senderId ??
+                    message.author?.id,
+                  nickname:
+                    message.author?.nickname ??
+                    authorMember?.nickname ??
+                    (mine ? user?.nickname : null) ??
+                    'House 멤버',
+                };
+
+                const senderCustomization =
+                  customizationsByUserId[
+                    senderId
+                  ];
+
+                const senderThemeItem =
+                  customizationItems.find(
+                    (item) =>
+                      item.id ===
+                        senderCustomization
+                          ?.equippedChatThemeId &&
+                      item.category ===
+                        CUSTOMIZATION_CATEGORY.CHAT_THEME,
+                  );
+
+                const senderThemeKey =
+                  getChatThemeKey(
+                    senderThemeItem?.id,
+                  );
+
+                const chatAvatar =
+                  senderThemeKey ? (
+                    <ThemedChatAvatar
+                      person={
+                        senderPerson
+                      }
+                      themeKey={
+                        senderThemeKey
+                      }
+                      currentUser={
+                        user
+                      }
+                      equippedChatAvatarId={
+                        senderCustomization
+                          ?.equippedChatAvatarId
+                      }
+                      useThemeAvatar={
+                        true
+                      }
+                      size="sm"
+                    />
+                  ) : null;
+
                 const displayRank =
                   getHouseDisplayRank(senderMember);
 
                 const avatar = (
                   <HouseRankAvatar
                     person={
-                      message.author
+                      senderPerson
                     }
                     displayRank={
                       displayRank
+                    }
+                    chatAvatar={
+                      chatAvatar
                     }
                   />
                 );
