@@ -74,6 +74,7 @@ export function ThemedChatAvatar({
   themeKey,
   currentUser,
   equippedChatAvatarId,
+  useThemeAvatar,
   size = 'md',
 }) {
   const isCurrentUser =
@@ -87,15 +88,19 @@ export function ThemedChatAvatar({
         currentUser,
       );
 
+  const shouldUseThemeAvatar =
+    useThemeAvatar ??
+    isCurrentUser;
+
   const selectedAvatar =
-    isCurrentUser
+    shouldUseThemeAvatar
       ? getChatThemeAvatarById(
           equippedChatAvatarId,
         )
       : null;
 
   const firstThemeAvatar =
-    isCurrentUser
+    shouldUseThemeAvatar
       ? getChatThemeAvatars(
           themeKey,
         )[0] ??

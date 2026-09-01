@@ -100,6 +100,30 @@ const getChatThemeKey = (
   );
 };
 
+const getCustomizationChatTheme = (
+  state,
+) => {
+  const itemId =
+    state?.equippedChatThemeId;
+
+  if (
+    !itemId
+  ) {
+    return null;
+  }
+
+  return (
+    customizationItems.find(
+      (item) =>
+        item.id ===
+          itemId &&
+        item.category ===
+          CUSTOMIZATION_CATEGORY.CHAT_THEME,
+    ) ??
+    null
+  );
+};
+
 /* =========================================================
    Chat Page
 ========================================================= */
@@ -150,6 +174,11 @@ export default function ChatPage() {
     customization,
     setCustomization,
   ] = useState(null);
+
+  const [
+    customizationsByUserId,
+    setCustomizationsByUserId,
+  ] = useState({});
 
   const clientRef =
     useRef(null);
@@ -236,29 +265,80 @@ export default function ChatPage() {
             null,
           );
 
+          setCustomizationsByUserId(
+            {},
+          );
+
           return;
         }
 
-        try {
-          const state =
-            await getCustomizationState(
-              user,
-            );
+        const people = [
+          user,
+          ...(room?.members ?? []).map(
+            (member) => member.user,
+          ),
+        ].filter(
+          (person) =>
+            chatUserId(person),
+        );
 
-          setCustomization(
-            state,
+        const uniquePeople = [
+          ...new Map(
+            people.map(
+              (person) => [
+                chatUserId(person),
+                person,
+              ],
+            ),
+          ).values(),
+        ];
+
+        const entries =
+          await Promise.all(
+            uniquePeople.map(
+              async (person) => {
+                const personId =
+                  chatUserId(person);
+
+                try {
+                  return [
+                    personId,
+                    await getCustomizationState(
+                      person,
+                    ),
+                  ];
+                } catch {
+                  /*
+                   * 한 사용자의 꾸미기 조회 실패가
+                   * 채팅 이용을 막지 않도록 한다.
+                   */
+                  return [
+                    personId,
+                    null,
+                  ];
+                }
+              },
+            ),
           );
-        } catch {
-          /*
-           * 꾸미기 정보 조회 실패가
-           * 실제 채팅 이용을 막아서는 안 된다.
-           */
-          setCustomization(
-            null,
+
+        const states =
+          Object.fromEntries(
+            entries,
           );
-        }
+
+        setCustomizationsByUserId(
+          states,
+        );
+
+        setCustomization(
+          states[
+            chatUserId(user)
+          ] ??
+          null,
+        );
       },
       [
+        room,
         user,
       ],
     );
@@ -721,27 +801,64 @@ export default function ChatPage() {
       (
         person,
         size = 'md',
-      ) => (
-        <ThemedChatAvatar
-          person={
-            person
-          }
-          themeKey={
-            chatThemeKey
-          }
-          currentUser={
-            user
-          }
-          equippedChatAvatarId={
-            equippedChatAvatarId
-          }
-          size={
-            size
-          }
-        />
-      ),
+      ) => {
+        const personId =
+          chatUserId(person);
+
+        const personCustomization =
+          customizationsByUserId[
+            personId
+          ] ??
+          (personId ===
+            chatUserId(user)
+            ? customization
+            : null);
+
+        const personTheme =
+          getCustomizationChatTheme(
+            personCustomization,
+          );
+
+        const personThemeKey =
+          getChatThemeKey(
+            personTheme,
+          );
+
+        return (
+          <ThemedChatAvatar
+            person={
+              person
+            }
+            themeKey={
+              personThemeKey ??
+              chatThemeKey
+            }
+            currentUser={
+              user
+            }
+            equippedChatAvatarId={
+              personCustomization
+                ?.equippedChatAvatarId ??
+              (personId ===
+                chatUserId(user)
+                ? equippedChatAvatarId
+                : null)
+            }
+            useThemeAvatar={
+              Boolean(
+                personThemeKey,
+              )
+            }
+            size={
+              size
+            }
+          />
+        );
+      },
       [
         chatThemeKey,
+        customization,
+        customizationsByUserId,
         equippedChatAvatarId,
         user,
       ],
@@ -779,18 +896,41 @@ export default function ChatPage() {
         }
 
         return {
+          ...(room?.members ?? [])
+            .find(
+              (member) =>
+                chatUserId(
+                  member.user,
+                ) ===
+                String(
+                  message?.senderId ??
+                  '',
+                ),
+            )?.user,
+
           id:
             message
               ?.senderId,
 
           nickname:
-            message
-              ?.senderNickname ??
+            message?.senderNickname ??
+            room?.members
+              ?.find(
+                (member) =>
+                  chatUserId(
+                    member.user,
+                  ) ===
+                  String(
+                    message?.senderId ??
+                    '',
+                  ),
+              )?.user?.nickname ??
             '사용자',
         };
       },
       [
         isMessageMine,
+        room,
         user,
       ],
     );
