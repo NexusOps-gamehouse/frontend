@@ -647,6 +647,25 @@
   overflow: hidden;
 }
 
+.house-rank-avatar-photo .chat-theme-avatar {
+  width:
+    var(
+      --rank-avatar-size
+    );
+
+  height:
+    var(
+      --rank-avatar-size
+    );
+
+  flex:
+    0
+    0
+    var(
+      --rank-avatar-size
+    );
+}
+
 .house-rank-avatar-photo .av img {
   display: block;
 
