@@ -771,11 +771,20 @@
 }
 
 .house-chat-message-body {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-start;
+
   min-width: 0;
 
-  max-width: calc(100% - 48px);
-
   flex: 0 1 auto;
+}
+
+.house-chat-message.mine
+.house-chat-message-body {
+  align-items: flex-end;
 }
 
 /* =========================================================
@@ -794,6 +803,15 @@
   margin-bottom: 6px;
 
   min-width: 0;
+}
+
+.house-chat-message-body > p {
+  align-self: flex-start;
+}
+
+.house-chat-message.mine
+.house-chat-message-body > p {
+  align-self: flex-end;
 }
 
 .house-chat-message.mine
