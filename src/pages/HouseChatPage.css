@@ -756,7 +756,9 @@
 
   gap: 12px;
 
-  max-width: 78%;
+  width: min(88%, 720px);
+
+  max-width: 88%;
 
   margin-bottom: 16px;
 }
@@ -770,6 +772,10 @@
 
 .house-chat-message-body {
   min-width: 0;
+
+  max-width: calc(100% - 48px);
+
+  flex: 0 1 auto;
 }
 
 /* =========================================================
@@ -781,11 +787,13 @@
 
   align-items: center;
 
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 
   gap: 6px;
 
   margin-bottom: 6px;
+
+  min-width: 0;
 }
 
 .house-chat-message.mine
@@ -795,10 +803,25 @@
 }
 
 .house-chat-message-meta strong {
+  min-width: 0;
+
+  overflow: hidden;
+
   color:
     var(--text-main);
 
   font-size: 12px;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.house-chat-message-meta .role-badge,
+.house-chat-message-meta time {
+  flex: 0 0 auto;
+
+  white-space: nowrap;
 }
 
 .house-chat-message-meta time {
@@ -813,6 +836,12 @@
 ========================================================= */
 
 .house-chat-message-body > p {
+  width: fit-content;
+
+  max-width: 100%;
+
+  min-width: 0;
+
   padding:
     11px
     14px;
@@ -838,10 +867,10 @@
   line-height: 1.65;
 
   overflow-wrap:
-    anywhere;
+    break-word;
 
   word-break:
-    break-word;
+    keep-all;
 
   white-space:
     pre-wrap;
@@ -862,6 +891,10 @@
     4px
     var(--radius-md)
     var(--radius-md);
+}
+
+.house-chat-message > .house-rank-avatar {
+  flex: 0 0 auto;
 }
 
 /* =========================================================
@@ -1058,6 +1091,8 @@
   }
 
   .house-chat-message {
+    width: 88%;
+
     max-width: 88%;
   }
 }
@@ -1095,7 +1130,13 @@
   }
 
   .house-chat-message {
+    width: 94%;
+
     max-width: 94%;
+  }
+
+  .house-chat-message-meta {
+    flex-wrap: wrap;
   }
 
   .house-chat-input-row {
